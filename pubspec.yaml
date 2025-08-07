@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.2
+  sdk: ^3.5.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -43,6 +43,7 @@ dependencies:
   isar_flutter_libs: ^3.1.0+1 # Isar Flutter bindings
   path_provider: ^2.1.2 # Path utilities
   intl: ^0.19.0 # Utilities
+  json_annotation: ^4.8.1 # JSON serialization annotations
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +57,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   isar_generator: ^3.1.0+1 # Isar code generation
   build_runner: ^2.4.7 # Code generation runner
+  json_serializable: ^6.7.1 # JSON serialization code generation
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

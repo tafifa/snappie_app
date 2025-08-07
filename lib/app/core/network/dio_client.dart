@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' as getx;
 import '../constants/app_constants.dart';
 import '../errors/exceptions.dart';
 

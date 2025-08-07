@@ -68,7 +68,7 @@ class AppUtils {
   // Debouncing
   static void debounce(Function() action, {Duration delay = const Duration(milliseconds: 500)}) {
     Timer? timer;
-    timer?.cancel();
     timer = Timer(delay, action);
+    timer.cancel();
   }
 }

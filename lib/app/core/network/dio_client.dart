@@ -1,94 +1,100 @@
 import 'package:dio/dio.dart';
+import 'package:get/get.dart' as getx;
+import '../services/auth_service.dart';
 import '../constants/app_constants.dart';
-import '../errors/exceptions.dart';
 
 class DioClient {
-  late final Dio _dio;
+  late Dio _dio;
   
   DioClient() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: AppConstants.baseUrl + AppConstants.apiVersion,
-        connectTimeout: AppConstants.connectionTimeout,
-        receiveTimeout: AppConstants.receiveTimeout,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
+    _dio = Dio();
+    _setupDio();
+  }
+  
+  void _setupDio() {
+    // Base options
+    _dio.options = BaseOptions(
+      baseUrl: AppConstants.baseUrl + AppConstants.apiVersion,
+      connectTimeout: AppConstants.connectionTimeout,
+      receiveTimeout: AppConstants.receiveTimeout,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
     );
     
-    _dio.interceptors.add(_createAuthInterceptor());
-    _dio.interceptors.add(_createLoggingInterceptor());
-    _dio.interceptors.add(_createErrorInterceptor());
+    // Add interceptors
+    _dio.interceptors.addAll([
+      _AuthInterceptor(),
+      _LoggingInterceptor(),
+      _ErrorInterceptor(),
+    ]);
   }
   
   Dio get dio => _dio;
-  
-  InterceptorsWrapper _createAuthInterceptor() {
-    return InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        // Add auth token if available
-        final token = await _getAuthToken();
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-    );
+}
+
+// Auth interceptor to add auth headers
+class _AuthInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    try {
+      final authService = getx.Get.find<AuthService>();
+      final authHeaders = authService.getAuthHeaders();
+      
+      // Add auth headers to request
+      options.headers.addAll(authHeaders);
+    } catch (e) {
+      // AuthService not available, continue without auth
+      print('AuthService not available: $e');
+    }
+    
+    handler.next(options);
+  }
+}
+
+// Logging interceptor
+class _LoggingInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    print('REQUEST[${options.method}] => PATH: ${options.path}');
+    handler.next(options);
   }
   
-  InterceptorsWrapper _createLoggingInterceptor() {
-    return InterceptorsWrapper(
-      onRequest: (options, handler) {
-        print('REQUEST[${options.method}] => PATH: ${options.path}');
-        handler.next(options);
-      },
-      onResponse: (response, handler) {
-        print('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
-        handler.next(response);
-      },
-      onError: (error, handler) {
-        print('ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}');
-        handler.next(error);
-      },
-    );
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    print('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
+    handler.next(response);
   }
   
-  InterceptorsWrapper _createErrorInterceptor() {
-    return InterceptorsWrapper(
-      onError: (error, handler) {
-        final exception = _handleDioError(error);
-        handler.reject(DioException(
-          requestOptions: error.requestOptions,
-          error: exception,
-        ));
-      },
-    );
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    print('ERROR[${err.response?.statusCode}] => PATH: ${err.requestOptions.path}');
+    print('Error: ${err.message}');
+    handler.next(err);
   }
-  
-  Exception _handleDioError(DioException error) {
-    switch (error.type) {
+}
+
+// Error handling interceptor
+class _ErrorInterceptor extends Interceptor {
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    switch (err.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return const NetworkException('Connection timeout');
+        print('Timeout error: ${err.message}');
+        break;
       case DioExceptionType.badResponse:
-        return ServerException(
-          error.response?.data['message'] ?? 'Server error',
-          statusCode: error.response?.statusCode,
-        );
+        print('Bad response: ${err.response?.statusCode}');
+        break;
       case DioExceptionType.cancel:
-        return const NetworkException('Request cancelled');
-      case DioExceptionType.connectionError:
-        return const NetworkException('No internet connection');
+        print('Request cancelled');
+        break;
       default:
-        return const NetworkException('Unknown network error');
+        print('Network error: ${err.message}');
     }
-  }
-  
-  Future<String?> _getAuthToken() async {
-    // TODO: Implement token retrieval from storage
-    return null;
+    
+    handler.next(err);
   }
 }

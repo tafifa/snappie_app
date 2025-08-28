@@ -1,161 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/home_controller.dart';
+import '../../../core/constants/app_colors.dart';
+
+import '../../../domain/entities/post_entity.dart';
+import '../widgets/post_card.dart';
+import '../widgets/post_creation_widget.dart';
+import '../../../core/components/app_header_widget.dart';
+import '../../../core/components/notification_button_widget.dart';
+import '../../articles/widgets/common/loading_state_widget.dart';
 
 class HomeView extends GetView<HomeController> {
-  const HomeView({Key? key}) : super(key: key);
+  const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.surfaceContainer,
       body: RefreshIndicator(
         onRefresh: () async {
           controller.refreshData();
         },
         child: CustomScrollView(
           slivers: [
-            // App Bar with User Greeting
-            SliverAppBar(
-              expandedHeight: 100,
-              floating: true,
-              pinned: true,
-              backgroundColor: Colors.blue,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.person,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Hello, Marissa Ana!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.blue[400]!,
-                        Colors.blue[600]!,
-                      ],
-                    ),
-                  ),
-                ),
+            Obx(() => AppHeaderWidget(
+              greeting: 'Hello, ${controller.userData['name'] ?? 'User'}!',
+              subtitle: 'Selamat datang kembali',
+              actionButton: NotificationButtonWidget(
+                onPressed: () => _showNotifications(),
+                hasNotification: true,
               ),
-              actions: [
-                IconButton(
-                  onPressed: () => _showNotifications(),
-                  icon: Stack(
-                    children: [
-                      const Icon(Icons.notifications_outlined),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            
+            )),
+
             // Post Creation Section
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.blue,
-                      child: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'Tuliskan sesuatu...',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.add_a_photo,
-                        color: Colors.blue[600],
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
+            Obx(() => SliverToBoxAdapter(
+              child: PostCreationWidget(
+                username: controller.userData['name'] ?? 'User',
+                avatarUrl: controller.userData['avatar'],
+                onTap: () => _showCreatePost(),
+                onPhotoTap: () => _showPhotoOptions(),
               ),
-            ),
-            
+            )),
+
             // Posts Timeline
             Obx(() {
               if (controller.isLoading && controller.posts.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                return const LoadingStateWidget(
+                  isSliver: true,
                 );
               }
 
@@ -163,7 +54,12 @@ class HomeView extends GetView<HomeController> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final post = controller.posts[index];
-                    return _buildPostCard(post);
+                    return PostCard(
+                      post: post,
+                      onCommentTap: () => _showComments(post),
+                      onShareTap: () => _sharePost(post),
+                      onMoreTap: () => _showPostOptions(post),
+                    );
                   },
                   childCount: controller.posts.length,
                 ),
@@ -175,324 +71,392 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  Widget _buildPostCard(PostEntity post) {
-    return Container(
-      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+  void _showComments(PostEntity post) {
+    final TextEditingController commentController = TextEditingController();
+
+    Get.bottomSheet(
+      SafeArea(
+        top: true,
+        bottom: true,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(
+            // Pastikan konten naik ketika keyboard muncul
+            bottom: MediaQuery.of(Get.context!).viewInsets.bottom,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Post Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+          child: Container(
+            height: Get.height,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.blue[100],
-                  child: Text(
-                    post.username[0].toUpperCase(),
-                    style: TextStyle(
-                      color: Colors.blue[700],
-                      fontWeight: FontWeight.bold,
+                // drag handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                // header
+                Container(
+                  margin: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+                  child: const Center(
+                    child: Text(
+                      'Komentar',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            post.username,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Ikuti',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        post.placeName,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        _formatTimeAgo(post.createdAt),
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.more_vert,
-                  color: Colors.grey[400],
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-          
-          // Post Content
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              post.content,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Post Image
-          Container(
-            width: double.infinity,
-            height: 200,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                post.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: Icon(
-                        Icons.image,
+                const Divider(height: 1),
+
+                // body
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      'Belum ada komentar',
+                      style: TextStyle(
                         color: Colors.grey,
-                        size: 40,
+                        fontSize: 16,
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Post Tags
-          if (post.tags.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 8,
-                children: post.tags.map((tag) {
-                  return Text(
-                    tag,
-                    style: TextStyle(
-                      color: Colors.blue[600],
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                // input
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.grey[200]!,
+                        width: 1,
+                      ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-          
-          const SizedBox(height: 12),
-          
-          // Post Actions
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Obx(() {
-                  final isLiked = controller.posts
-                      .firstWhere((p) => p.id == post.id)
-                      .isLiked;
-                  return GestureDetector(
-                    onTap: () => controller.toggleLike(post.id),
+                  ),
+                  child: SafeArea(
+                    top:
+                        false, // cukup lindungi bottom agar tidak numpuk dengan gesture bar
                     child: Row(
                       children: [
-                        Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.grey[600],
-                          size: 20,
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.blue[100],
+                          child: Text(
+                            'A',
+                            style: TextStyle(
+                              color: Colors.blue[700],
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${controller.posts.firstWhere((p) => p.id == post.id).likes}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: commentController,
+                            decoration: InputDecoration(
+                              hintText: 'Tambahkan komentar...',
+                              hintStyle: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                            ),
+                            maxLines: null,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (value) {
+                              if (value.trim().isNotEmpty) {
+                                _addComment(post, value.trim());
+                                commentController.clear();
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            if (commentController.text.trim().isNotEmpty) {
+                              _addComment(post, commentController.text.trim());
+                              commentController.clear();
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  );
-                }),
-                const SizedBox(width: 20),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      color: Colors.grey[600],
-                      size: 20,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${post.comments}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 20),
-                Icon(
-                  Icons.share_outlined,
-                  color: Colors.grey[600],
-                  size: 20,
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Bagikan',
-                    style: TextStyle(
-                      color: Colors.blue[700],
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
                   ),
                 ),
               ],
             ),
           ),
-          
-          const SizedBox(height: 16),
-        ],
+        ),
+      ),
+      isScrollControlled: true,
+      ignoreSafeArea: false, // penting supaya tidak nabrak notch/status bar
+      enableDrag: true,
+    );
+  }
+
+  void _addComment(PostEntity post, String comment) {
+    // TODO: Implement add comment functionality
+    Get.snackbar(
+      'Komentar Ditambahkan',
+      'Komentar "$comment" berhasil ditambahkan',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _sharePost(PostEntity post) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              'Bagikan Post',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(Icons.copy, 'Salin Link'),
+                _buildShareOption(Icons.share, 'Bagikan'),
+                _buildShareOption(Icons.bookmark_border, 'Simpan'),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
 
-  String _formatTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m';
-    } else {
-      return 'now';
-    }
-  }
-
-  void _showNotifications() {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Notifications'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildNotificationItem(
-              'Check-in Approved',
-              'Your check-in at Cafe Mocha has been approved!',
-              Icons.check_circle,
-              Colors.green,
+  Widget _buildShareOption(IconData icon, String label) {
+    return GestureDetector(
+      onTap: () {
+        Get.back();
+        Get.snackbar('Info', '$label berhasil');
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primaryContainer,
+              shape: BoxShape.circle,
             ),
-            _buildNotificationItem(
-              'New Review',
-              'Someone reviewed a place you checked in',
-              Icons.rate_review,
-              Colors.blue,
+            child: Icon(
+              icon,
+              color: AppColors.primary,
+              size: 24,
             ),
-            _buildNotificationItem(
-              'Achievement Unlocked',
-              'You earned the "Explorer" badge!',
-              Icons.emoji_events,
-              Colors.amber,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Close'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationItem(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-  ) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
+  void _showPostOptions(PostEntity post) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.bookmark_border),
+              title: const Text('Simpan Post'),
+              onTap: () {
+                Get.back();
+                Get.snackbar('Info', 'Post disimpan');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_remove),
+              title: Text('Sembunyikan dari ${post.username}'),
+              onTap: () {
+                Get.back();
+                Get.snackbar('Info', 'Post disembunyikan');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.report, color: Colors.red),
+              title: const Text('Laporkan Post',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Get.back();
+                Get.snackbar('Info', 'Post dilaporkan');
+              },
+            ),
+          ],
         ),
       ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 12),
+    );
+  }
+
+  void _showNotifications() {
+    Get.bottomSheet(
+      SafeArea(
+        top: true,
+        bottom: true,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Notifikasi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(Icons.close),
+                      iconSize: 24,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+              // Content
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: const [
+                    SizedBox(height: 10),
+                    // ... your items
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      dense: true,
+      isScrollControlled: true,
+      ignoreSafeArea: false, // <- penting agar tidak nabrak notch
+      // gunakan barrierColor jika perlu: barrierColor: Colors.black54,
+      enableDrag: true,
+    );
+  }
+
+
+  void _showCreatePost() {
+    // TODO: Implement create post functionality
+    Get.snackbar(
+      'Info',
+      'Create post functionality will be implemented',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void _showPhotoOptions() {
+    // TODO: Implement photo options functionality
+    Get.snackbar(
+      'Info',
+      'Photo options functionality will be implemented',
+      snackPosition: SnackPosition.BOTTOM,
     );
   }
 }

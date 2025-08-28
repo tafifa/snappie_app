@@ -1,102 +1,186 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../domain/entities/user_entity.dart';
+import '../../../core/services/auth_service.dart';
 
 class ProfileController extends GetxController {
-  // User profile observables
-  final RxString userName = 'John Doe'.obs;
-  final RxString userEmail = 'john.doe@example.com'.obs;
-  final RxString userAvatar = ''.obs;
-  final RxInt totalCheckins = 0.obs;
-  final RxInt totalReviews = 0.obs;
-  final RxInt totalPlaces = 0.obs;
+  final AuthService authService;
   
-  // Loading states
-  final RxBool isLoading = false.obs;
-  final RxBool isUpdatingProfile = false.obs;
+  ProfileController({required this.authService});
   
-  final RxString errorMessage = ''.obs;
+  final _userProfile = <String, dynamic>{}.obs;
+  final _isLoading = false.obs;
+
+  Map<String, dynamic> get userProfile => _userProfile;
+  bool get isLoading => _isLoading.value;
+
+  UserEntity? get user => _userProfile['user'] as UserEntity?;
+  Map<String, dynamic>? get stats => _userProfile['stats'] as Map<String, dynamic>?;
+  List<Map<String, dynamic>>? get recentActivity => _userProfile['recentActivity'] as List<Map<String, dynamic>>?;
 
   @override
   void onInit() {
     super.onInit();
     loadUserProfile();
+    
+    // Listen for auth status changes
+    ever(authService.isLoggedInObs, (isLoggedIn) {
+      if (isLoggedIn) {
+        loadUserProfile();
+      }
+    });
   }
 
-  // Load user profile data
   Future<void> loadUserProfile() async {
-    isLoading.value = true;
-    errorMessage.value = '';
+    _setLoading(true);
     
     try {
-      // Mock data loading
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Mock statistics
-      totalCheckins.value = 15;
-      totalReviews.value = 8;
-      totalPlaces.value = 12;
-      
+      // Load user data from AuthService
+      if (authService.isLoggedIn) {
+        final userData = authService.userData;
+        if (userData != null) {
+          _userProfile.value = {
+            'user': UserEntity(
+              id: userData['id'] ?? '',
+              email: userData['email'] ?? '',
+              name: userData['name'] ?? '',
+              avatar: userData['avatar'],
+              createdAt: DateTime.now(), // TODO: Parse from API
+              updatedAt: DateTime.now(), // TODO: Parse from API
+              isActive: userData['is_active'] ?? true,
+            ),
+            'stats': {
+              'total_checkins': userData['total_checkins'] ?? 0,
+              'total_reviews': userData['total_reviews'] ?? 0,
+              'total_points': userData['total_points'] ?? 0,
+              'level': userData['level'] ?? 1,
+            },
+            'recentActivity': [], // TODO: Load from API
+          };
+          
+          print('👤 User profile loaded: ${userData['name']}');
+        } else {
+          print('❌ No user data available');
+        }
+      } else {
+        print('❌ User not logged in');
+      }
     } catch (e) {
-      errorMessage.value = 'Failed to load profile';
+      print('❌ Error loading user profile: $e');
     }
     
-    isLoading.value = false;
+    _setLoading(false);
   }
-  
-  // Update profile
-  Future<void> updateProfile({
-    required String name,
-    required String email,
-  }) async {
-    isUpdatingProfile.value = true;
-    errorMessage.value = '';
-    
+
+  Future<void> refreshProfile() async {
+    await loadUserProfile();
+  }
+
+  void editProfile() {
+    // TODO: Implement edit profile functionality
+    Get.snackbar(
+      'Edit Profile',
+      'Edit profile feature coming soon!',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void changePassword() {
+    // TODO: Implement change password functionality
+    Get.snackbar(
+      'Change Password',
+      'Change password feature coming soon!',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  Future<void> logout() async {
     try {
-      // Mock profile update
-      await Future.delayed(const Duration(milliseconds: 1000));
-      
-      userName.value = name;
-      userEmail.value = email;
-      
-      Get.snackbar(
-        'Success',
-        'Profile updated successfully!',
-        snackPosition: SnackPosition.BOTTOM,
+      // Show confirmation dialog
+      final confirmed = await Get.dialog<bool>(
+        AlertDialog(
+          title: Text('Konfirmasi Logout'),
+          content: Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Get.back(result: true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Logout'),
+            ),
+          ],
+        ),
       );
+      
+      if (confirmed == true) {
+        // Show loading
+        Get.dialog(
+          Center(
+            child: CircularProgressIndicator(),
+          ),
+          barrierDismissible: false,
+        );
+        
+        // Call logout API
+        await authService.logout();
+        
+        // Close loading dialog
+        Get.back();
+        
+        // Show success message
+        Get.snackbar(
+          'Logout Berhasil',
+          'Anda telah keluar dari aplikasi',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        
+        // Navigate back to login screen
+        Get.offAllNamed('/login');
+      }
     } catch (e) {
-      errorMessage.value = 'Failed to update profile';
+      // Close loading dialog if open
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+      
+      // Show error message
       Get.snackbar(
         'Error',
-        'Failed to update profile',
+        'Gagal logout: $e',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
     }
-    
-    isUpdatingProfile.value = false;
   }
-  
-  // Logout
-  void logout() {
-    // Show confirmation dialog
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              // Perform logout
-              Get.offAllNamed('/login');
-            },
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
+
+  void viewAchievements() {
+    // TODO: Implement view achievements functionality
+    Get.snackbar(
+      'Achievements',
+      'View achievements feature coming soon!',
+      snackPosition: SnackPosition.BOTTOM,
     );
+  }
+
+  void viewHistory() {
+    // TODO: Implement view history functionality
+    Get.snackbar(
+      'History',
+      'View history feature coming soon!',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void _setLoading(bool loading) {
+    _isLoading.value = loading;
   }
 }

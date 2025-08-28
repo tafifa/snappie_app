@@ -7,11 +7,11 @@ class PlaceCard extends StatelessWidget {
   final VoidCallback? onCheckin;
 
   const PlaceCard({
-    Key? key,
+    super.key,
     required this.place,
     this.onTap,
     this.onCheckin,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,13 +136,13 @@ class PlaceCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            place.averageRating.toStringAsFixed(1),
+                            (place.averageRating ?? 0.0).toStringAsFixed(1),
                             style: const TextStyle(
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           Text(
-                            ' (${place.totalReviews})',
+                            ' (${place.totalReviews ?? 0})',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 12,
@@ -173,7 +173,7 @@ class PlaceCard extends StatelessWidget {
                   ),
                   
                   // Partnership status and rewards
-                  if (place.partnershipStatus == PartnershipStatus.active) ...[
+                  if (place.partnershipStatus) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -193,7 +193,7 @@ class PlaceCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Earn ${place.rewardInfo.baseExp} XP + ${place.rewardInfo.baseCoin} coins',
+                            'Earn ${place.rewardInfo?.baseExp ?? 0} XP + ${place.rewardInfo?.baseCoin ?? 0} coins',
                             style: TextStyle(
                               color: Colors.green[700],
                               fontSize: 12,
@@ -270,8 +270,8 @@ class PlaceCard extends StatelessWidget {
     );
   }
 
-  PlaceCategory _getCategoryFromString(String category) {
-    switch (category.toLowerCase()) {
+  PlaceCategory _getCategoryFromString(String? category) {
+    switch (category?.toLowerCase()) {
       case 'restaurant':
         return PlaceCategory.restaurant;
       case 'cafe':
@@ -301,8 +301,8 @@ class PlaceCard extends StatelessWidget {
     }
   }
 
-  String _getCategoryDisplayName(String category) {
-    switch (category.toLowerCase()) {
+  String _getCategoryDisplayName(String? category) {
+    switch (category?.toLowerCase()) {
       case 'restaurant':
         return 'Restaurant';
       case 'cafe':
@@ -332,7 +332,7 @@ class PlaceCard extends StatelessWidget {
     }
   }
 
-  Color _getCategoryColor(String category) {
+  Color _getCategoryColor(String? category) {
     PlaceCategory categoryEnum = _getCategoryFromString(category);
     switch (categoryEnum) {
       case PlaceCategory.restaurant:

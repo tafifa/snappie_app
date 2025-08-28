@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/explore_controller.dart';
 
 class ReviewStatsCard extends StatelessWidget {
-  const ReviewStatsCard({Key? key}) : super(key: key);
+  const ReviewStatsCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +171,7 @@ class ReviewStatsCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Obx(() {
-                      final userStats = controller.getUserReviewStats();
+                      final userStats = controller.getReviewStats();
                       
                       return Row(
                         children: [

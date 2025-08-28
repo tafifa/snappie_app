@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../domain/entities/articles_entity.dart';
 
 class ArticlesDetailView extends StatelessWidget {
-  const ArticlesDetailView({Key? key}) : super(key: key);
+  const ArticlesDetailView({super.key});
 
   @override
   Widget build(BuildContext context) {

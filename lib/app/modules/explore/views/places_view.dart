@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../home/controllers/home_controller.dart';
 import '../../../domain/entities/place_entity.dart';
 import '../controllers/explore_controller.dart';
 import '../widgets/place_card.dart';
 import '../widgets/place_filter_bar.dart';
 
 class PlacesView extends GetView<ExploreController> {
-  const PlacesView({Key? key}) : super(key: key);
+  const PlacesView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +28,7 @@ class PlacesView extends GetView<ExploreController> {
       ),
       body: Column(
         children: [
-          const PlaceFilterBar(),
+          PlaceFilterBar(controller: controller),
           Expanded(
             child: Obx(() {
               if (controller.isLoading && controller.places.isEmpty) {
@@ -268,10 +267,10 @@ class PlacesView extends GetView<ExploreController> {
             onPressed: () {
               // This would typically get current location
               // For now, using place coordinates
-              Get.find<HomeController>().createCheckin(
+              controller.createCheckin(
                 placeId: place.id.toString(),
-                latitude: place.latitude,
-                longitude: place.longitude,
+                latitude: place.latitude ?? 0.0,
+                longitude: place.longitude ?? 0.0,
               );
               Get.back();
             },

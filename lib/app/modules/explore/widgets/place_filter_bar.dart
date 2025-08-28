@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/explore_controller.dart';
 
-class PlaceFilterBar extends GetView<ExploreController> {
-  const PlaceFilterBar({Key? key}) : super(key: key);
+class PlaceFilterBar extends StatelessWidget {
+  final ExploreController controller;
+
+  const PlaceFilterBar({
+    super.key,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -11,11 +16,11 @@ class PlaceFilterBar extends GetView<ExploreController> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -25,6 +30,7 @@ class PlaceFilterBar extends GetView<ExploreController> {
         children: [
           // Search bar
           TextField(
+            controller: TextEditingController(text: controller.searchQuery),
             decoration: InputDecoration(
               hintText: 'Search places...',
               prefixIcon: const Icon(Icons.search),
@@ -33,7 +39,7 @@ class PlaceFilterBar extends GetView<ExploreController> {
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         controller.searchQuery = '';
-                        controller.loadPlaces(refresh: true);
+                        controller.loadPlaces();
                       },
                     )
                   : const SizedBox.shrink()),
@@ -72,7 +78,7 @@ class PlaceFilterBar extends GetView<ExploreController> {
                 ),
               ),
               const SizedBox(width: 8),
-              Obx(() => controller.isLoadingCategories
+              Obx(() => controller.isLoading
                   ? const SizedBox(
                       width: 16,
                       height: 16,

@@ -6,10 +6,10 @@ class ReviewCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const ReviewCard({
-    Key? key,
+    super.key,
     required this.review,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

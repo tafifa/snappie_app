@@ -6,7 +6,7 @@ import '../../../domain/entities/place_entity.dart';
 import '../../../domain/entities/review_entity.dart';
 
 class PlaceDetailView extends GetView<ExploreController> {
-  PlaceDetailView({Key? key}) : super(key: key);
+  const PlaceDetailView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +130,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                place.category,
+                                place.category ?? 'Unknown',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -561,8 +561,8 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
+  Color _getCategoryColor(String? category) {
+    switch (category?.toLowerCase()) {
       case 'restaurant':
         return Colors.orange;
       case 'cafe':
@@ -771,7 +771,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                 onPressed: controller.isCreatingReview
                     ? null
                     : () => _submitReview(
-                          place.id as String,
+                          place.id.toString(),
                           voteNotifier.value,
                           contentController.text,
                         ),

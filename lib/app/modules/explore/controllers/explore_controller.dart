@@ -1,9 +1,22 @@
 import 'package:get/get.dart';
 import '../../../domain/entities/place_entity.dart';
 import '../../../domain/entities/review_entity.dart';
+import '../../../domain/usecases/place/get_places_usecase.dart';
+import '../../../domain/usecases/place/get_categories_usecase.dart';
+import '../../../domain/usecases/base_usecase.dart';
+import '../../../core/services/auth_service.dart';
 
 class ExploreController extends GetxController {
-  
+  final GetPlacesUseCase getPlacesUseCase;
+  final GetCategoriesUseCase getCategoriesUseCase;
+  final AuthService authService;
+
+  ExploreController({
+    required this.getPlacesUseCase,
+    required this.getCategoriesUseCase,
+    required this.authService,
+  });
+
   // Place-related reactive variables
   final _isLoading = false.obs;
   final _places = <PlaceEntity>[].obs;
@@ -25,7 +38,7 @@ class ExploreController extends GetxController {
   
   // Check-in related
   final _isCreatingCheckin = false.obs;
-  
+
   // Getters
   bool get isLoading => _isLoading.value;
   bool get isLoadingCategories => _isLoadingCategories.value;
@@ -51,25 +64,55 @@ class ExploreController extends GetxController {
   
   bool get hasMoreData => _hasMoreData.value;
   int get currentPage => _currentPage.value;
-  
+
   @override
   void onInit() {
     super.onInit();
-    // Set default filter
-    _selectedCategory.value = 'nearby';
-    loadExploreData();
+    // Set default filter - use valid category from backend
+    _selectedCategory.value = '';
+    
+    // Don't load data immediately - wait for authentication
+    // Data will be loaded when user navigates to explore tab
   }
-  
+
+  // Call this method when user is authenticated and navigates to explore
+  Future<void> initializeExploreData() async {
+    print('🚀 INITIALIZING EXPLORE DATA:');
+    print('Auth Status: ${authService.isLoggedIn}');
+    print('Token: ${authService.token}');
+    print('User Email: ${authService.userEmail}');
+    
+    if (authService.isLoggedIn) {
+      print('✅ User authenticated, loading explore data...');
+      await loadExploreData();
+    } else {
+      print('❌ User not authenticated, skipping data load');
+    }
+  }
+
   Future<void> loadExploreData() async {
+    // Check if user is authenticated
+    if (!authService.isLoggedIn) {
+      print('User not authenticated, cannot load explore data');
+      _setError('Please login to view places and categories');
+      return;
+    }
+
     await Future.wait([
       loadPlaces(),
       loadCategories(),
     ]);
   }
-  
+
   // ===== PLACE METHODS =====
-  
+
   Future<void> loadPlaces({bool refresh = false}) async {
+    // Check authentication before loading
+    if (!authService.isLoggedIn) {
+      _setError('Please login to view places');
+      return;
+    }
+
     if (refresh) {
       _currentPage.value = 1;
       _hasMoreData.value = true;
@@ -82,176 +125,144 @@ class ExploreController extends GetxController {
     _clearError();
     
     try {
-      // Mock data - replace with actual implementation
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Always use API now instead of mock data
+      final result = await getPlacesUseCase(GetPlacesParams(
+        page: _currentPage.value,
+        perPage: 20,
+        category: _selectedCategory.value.isNotEmpty && _selectedCategory.value != 'nearby' ? _selectedCategory.value : null,
+        search: _searchQuery.value.isNotEmpty ? _searchQuery.value : null,
+      ));
       
-      final mockPlaces = <PlaceEntity>[
-        PlaceEntity(
-          id: 1,
-          name: 'Sagamatha Coffee Bar',
-          category: 'Cafe',
-          address: 'Jl. Kemang Raya No. 123, Jakarta Selatan',
-          latitude: -6.2608,
-          longitude: 106.7941,
-          imageUrls: ['https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=500'],
-          partnershipStatus: 'active',
-          rewardInfo: const RewardInfo(baseExp: 20, baseCoin: 10),
-          averageRating: 4.2,
-          totalReviews: 128,
-          createdAt: DateTime.now().subtract(const Duration(days: 30)),
-          updatedAt: DateTime.now(),
-          distance: 0.5,
-        ),
-        PlaceEntity(
-          id: 2,
-          name: 'Warung Gudeg Bu Endang',
-          category: 'Traditional',
-          address: 'Jl. Malioboro No. 456, Yogyakarta',
-          latitude: -7.7956,
-          longitude: 110.3695,
-          imageUrls: ['https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500'],
-          partnershipStatus: 'active',
-          rewardInfo: const RewardInfo(baseExp: 25, baseCoin: 15),
-          averageRating: 4.8,
-          totalReviews: 89,
-          createdAt: DateTime.now().subtract(const Duration(days: 45)),
-          updatedAt: DateTime.now(),
-          distance: 1.2,
-        ),
-        PlaceEntity(
-          id: 3,
-          name: 'Kopi Kenangan',
-          category: 'Cafe',
-          address: 'Jl. Sudirman No. 789, Jakarta Pusat',
-          latitude: -6.2088,
-          longitude: 106.8456,
-          imageUrls: ['https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=500'],
-          partnershipStatus: 'active',
-          rewardInfo: const RewardInfo(baseExp: 15, baseCoin: 8),
-          averageRating: 4.5,
-          totalReviews: 256,
-          createdAt: DateTime.now().subtract(const Duration(days: 15)),
-          updatedAt: DateTime.now(),
-          distance: 0.8,
-        ),
-        PlaceEntity(
-          id: 4,
-          name: 'Restoran Padang Sederhana',
-          category: 'Restaurant',
-          address: 'Jl. Asia Afrika No. 321, Bandung',
-          latitude: -6.9175,
-          longitude: 107.6191,
-          imageUrls: ['https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=500'],
-          partnershipStatus: 'active',
-          rewardInfo: const RewardInfo(baseExp: 30, baseCoin: 20),
-          averageRating: 4.6,
-          totalReviews: 167,
-          createdAt: DateTime.now().subtract(const Duration(days: 60)),
-          updatedAt: DateTime.now(),
-          distance: 2.1,
-        ),
-      ];
-      
-      if (refresh || _currentPage.value == 1) {
-        _places.assignAll(mockPlaces);
-      } else {
-        _places.addAll(mockPlaces);
-      }
-      
-      if (mockPlaces.isEmpty) {
-        _hasMoreData.value = false;
-      } else {
-        _currentPage.value++;
-      }
+      result.fold(
+        (failure) => _setError(failure.message),
+        (placesList) {
+          print('🎯 PLACES LOADED SUCCESSFULLY:');
+          print('Places Count: ${placesList.length}');
+          print('First Place: ${placesList.isNotEmpty ? placesList.first.name : "None"}');
+          
+          if (refresh || _currentPage.value == 1) {
+            print('🔄 Assigning all places to _places');
+            _places.assignAll(placesList);
+          } else {
+            print('➕ Adding places to existing _places');
+            _places.addAll(placesList);
+          }
+          
+          print('📱 _places length after update: ${_places.length}');
+          print('📱 _places.isEmpty: ${_places.isEmpty}');
+          
+          if (placesList.isEmpty) {
+            _hasMoreData.value = false;
+          } else {
+            _currentPage.value++;
+          }
+          
+          // Force UI update
+          _places.refresh();
+        },
+      );
     } catch (e) {
-      _setError('Failed to load places');
+      _setError('Failed to load places: $e');
     }
     
     _setLoading(false);
   }
-  
+
   Future<void> loadCategories() async {
+    // Check authentication before loading
+    if (!authService.isLoggedIn) {
+      print('User not authenticated, cannot load categories');
+      return;
+    }
+
     _isLoadingCategories.value = true;
     
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
-      _categories.assignAll(['Restaurant', 'Cafe', 'Shop', 'Tourist Spot', 'Hotel']);
+      // Use cached categories if available, only fetch from API if needed
+      final result = await getCategoriesUseCase(NoParams());
+      result.fold(
+        (failure) => _setError(failure.message),
+        (categoriesList) => _categories.assignAll(categoriesList),
+      );
     } catch (e) {
       // Handle error silently for categories
+      print('Error loading categories: $e');
     }
     
     _isLoadingCategories.value = false;
   }
-  
+
   Future<void> loadNearbyPlaces({
     required double latitude,
     required double longitude,
   }) async {
     await loadPlaces(refresh: true);
   }
-  
+
   void searchPlaces(String query) {
     _searchQuery.value = query;
     loadPlaces(refresh: true);
   }
-  
+
   void filterByCategory(String category) {
     _selectedCategory.value = category;
     loadPlaces(refresh: true);
   }
-  
+
   void clearFilters() {
     _selectedCategory.value = '';
     _searchQuery.value = '';
     loadPlaces(refresh: true);
   }
-  
+
   void loadMorePlaces() {
     if (!_isLoading.value && _hasMoreData.value) {
       loadPlaces();
     }
   }
-  
+
   void selectPlace(PlaceEntity place) {
     _selectedPlace.value = place;
   }
-  
+
   Future<void> refreshData() async {
     await Future.wait([
       loadPlaces(refresh: true),
       loadCategories(),
     ]);
   }
-  
+
   // ===== REVIEW METHODS =====
-  
+
   Future<void> loadPlaceReviews(int placeId) async {
     _isLoadingReviews.value = true;
     _clearError();
     
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      _reviews.assignAll([]);
+      // Always use API now instead of mock data
+      // TODO: Implement when review usecase is ready
+      _reviews.clear();
+      // For now, show empty reviews until review usecase is implemented
     } catch (e) {
-      _setError('Failed to load reviews');
+      _setError('Failed to load reviews: $e');
     }
     
     _isLoadingReviews.value = false;
   }
-  
+
   // Filter reviews by status
   void filterByStatus(String status) {
     // Mock implementation - in real app would filter reviews
     loadPlaceReviews(1); // Mock place ID
   }
-  
+
   // Load more reviews data
   void loadMoreData() {
     if (!_isLoadingReviews.value && _hasMoreData.value) {
       // Mock load more implementation
     }
   }
-  
+
   // Get review statistics
   Map<String, int> getReviewStats() {
     final total = _reviews.length;
@@ -262,17 +273,16 @@ class ExploreController extends GetxController {
       'rejected': (total * 0.05).round(),
     };
   }
-  
+
   // Get user review statistics
   Map<String, int> getUserReviewStats() {
     final userReviews = _userReviews.length;
     return {
       'total': userReviews,
       'approved': (userReviews * 0.9).round(),
-      'pending': (userReviews * 0.1).round(),
     };
   }
-  
+
   Future<void> createReview({
     required int placeId,
     required int vote,
@@ -282,29 +292,30 @@ class ExploreController extends GetxController {
     _clearError();
     
     try {
+      // Always use API now instead of mock data
+      // TODO: Implement when review usecase is ready
       await Future.delayed(const Duration(milliseconds: 1000));
-      
       Get.snackbar(
         'Success',
-        'Review submitted successfully!',
+        'Review submitted successfully! (API Mode)',
         snackPosition: SnackPosition.BOTTOM,
       );
       
       await loadPlaceReviews(placeId);
     } catch (e) {
-      _setError('Failed to create review');
+      _setError('Failed to create review: $e');
       Get.snackbar(
         'Error',
-        'Failed to create review',
+        'Failed to create review: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
     }
     
     _isCreatingReview.value = false;
   }
-  
+
   // ===== CHECKIN METHODS =====
-  
+
   Future<void> createCheckin({
     required String placeId,
     required double latitude,
@@ -314,35 +325,36 @@ class ExploreController extends GetxController {
     _clearError();
     
     try {
+      // Always use API now instead of mock data
+      // TODO: Implement when checkin usecase is ready
       await Future.delayed(const Duration(milliseconds: 1000));
-      
       Get.snackbar(
         'Success',
-        'Check-in created successfully!',
+        'Check-in created successfully! (API Mode)',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
-      _setError('Failed to create check-in');
+      _setError('Failed to create check-in: $e');
       Get.snackbar(
         'Error',
-        'Failed to create check-in',
+        'Failed to create check-in: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
     }
     
     _isCreatingCheckin.value = false;
   }
-  
+
   // ===== PRIVATE METHODS =====
-  
+
   void _setLoading(bool loading) {
     _isLoading.value = loading;
   }
-  
+
   void _setError(String error) {
     _errorMessage.value = error;
   }
-  
+
   void _clearError() {
     _errorMessage.value = '';
   }

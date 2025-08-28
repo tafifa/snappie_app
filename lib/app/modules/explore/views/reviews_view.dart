@@ -7,7 +7,7 @@ import '../widgets/review_stats_card.dart';
 import '../widgets/create_review_dialog.dart';
 
 class ReviewsView extends GetView<ExploreController> {
-  const ReviewsView({Key? key}) : super(key: key);
+  const ReviewsView({super.key});
 
   @override
   Widget build(BuildContext context) {

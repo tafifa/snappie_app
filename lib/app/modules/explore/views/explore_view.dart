@@ -2,27 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/explore_controller.dart';
 import '../../../domain/entities/place_entity.dart';
+import '../../../core/constants/app_colors.dart';
 
 class ExploreView extends GetView<ExploreController> {
   const ExploreView({super.key});
   
   @override
   Widget build(BuildContext context) {
+    // Initialize explore data when view is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.initializeExploreData();
+    });
+    
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.surfaceContainer,
       body: RefreshIndicator(
         onRefresh: () async {
           await controller.refreshData();
         },
         child: CustomScrollView(
         slivers: [
-          // App Bar with Search
           SliverAppBar(
-            expandedHeight: 120,
+            expandedHeight: 90,
             floating: true,
-            pinned: true,
-            backgroundColor: Colors.blue,
-            automaticallyImplyLeading: false,
+            snap: true,
+            pinned: false,
+            backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -30,52 +35,62 @@ class ExploreView extends GetView<ExploreController> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Colors.blue[400]!,
-                      Colors.blue[600]!,
+                      AppColors.primaryLight,
+                      AppColors.primaryDark,
                     ],
                   ),
                 ),
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            spreadRadius: 1,
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.search,
-                            color: Colors.grey[600],
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                hintText: 'Mau makan di mana hari ini?',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                spreadRadius: 1,
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                              onChanged: (value) => controller.searchQuery = value,
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.search,
+                                color: AppColors.textSecondary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    hintText: 'Mau makan di mana hari ini?',
+                                    hintStyle: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 14,
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  onChanged: (value) => controller.searchQuery = value,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -93,11 +108,13 @@ class ExploreView extends GetView<ExploreController> {
                   // Filter Chips
                   Obx(() => Row(
                     children: [
-                      _buildFilterChip('Terdekat', controller.selectedCategory == 'nearby'),
+                      _buildFilterChip('Semua', controller.selectedCategory.isEmpty),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Populer', controller.selectedCategory == 'popular'),
+                      _buildFilterChip('Cafe', controller.selectedCategory == 'cafe'),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Rating', controller.selectedCategory == 'rating'),
+                      _buildFilterChip('Restaurant', controller.selectedCategory == 'restaurant'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Traditional', controller.selectedCategory == 'traditional'),
                     ],
                   )),
                   
@@ -108,9 +125,9 @@ class ExploreView extends GetView<ExploreController> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.orange[50],
+                      color: AppColors.warningSurface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange[200]!),
+                      border: Border.all(color: AppColors.warningContainer),
                     ),
                     child: Row(
                       children: [
@@ -123,7 +140,7 @@ class ExploreView extends GetView<ExploreController> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -131,7 +148,7 @@ class ExploreView extends GetView<ExploreController> {
                                 'Explore hidden bakul aman dari Jakarta dan sekitarnya yuk!',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[700],
+                                  color: AppColors.textSecondary,
                                   height: 1.4,
                                 ),
                               ),
@@ -143,12 +160,12 @@ class ExploreView extends GetView<ExploreController> {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: Colors.orange[100],
+                            color: AppColors.warningContainer,
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: Icon(
                             Icons.restaurant_menu,
-                            color: Colors.orange[600],
+                            color: AppColors.warning,
                             size: 30,
                           ),
                         ),
@@ -166,6 +183,7 @@ class ExploreView extends GetView<ExploreController> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const Spacer(),
@@ -174,7 +192,7 @@ class ExploreView extends GetView<ExploreController> {
                         child: Text(
                           'Lihat Semuanya',
                           style: TextStyle(
-                            color: Colors.blue[600],
+                            color: AppColors.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -198,6 +216,7 @@ class ExploreView extends GetView<ExploreController> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const Spacer(),
@@ -206,7 +225,7 @@ class ExploreView extends GetView<ExploreController> {
                         child: Text(
                           'Lihat Semuanya',
                           style: TextStyle(
-                            color: Colors.blue[600],
+                            color: AppColors.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -217,8 +236,8 @@ class ExploreView extends GetView<ExploreController> {
                   
                   const SizedBox(height: 16),
                   
-                  // More Places Grid
-                  _buildMorePlacesGrid(),
+                  // Places Grid
+                  _buildPlacesGrid(),
                   
                   const SizedBox(height: 32),
                 ],
@@ -237,16 +256,16 @@ class ExploreView extends GetView<ExploreController> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue[600] : Colors.white,
+          color: isSelected ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.blue[600]! : Colors.grey[300]!,
+            color: isSelected ? AppColors.primary : AppColors.border,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
+            color: isSelected ? AppColors.textOnPrimary : AppColors.textSecondary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -257,56 +276,110 @@ class ExploreView extends GetView<ExploreController> {
 
   void _onFilterChipTapped(String filter) {
     switch (filter) {
-      case 'Terdekat':
-        controller.selectedCategory = 'nearby';
+      case 'Semua':
+        controller.selectedCategory = '';
         break;
-      case 'Populer':
-        controller.selectedCategory = 'popular';
+      case 'Cafe':
+        controller.selectedCategory = 'cafe';
         break;
-      case 'Rating':
-        controller.selectedCategory = 'rating';
+      case 'Restaurant':
+        controller.selectedCategory = 'restaurant';
+        break;
+      case 'Traditional':
+        controller.selectedCategory = 'traditional';
         break;
     }
     // Trigger filter action
     controller.filterByCategory(controller.selectedCategory);
   }
 
+
+
   Widget _buildPlacesGrid() {
     return Obx(() {
+      print('🎨 BUILDING PLACES GRID:');
+      print('Controller places length: ${controller.places.length}');
+      print('Controller isLoading: ${controller.isLoading}');
+      print('Controller places isEmpty: ${controller.places.isEmpty}');
+      
       if (controller.isLoading && controller.places.isEmpty) {
         return const SizedBox(
           height: 200,
           child: Center(
-            child: CircularProgressIndicator(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(
+                  'Loading places...',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }
 
       if (controller.places.isEmpty) {
-        return const SizedBox(
+        return Container(
           height: 200,
-          child: Center(
-            child: Text('No places found'),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                size: 24,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Belum ada tempat makan',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Coba refresh atau cek koneksi',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => controller.refreshData(),
+                child: Text('Refresh'),
+              ),
+            ],
           ),
         );
       }
 
-      // Show first 2 places
-      final displayPlaces = controller.places.take(2).toList();
+      // Show maximum 4 places in horizontal scrollable list
+      final displayPlaces = controller.places.take(4).toList();
       
-      return Column(
-        children: [
-          Row(
-            children: [
-              if (displayPlaces.isNotEmpty) 
-                Expanded(child: _buildPlaceCard(displayPlaces[0])),
-              if (displayPlaces.length > 1) ...[
-                const SizedBox(width: 12),
-                Expanded(child: _buildPlaceCard(displayPlaces[1])),
-              ],
-            ],
-          ),
-        ],
+      return SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: displayPlaces.length,
+          itemBuilder: (context, index) {
+            return Container(
+              width: 160,
+              margin: EdgeInsets.only(
+                right: index < displayPlaces.length - 1 ? 12 : 0,
+              ),
+              child: _buildPlaceCard(displayPlaces[index]),
+            );
+          },
+        ),
       );
     });
   }
@@ -321,8 +394,10 @@ class ExploreView extends GetView<ExploreController> {
       final displayPlaces = controller.places.skip(2).take(2).toList();
       
       return Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (displayPlaces.isNotEmpty) 
                 Expanded(child: _buildPlaceCard(displayPlaces[0])),
@@ -341,12 +416,13 @@ class ExploreView extends GetView<ExploreController> {
     return GestureDetector(
       onTap: () => _onPlaceCardTapped(place),
       child: Container(
+        constraints: const BoxConstraints(maxHeight: 200),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: AppColors.shadowLight,
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -355,80 +431,90 @@ class ExploreView extends GetView<ExploreController> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Image
-            Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                color: Colors.grey[200],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(
-                  place.imageUrl ?? '',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: Icon(
-                          Icons.image,
-                          color: Colors.grey,
-                          size: 40,
+            Flexible(
+              child: Container(
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  color: AppColors.surfaceVariant,
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    place.imageUrl ?? '',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image,
+                            color: AppColors.textTertiary,
+                            size: 30,
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
             
             // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    place.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    place.address,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star,
-                        color: Colors.amber,
-                        size: 16,
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      place.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        place.averageRating.toString(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Flexible(
+                      child: Text(
+                        place.address,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
                           fontSize: 12,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.star,
+                          color: AppColors.warning,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          place.rating.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

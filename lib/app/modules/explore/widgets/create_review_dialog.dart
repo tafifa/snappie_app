@@ -6,9 +6,9 @@ class CreateReviewDialog extends StatefulWidget {
   final int placeId;
   
   const CreateReviewDialog({
-    Key? key,
+    super.key,
     required this.placeId,
-  }) : super(key: key);
+  });
 
   @override
   State<CreateReviewDialog> createState() => _CreateReviewDialogState();

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+
 import '../controllers/articles_controller.dart';
-import '../widgets/articles_card.dart';
-import '../widgets/articles_search_bar.dart';
-import '../widgets/articles_category_filter.dart';
+import '../widgets/common/search_bar_widget.dart';
+import '../widgets/common/section_header_widget.dart';
+import '../widgets/common/loading_state_widget.dart';
+import '../widgets/common/error_state_widget.dart';
+import '../widgets/horizontal_article_card.dart';
+import '../widgets/vertical_article_card.dart';
 import 'articles_detail_view.dart';
 
 class ArticlesView extends GetView<ArticlesController> {
@@ -12,183 +17,194 @@ class ArticlesView extends GetView<ArticlesController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: CustomScrollView(
-        slivers: [
-          // App Bar
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: true,
-            pinned: true,
-            backgroundColor: const Color(0xFF2E8B8B),
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'Articles',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF2E8B8B),
-                      Color(0xFF1F6B6B),
-                    ],
+      backgroundColor: AppColors.surfaceContainer,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await controller.refreshData();
+        },
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 90,
+              floating: true,
+              snap: true,
+              pinned: false,
+              backgroundColor: AppColors.primary,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primaryLight,
+                        AppColors.primaryDark,
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: () {
-                  // TODO: Implement search functionality
-                },
-                icon: const Icon(Icons.search, color: Colors.white),
-              ),
-              IconButton(
-                onPressed: () {
-                  // TODO: Implement bookmark view
-                },
-                icon: const Icon(Icons.bookmark_outline, color: Colors.white),
-              ),
-            ],
-          ),
-      
-          // Search Bar
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: ArticlesSearchBar(
-                onSearchChanged: controller.searchArticles,
-              ),
-            ),
-          ),
-      
-          // Category Filter
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Obx(() => ArticlesCategoryFilter(
-                categories: controller.categories,
-                selectedCategory: controller.selectedCategory,
-                onCategorySelected: controller.filterByCategory,
-              )),
-            ),
-          ),
-      
-          // Articles List
-          Obx(() {
-            if (controller.isLoading && controller.articles.isEmpty) {
-              return const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF2E8B8B),
-                  ),
-                ),
-              );
-            }
-      
-            if (controller.errorMessage.isNotEmpty) {
-              return SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        controller.errorMessage,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: controller.refreshArticles,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E8B8B),
-                        ),
-                        child: const Text('Coba Lagi'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-      
-            if (controller.articles.isEmpty) {
-              return SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.article_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No articles found',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-      
-            return SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index < controller.articles.length) {
-                      // Load more indicator
-                      if (controller.hasMoreData) {
-                        controller.loadMoreArticles();
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF2E8B8B),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.shadowLight,
+                                  spreadRadius: 1,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: SearchBarWidget(
+                              hintText: 'Cari artikel menarik...',
+                              onChanged: controller.searchArticles,
                             ),
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    }
-      
-                    final article = controller.articles[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ArticlesCard(
-                        article: article,
-                        onTap: () => _navigateToArticleDetail(article),
-                        onBookmarkTap: () => controller.toggleBookmark(article),
+                        ],
                       ),
-                    );
-                  },
-                  childCount: controller.articles.length + 
-                      (controller.hasMoreData ? 1 : 0),
+                    ),
+                  ),
                 ),
               ),
-            );
-          }),
-        ],
+            ),
+            // Artikel Terbaru Section
+            SliverToBoxAdapter(
+              child: SectionHeaderWidget(
+                title: 'Artikel Terbaru',
+              actionText: 'Lihat Semua',
+                onActionPressed: () {
+                  // Navigate to all articles
+                },
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 220,
+                      child: Obx(() {
+                        if (controller.isLoading && controller.articles.isEmpty) {
+                          return const LoadingStateWidget();
+                        }
+                        
+                        if (controller.articles.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.article_outlined,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Belum ada artikel',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        final latestArticles = controller.articles.take(5).toList();
+                        
+                        return ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: latestArticles.length,
+                          itemBuilder: (context, index) {
+                            final article = latestArticles[index];
+                            return Container(
+                              margin: EdgeInsets.only(
+                                right: index < latestArticles.length - 1 ? 12 : 0,
+                              ),
+                              child: HorizontalArticleCard(
+                                article: article,
+                                width: 280,
+                                height: 220,
+                                onTap: () => _navigateToArticleDetail(article),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Artikel Terkini Section
+            SliverToBoxAdapter(
+              child: SectionHeaderWidget(
+                title: 'Artikel Terkini',
+              actionText: 'Lihat Semua',
+                onActionPressed: () {
+                  // Navigate to all articles
+                },
+              ),
+            ),
+
+
+            // Articles List
+            Obx(() {
+              if (controller.isLoading && controller.articles.isEmpty) {
+                return const LoadingStateWidget(isSliver: true);
+              }
+
+              if (controller.articles.isEmpty) {
+                return EmptyStateWidget(
+                  message: 'Tidak ada artikel ditemukan',
+                  icon: Icons.article_outlined,
+                  isSliver: true,
+                );
+              }
+
+              if (controller.articles.isEmpty) {
+                return EmptyStateWidget(
+                  message: 'Tidak ada artikel ditemukan',
+                  icon: Icons.article_outlined,
+                  isSliver: true,
+                );
+              }
+
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index >= controller.articles.length) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final article = controller.articles[index];
+                      return VerticalArticleCard(
+                        article: article,
+                        onTap: () => _navigateToArticleDetail(article),
+                      );
+                    },
+                    childCount: controller.articles.length,
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

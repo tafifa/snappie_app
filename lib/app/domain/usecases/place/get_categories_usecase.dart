@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../core/errors/failures.dart';
+import '../../errors/failures.dart';
 import '../../repositories/place_repository.dart';
 import '../base_usecase.dart';
 
@@ -10,6 +10,6 @@ class GetCategoriesUseCase implements UseCase<List<String>, NoParams> {
 
   @override
   Future<Either<Failure, List<String>>> call(NoParams params) async {
-    return await repository.getCategories();
+    return await repository.getCategories(forceRefresh: false);
   }
 }

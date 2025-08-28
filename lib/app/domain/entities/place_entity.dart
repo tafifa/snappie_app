@@ -3,15 +3,15 @@ import 'package:equatable/equatable.dart';
 class PlaceEntity extends Equatable {
   final int id;
   final String name;
-  final String category;
+  final String? category;
   final String address;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
   final List<String> imageUrls;
-  final String partnershipStatus;
-  final RewardInfo rewardInfo;
-  final double averageRating;
-  final int totalReviews;
+  final bool partnershipStatus;
+  final RewardInfo? rewardInfo;
+  final double? averageRating;
+  final int? totalReviews;
   final DateTime createdAt;
   final DateTime updatedAt;
   final double? distance; // For nearby places
@@ -19,7 +19,7 @@ class PlaceEntity extends Equatable {
   const PlaceEntity({
     required this.id,
     required this.name,
-    required this.category,
+    this.category,
     required this.address,
     required this.latitude,
     required this.longitude,
@@ -36,11 +36,11 @@ class PlaceEntity extends Equatable {
   // Computed properties for backward compatibility
   String? get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : null;
   bool get isFavorite => false; // TODO: Implement favorite logic
-  double get rating => averageRating;
-  int get reviewCount => totalReviews;
-  bool get isPartner => partnershipStatus == 'active';
-  int get rewardXp => rewardInfo.baseExp;
-  int get rewardCoins => rewardInfo.baseCoin;
+  double get rating => averageRating ?? 0.0;
+  int get reviewCount => totalReviews ?? 0;
+  bool get isPartner => partnershipStatus;
+  int get rewardXp => rewardInfo?.baseExp ?? 0;
+  int get rewardCoins => rewardInfo?.baseCoin ?? 0;
   String get description => ''; // TODO: Add description field if needed
   
   @override
@@ -63,16 +63,16 @@ class PlaceEntity extends Equatable {
 }
 
 class RewardInfo extends Equatable {
-  final int baseExp;
-  final int baseCoin;
+  final int? baseExp;
+  final int? baseCoin;
 
   const RewardInfo({
-    required this.baseExp,
-    required this.baseCoin,
+    this.baseExp,
+    this.baseCoin,
   });
 
   @override
-  List<Object> get props => [baseExp, baseCoin];
+  List<Object?> get props => [baseExp, baseCoin];
 }
 
 enum PlaceCategory {

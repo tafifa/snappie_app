@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/failures.dart';
+import '../errors/failures.dart';
 import '../entities/place_entity.dart';
 
 abstract class PlaceRepository {
@@ -9,6 +9,7 @@ abstract class PlaceRepository {
     int perPage = 20,
     String? category,
     String? search,
+    bool forceRefresh = false,
   });
 
   /// Get nearby places based on GPS coordinates
@@ -24,5 +25,14 @@ abstract class PlaceRepository {
   Future<Either<Failure, PlaceEntity>> getPlaceById(int id);
 
   /// Get available categories
-  Future<Either<Failure, List<String>>> getCategories();
+  Future<Either<Failure, List<String>>> getCategories({bool forceRefresh = false});
+  
+  /// Get favorite places from local storage
+  Future<Either<Failure, List<PlaceEntity>>> getFavoritePlaces();
+  
+  /// Toggle favorite status for a place
+  Future<Either<Failure, void>> toggleFavorite(int placeId, bool isFavorite);
+  
+  /// Clear local cache
+  Future<Either<Failure, void>> clearCache();
 }

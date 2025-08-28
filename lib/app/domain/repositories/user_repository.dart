@@ -1,18 +1,21 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/failures.dart';
+import '../errors/failures.dart';
 import '../entities/user_entity.dart';
 
 abstract class UserRepository {
   Future<Either<Failure, UserEntity>> getCurrentUser();
-  Future<Either<Failure, UserEntity>> getUserById(String id);
+  Future<Either<Failure, UserEntity>> getUserById(int id);
   Future<Either<Failure, List<UserEntity>>> getUsers({
-    int page = 1,
-    int limit = 20,
+    int page,
+    int perPage,
     String? search,
   });
   Future<Either<Failure, UserEntity>> updateUser(UserEntity user);
-  Future<Either<Failure, void>> deleteUser(String id);
-  Future<Either<Failure, UserEntity>> login(String email, String password);
+  Future<Either<Failure, void>> deleteUser(int id);
+  Future<Either<Failure, UserEntity>> login({
+    required String email,
+    required String password,
+  });
   Future<Either<Failure, void>> logout();
   Future<Either<Failure, UserEntity>> register({
     required String email,

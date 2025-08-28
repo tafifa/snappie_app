@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/failures.dart';
+import '../errors/failures.dart';
 import '../entities/checkin_entity.dart';
 
 abstract class CheckinRepository {

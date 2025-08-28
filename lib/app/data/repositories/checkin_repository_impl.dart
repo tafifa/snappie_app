@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/exceptions.dart';
-import '../../core/errors/failures.dart';
+import '../../domain/errors/exceptions.dart';
+import '../../domain/errors/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/checkin_entity.dart';
 import '../../domain/repositories/checkin_repository.dart';
@@ -30,7 +30,7 @@ class CheckinRepositoryImpl implements CheckinRepository {
         );
         return Right(checkin.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } on AuthenticationException catch (e) {
@@ -60,7 +60,7 @@ class CheckinRepositoryImpl implements CheckinRepository {
         );
         return Right(checkins.map((checkin) => checkin.toEntity()).toList());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on AuthenticationException catch (e) {
         return Left(AuthenticationFailure(e.message));
       } on AuthorizationException catch (e) {

@@ -1,6 +1,6 @@
 import 'package:isar/isar.dart';
 import '../../core/database/isar_service.dart';
-import '../../core/errors/exceptions.dart';
+import '../../domain/errors/exceptions.dart';
 import '../models/user_model.dart';
 import '../models/auth_token_model.dart';
 

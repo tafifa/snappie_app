@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../../core/errors/exceptions.dart';
+import '../../domain/errors/exceptions.dart';
 import '../../core/network/dio_client.dart';
 import '../models/review_model.dart';
 
@@ -12,8 +12,8 @@ abstract class ReviewRemoteDataSource {
   });
 
   Future<List<ReviewModel>> getReviews({
-    int page = 1,
-    int perPage = 20,
+    int page,
+    int perPage,
     int? placeId,
     int? userId,
     String? status,
@@ -55,7 +55,7 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
       } else {
         throw ServerException(
           response.data['message'] ?? 'Failed to create review',
-          statusCode: response.statusCode,
+          response.statusCode ?? 500,
         );
       }
     } on DioException catch (e) {
@@ -70,11 +70,11 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
       } else {
         throw ServerException(
           e.response?.data['message'] ?? 'Network error occurred',
-          statusCode: e.response?.statusCode,
+          e.response?.statusCode ?? 500,
         );
       }
     } catch (e) {
-      throw ServerException('Unexpected error occurred: $e');
+      throw ServerException('Unexpected error occurred: $e', 500);
     }
   }
 
@@ -111,7 +111,7 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
       } else {
         throw ServerException(
           response.data['message'] ?? 'Failed to get reviews',
-          statusCode: response.statusCode,
+          response.statusCode ?? 500,
         );
       }
     } on DioException catch (e) {
@@ -122,11 +122,11 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
       } else {
         throw ServerException(
           e.response?.data['message'] ?? 'Network error occurred',
-          statusCode: e.response?.statusCode,
+          e.response?.statusCode ?? 500,
         );
       }
     } catch (e) {
-      throw ServerException('Unexpected error occurred: $e');
+      throw ServerException('Unexpected error occurred: $e', 500);
     }
   }
 }

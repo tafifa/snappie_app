@@ -1,33 +1,32 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/exceptions.dart';
-import '../../core/errors/failures.dart';
+import '../../domain/errors/exceptions.dart';
+import '../../domain/errors/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/user_repository.dart';
-import '../datasources/user_local_datasource.dart';
 import '../datasources/user_remote_datasource.dart';
-import '../models/user_model.dart';
+import '../datasources/user_local_datasource.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource remoteDataSource;
   final UserLocalDataSource localDataSource;
   final NetworkInfo networkInfo;
-  
+
   UserRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
     required this.networkInfo,
   });
-  
+
   @override
   Future<Either<Failure, UserEntity>> getCurrentUser() async {
     if (await networkInfo.isConnected) {
       try {
-        final user = await remoteDataSource.getCurrentUser();
+        final user = await remoteDataSource.getProfile();
         await localDataSource.cacheUser(user);
         return Right(user.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on AuthenticationException catch (e) {
         return Left(AuthenticationFailure(e.message));
       } on AuthorizationException catch (e) {
@@ -50,13 +49,13 @@ class UserRepositoryImpl implements UserRepository {
   }
   
   @override
-  Future<Either<Failure, UserEntity>> getUserById(String id) async {
+  Future<Either<Failure, UserEntity>> getUserById(int id) async {
     if (await networkInfo.isConnected) {
       try {
         final user = await remoteDataSource.getUserById(id);
         return Right(user.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on AuthenticationException catch (e) {
         return Left(AuthenticationFailure(e.message));
       } on AuthorizationException catch (e) {
@@ -72,19 +71,19 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, List<UserEntity>>> getUsers({
     int page = 1,
-    int limit = 20,
+    int perPage = 20,
     String? search,
   }) async {
     if (await networkInfo.isConnected) {
       try {
         final users = await remoteDataSource.getUsers(
           page: page,
-          limit: limit,
+          perPage: perPage,
           search: search,
         );
         return Right(users.map((user) => user.toEntity()).toList());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on AuthenticationException catch (e) {
         return Left(AuthenticationFailure(e.message));
       } on AuthorizationException catch (e) {
@@ -101,12 +100,14 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, UserEntity>> updateUser(UserEntity user) async {
     if (await networkInfo.isConnected) {
       try {
-        final userModel = UserModel.fromEntity(user);
-        final updatedUser = await remoteDataSource.updateUser(userModel);
+        final updatedUser = await remoteDataSource.updateProfile(
+          name: user.name,
+          avatar: user.avatar,
+        );
         await localDataSource.cacheUser(updatedUser);
         return Right(updatedUser.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } on AuthenticationException catch (e) {
@@ -122,13 +123,13 @@ class UserRepositoryImpl implements UserRepository {
   }
   
   @override
-  Future<Either<Failure, void>> deleteUser(String id) async {
+  Future<Either<Failure, void>> deleteUser(int id) async {
     if (await networkInfo.isConnected) {
       try {
         await remoteDataSource.deleteUser(id);
         return const Right(null);
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on AuthenticationException catch (e) {
         return Left(AuthenticationFailure(e.message));
       } on AuthorizationException catch (e) {
@@ -142,14 +143,20 @@ class UserRepositoryImpl implements UserRepository {
   }
   
   @override
-  Future<Either<Failure, UserEntity>> login(String email, String password) async {
+  Future<Either<Failure, UserEntity>> login({
+    required String email,
+    required String password,
+  }) async {
     if (await networkInfo.isConnected) {
       try {
-        final user = await remoteDataSource.login(email, password);
+        final user = await remoteDataSource.login(
+          email: email,
+          password: password,
+        );
         await localDataSource.cacheUser(user);
         return Right(user.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } on AuthenticationException catch (e) {
@@ -175,7 +182,7 @@ class UserRepositoryImpl implements UserRepository {
       // Still clear local data even if server logout fails
       await localDataSource.clearCachedUser();
       await localDataSource.clearAuthToken();
-      return Left(ServerFailure(e.message, code: e.statusCode));
+      return Left(ServerFailure(e.message));
     } catch (e) {
       await localDataSource.clearCachedUser();
       await localDataSource.clearAuthToken();
@@ -199,7 +206,7 @@ class UserRepositoryImpl implements UserRepository {
         await localDataSource.cacheUser(user);
         return Right(user.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } catch (e) {
@@ -217,7 +224,7 @@ class UserRepositoryImpl implements UserRepository {
         await remoteDataSource.forgotPassword(email);
         return const Right(null);
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } catch (e) {
@@ -241,7 +248,7 @@ class UserRepositoryImpl implements UserRepository {
         );
         return const Right(null);
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } catch (e) {

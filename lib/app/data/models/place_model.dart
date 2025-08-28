@@ -7,40 +7,37 @@ part 'place_model.g.dart';
 class PlaceModel {
   final int id;
   final String name;
-  final String category;
+  final String? category;
   final String address;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
   @JsonKey(name: 'image_urls')
   final List<String> imageUrls;
   @JsonKey(name: 'partnership_status')
-  final String partnershipStatus;
+  final bool partnershipStatus;
   @JsonKey(name: 'reward_info')
-  final RewardInfoModel rewardInfo;
-  @JsonKey(name: 'average_rating')
-  final double averageRating;
-  @JsonKey(name: 'total_reviews')
-  final int totalReviews;
+  final RewardInfoModel? rewardInfo;
+  @JsonKey(name: 'stats')
+  final StatsModel? stats;
   @JsonKey(name: 'created_at')
-  final DateTime createdAt;
+  final DateTime? createdAt;
   @JsonKey(name: 'updated_at')
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
   final double? distance; // For nearby places
 
   PlaceModel({
     required this.id,
     required this.name,
-    required this.category,
+    this.category,
     required this.address,
     required this.latitude,
     required this.longitude,
     required this.imageUrls,
     required this.partnershipStatus,
     required this.rewardInfo,
-    required this.averageRating,
-    required this.totalReviews,
-    required this.createdAt,
-    required this.updatedAt,
+    this.stats,
+    this.createdAt,
+    this.updatedAt,
     this.distance,
   });
 
@@ -59,11 +56,11 @@ class PlaceModel {
       longitude: longitude,
       imageUrls: imageUrls,
       partnershipStatus: partnershipStatus,
-      rewardInfo: rewardInfo.toEntity(),
-      averageRating: averageRating,
-      totalReviews: totalReviews,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
+      rewardInfo: rewardInfo?.toEntity(),
+      averageRating: stats?.averageRating,
+      totalReviews: stats?.totalReviews,
+      createdAt: createdAt ?? DateTime.now(),
+      updatedAt: updatedAt ?? DateTime.now(),
       distance: distance,
     );
   }
@@ -78,9 +75,11 @@ class PlaceModel {
       longitude: entity.longitude,
       imageUrls: entity.imageUrls,
       partnershipStatus: entity.partnershipStatus,
-      rewardInfo: RewardInfoModel.fromEntity(entity.rewardInfo),
-      averageRating: entity.averageRating,
-      totalReviews: entity.totalReviews,
+      rewardInfo: entity.rewardInfo != null ? RewardInfoModel.fromEntity(entity.rewardInfo!) : null,
+      stats: StatsModel(
+        averageRating: entity.averageRating,
+        totalReviews: entity.totalReviews,
+      ),
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       distance: entity.distance,
@@ -90,14 +89,14 @@ class PlaceModel {
 
 @JsonSerializable()
 class RewardInfoModel {
-  @JsonKey(name: 'base_exp')
-  final int baseExp;
-  @JsonKey(name: 'base_coin')
-  final int baseCoin;
+  @JsonKey(name: 'exp_reward')
+  final int? baseExp;
+  @JsonKey(name: 'coin_reward')
+  final int? baseCoin;
 
   RewardInfoModel({
-    required this.baseExp,
-    required this.baseCoin,
+    this.baseExp,
+    this.baseCoin,
   });
 
   factory RewardInfoModel.fromJson(Map<String, dynamic> json) =>
@@ -118,4 +117,25 @@ class RewardInfoModel {
       baseCoin: entity.baseCoin,
     );
   }
+}
+
+@JsonSerializable()
+class StatsModel {
+  @JsonKey(name: 'total_checkins')
+  final int? totalCheckins;
+  @JsonKey(name: 'total_reviews')
+  final int? totalReviews;
+  @JsonKey(name: 'average_rating')
+  final double? averageRating;
+
+  StatsModel({
+    this.totalCheckins,
+    this.totalReviews,
+    this.averageRating,
+  });
+
+  factory StatsModel.fromJson(Map<String, dynamic> json) =>
+      _$StatsModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$StatsModelToJson(this);
 }

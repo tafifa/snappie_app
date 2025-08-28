@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import '../../core/errors/exceptions.dart';
-import '../../core/errors/failures.dart';
+import '../../domain/errors/exceptions.dart';
+import '../../domain/errors/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/review_entity.dart';
 import '../../domain/repositories/review_repository.dart';
@@ -32,7 +32,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
         );
         return Right(review.toEntity());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on ValidationException catch (e) {
         return Left(ValidationFailure(e.message));
       } on AuthenticationException catch (e) {
@@ -70,7 +70,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
         );
         return Right(reviews.map((review) => review.toEntity()).toList());
       } on ServerException catch (e) {
-        return Left(ServerFailure(e.message, code: e.statusCode));
+        return Left(ServerFailure(e.message));
       } on AuthenticationException catch (e) {
         return Left(AuthenticationFailure(e.message));
       } on AuthorizationException catch (e) {

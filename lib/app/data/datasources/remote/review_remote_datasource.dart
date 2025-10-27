@@ -1,25 +1,19 @@
 import 'package:dio/dio.dart';
-import '../../domain/errors/exceptions.dart';
-import '../../core/network/dio_client.dart';
-import '../models/review_model.dart';
+import '../../../core/errors/exceptions.dart';
+import '../../../core/network/dio_client.dart';
+import '../../../routes/api_endpoints.dart';
+import '../../../core/helpers/api_response_helper.dart';
+import '../../models/review_model.dart';
 
 abstract class ReviewRemoteDataSource {
   Future<ReviewModel> createReview({
     required int placeId,
-    required int vote,
     required String content,
+    required int rating,
     List<String>? imageUrls,
   });
 
-  Future<List<ReviewModel>> getReviews({
-    int page,
-    int perPage,
-    int? placeId,
-    int? userId,
-    String? status,
-    String? sortBy,
-    String? sortOrder,
-  });
+  Future<List<ReviewModel>> getPlaceReviews(int placeId);
 }
 
 class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
@@ -30,34 +24,30 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
   @override
   Future<ReviewModel> createReview({
     required int placeId,
-    required int vote,
     required String content,
+    required int rating,
     List<String>? imageUrls,
   }) async {
     try {
-      final data = <String, dynamic>{
+      final payload = <String, dynamic>{
         'place_id': placeId,
-        'vote': vote,
         'content': content,
+        'rating': rating,
       };
-      
+
       if (imageUrls != null && imageUrls.isNotEmpty) {
-        data['image_urls'] = imageUrls;
+        payload['image_urls'] = imageUrls;
       }
 
       final response = await dioClient.dio.post(
-        '/reviews',
-        data: data,
+        ApiEndpoints.reviewPlace,
+        data: payload,
       );
 
-      if (response.data['success'] == true) {
-        return ReviewModel.fromJson(response.data['data']);
-      } else {
-        throw ServerException(
-          response.data['message'] ?? 'Failed to create review',
-          response.statusCode ?? 500,
-        );
-      }
+      return extractApiResponseData<ReviewModel>(
+        response,
+        (json) => ReviewModel.fromJson(json as Map<String, dynamic>),
+      );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw AuthenticationException('Authentication required');
@@ -79,46 +69,22 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
   }
 
   @override
-  Future<List<ReviewModel>> getReviews({
-    int page = 1,
-    int perPage = 20,
-    int? placeId,
-    int? userId,
-    String? status,
-    String? sortBy,
-    String? sortOrder,
-  }) async {
+  Future<List<ReviewModel>> getPlaceReviews(int placeId) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'per_page': perPage,
-      };
-      
-      if (placeId != null) queryParams['place_id'] = placeId;
-      if (userId != null) queryParams['user_id'] = userId;
-      if (status != null) queryParams['status'] = status;
-      if (sortBy != null) queryParams['sort_by'] = sortBy;
-      if (sortOrder != null) queryParams['sort_order'] = sortOrder;
+      final response = await dioClient.dio
+          .get(ApiEndpoints.replaceId(ApiEndpoints.placeReviews, '$placeId'));
 
-      final response = await dioClient.dio.get(
-        '/reviews',
-        queryParameters: queryParams,
+      return extractApiResponseListData<ReviewModel>(
+        response,
+        (json) => ReviewModel.fromJson(json as Map<String, dynamic>),
       );
-
-      if (response.data['success'] == true) {
-        final List<dynamic> reviewsData = response.data['data'];
-        return reviewsData.map((json) => ReviewModel.fromJson(json)).toList();
-      } else {
-        throw ServerException(
-          response.data['message'] ?? 'Failed to get reviews',
-          response.statusCode ?? 500,
-        );
-      }
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw AuthenticationException('Authentication required');
       } else if (e.response?.statusCode == 403) {
         throw AuthorizationException('Access denied');
+      } else if (e.response?.statusCode == 404) {
+        throw ServerException('Place not found', 404);
       } else {
         throw ServerException(
           e.response?.data['message'] ?? 'Network error occurred',

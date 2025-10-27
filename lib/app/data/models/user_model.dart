@@ -1,93 +1,134 @@
 import 'package:isar/isar.dart';
-import '../../domain/entities/user_entity.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'user_model.g.dart';
 
 @collection
+@JsonSerializable(explicitToJson: true)
 class UserModel {
-  Id isarId = Isar.autoIncrement; // Isar auto-increment ID
-  
-  @Index(unique: true)
-  late String id;
-  
-  @Index()
-  late String email;
-  
-  late String name;
-  
-  String? avatar;
-  
-  late DateTime createdAt;
-  
-  late DateTime updatedAt;
-  
-  late bool isActive;
-  
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  int? id;
+
+  String? name;
+  String? username;
+  String? email;
+
+  @JsonKey(name: 'image_url')
+  String? imageUrl;
+
+  @JsonKey(name: 'total_coin')        int? totalCoin;
+  @JsonKey(name: 'total_exp')         int? totalExp;
+  @JsonKey(name: 'total_following')   int? totalFollowing;
+  @JsonKey(name: 'total_follower')    int? totalFollower;
+  @JsonKey(name: 'total_checkin')     int? totalCheckin;
+  @JsonKey(name: 'total_post')        int? totalPost;
+  @JsonKey(name: 'total_article')     int? totalArticle;
+  @JsonKey(name: 'total_review')      int? totalReview;
+  @JsonKey(name: 'total_achievement') int? totalAchievement;
+  @JsonKey(name: 'total_challenge')   int? totalChallenge;
+
+  bool? status;
+
+  @JsonKey(name: 'last_login_at')
+  DateTime? lastLoginAt;
+
+  @JsonKey(name: 'created_at') DateTime? createdAt;
+  @JsonKey(name: 'updated_at') DateTime? updatedAt;
+
+  @JsonKey(name: 'user_detail')
+  UserDetail? userDetail;
+
+  @JsonKey(name: 'user_preferences')
+  UserPreferences? userPreferences;
+
+  @JsonKey(name: 'user_saved')
+  UserSaved? userSaved;
+
+  @JsonKey(name: 'user_settings')
+  UserSettings? userSettings;
+
+  @JsonKey(name: 'user_notification')
+  UserNotification? userNotification;
+
   UserModel();
+
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
+  Map<String, dynamic> toJson() => _$UserModelToJson(this);
+}
+
+/* ===== Embedded structs ===== */
+
+@JsonSerializable()
+@embedded
+class UserDetail {
+  String? bio;
+  String? gender;
+  @JsonKey(name: 'date_of_birth') String? dateOfBirth;
+  String? phone;
+
+  UserDetail();
+  factory UserDetail.fromJson(Map<String, dynamic> json) => _$UserDetailFromJson(json);
+  Map<String, dynamic> toJson() => _$UserDetailToJson(this);
+}
+
+@JsonSerializable()
+@embedded
+class UserPreferences {
+  @JsonKey(name: 'food_type')  
+  List<String>? foodType;
   
-  UserModel.fromEntity(UserEntity entity) {
-    id = entity.id;
-    email = entity.email;
-    name = entity.name;
-    avatar = entity.avatar;
-    createdAt = entity.createdAt;
-    updatedAt = entity.updatedAt;
-    isActive = entity.isActive;
-  }
+  @JsonKey(name: 'place_value') 
+  List<String>? placeValue;
+
+  UserPreferences();
   
-  UserEntity toEntity() {
-    return UserEntity(
-      id: id,
-      email: email,
-      name: name,
-      avatar: avatar,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      isActive: isActive,
-    );
-  }
+  factory UserPreferences.fromJson(Map<String, dynamic> json) => 
+      _$UserPreferencesFromJson(json);
   
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    final model = UserModel();
-    model.id = json['id'] as String;
-    model.email = json['email'] as String;
-    model.name = json['name'] as String;
-    model.avatar = json['avatar'] as String?;
-    model.createdAt = DateTime.parse(json['created_at'] as String);
-    model.updatedAt = DateTime.parse(json['updated_at'] as String);
-    model.isActive = json['is_active'] as bool? ?? true;
-    return model;
-  }
+  Map<String, dynamic> toJson() => _$UserPreferencesToJson(this);
+}
+
+@JsonSerializable()
+@embedded
+class UserSaved {
+  @JsonKey(name: 'saved_places')   
+  List<int>? savedPlaces;
   
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-      'name': name,
-      'avatar': avatar,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-      'is_active': isActive,
-    };
-  }
+  @JsonKey(name: 'saved_posts')    
+  List<int>? savedPosts;
   
-  UserModel copyWith({
-    String? id,
-    String? email,
-    String? name,
-    String? avatar,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    bool? isActive,
-  }) {
-    final model = UserModel();
-    model.id = id ?? this.id;
-    model.email = email ?? this.email;
-    model.name = name ?? this.name;
-    model.avatar = avatar ?? this.avatar;
-    model.createdAt = createdAt ?? this.createdAt;
-    model.updatedAt = updatedAt ?? this.updatedAt;
-    model.isActive = isActive ?? this.isActive;
-    return model;
-  }
+  @JsonKey(name: 'saved_articles') 
+  List<int>? savedArticles;
+
+  UserSaved();
+  
+  factory UserSaved.fromJson(Map<String, dynamic> json) => 
+      _$UserSavedFromJson(json);
+  
+  Map<String, dynamic> toJson() => _$UserSavedToJson(this);
+}
+
+@JsonSerializable()
+@embedded
+class UserSettings {
+  String? language;
+  String? theme;
+
+  UserSettings();
+  factory UserSettings.fromJson(Map<String, dynamic> json) => _$UserSettingsFromJson(json);
+  Map<String, dynamic> toJson() => _$UserSettingsToJson(this);
+}
+
+@JsonSerializable()
+@embedded
+class UserNotification {
+  @JsonKey(name: 'push_notification') bool? pushNotification;
+
+  UserNotification();
+  factory UserNotification.fromJson(Map<String, dynamic> json) => _$UserNotificationFromJson(json);
+  Map<String, dynamic> toJson() => _$UserNotificationToJson(this);
 }

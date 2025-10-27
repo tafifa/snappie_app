@@ -17,13 +17,18 @@ const AuthTokenModelSchema = CollectionSchema(
   name: r'AuthTokenModel',
   id: 2178141327232198479,
   properties: {
-    r'key': PropertySchema(
+    r'createdAt': PropertySchema(
       id: 0,
+      name: r'createdAt',
+      type: IsarType.dateTime,
+    ),
+    r'key': PropertySchema(
+      id: 1,
       name: r'key',
       type: IsarType.string,
     ),
     r'token': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'token',
       type: IsarType.string,
     )
@@ -32,13 +37,13 @@ const AuthTokenModelSchema = CollectionSchema(
   serialize: _authTokenModelSerialize,
   deserialize: _authTokenModelDeserialize,
   deserializeProp: _authTokenModelDeserializeProp,
-  idName: r'id',
+  idName: r'isarId',
   indexes: {
     r'key': IndexSchema(
       id: -4906094122524121629,
       name: r'key',
       unique: true,
-      replace: false,
+      replace: true,
       properties: [
         IndexPropertySchema(
           name: r'key',
@@ -73,8 +78,9 @@ void _authTokenModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.key);
-  writer.writeString(offsets[1], object.token);
+  writer.writeDateTime(offsets[0], object.createdAt);
+  writer.writeString(offsets[1], object.key);
+  writer.writeString(offsets[2], object.token);
 }
 
 AuthTokenModel _authTokenModelDeserialize(
@@ -84,9 +90,10 @@ AuthTokenModel _authTokenModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = AuthTokenModel();
-  object.id = id;
-  object.key = reader.readString(offsets[0]);
-  object.token = reader.readString(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[0]);
+  object.isarId = id;
+  object.key = reader.readString(offsets[1]);
+  object.token = reader.readString(offsets[2]);
   return object;
 }
 
@@ -98,8 +105,10 @@ P _authTokenModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -107,7 +116,7 @@ P _authTokenModelDeserializeProp<P>(
 }
 
 Id _authTokenModelGetId(AuthTokenModel object) {
-  return object.id;
+  return object.isarId;
 }
 
 List<IsarLinkBase<dynamic>> _authTokenModelGetLinks(AuthTokenModel object) {
@@ -116,7 +125,7 @@ List<IsarLinkBase<dynamic>> _authTokenModelGetLinks(AuthTokenModel object) {
 
 void _authTokenModelAttach(
     IsarCollection<dynamic> col, Id id, AuthTokenModel object) {
-  object.id = id;
+  object.isarId = id;
 }
 
 extension AuthTokenModelByIndex on IsarCollection<AuthTokenModel> {
@@ -176,7 +185,7 @@ extension AuthTokenModelByIndex on IsarCollection<AuthTokenModel> {
 
 extension AuthTokenModelQueryWhereSort
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QWhere> {
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhere> anyId() {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhere> anyIsarId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
     });
@@ -185,70 +194,68 @@ extension AuthTokenModelQueryWhereSort
 
 extension AuthTokenModelQueryWhere
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QWhereClause> {
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> idEqualTo(
-      Id id) {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> isarIdEqualTo(
+      Id isarId) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
+        lower: isarId,
+        upper: isarId,
       ));
     });
   }
 
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> idNotEqualTo(
-      Id id) {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause>
+      isarIdNotEqualTo(Id isarId) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(
-              IdWhereClause.lessThan(upper: id, includeUpper: false),
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
             )
             .addWhereClause(
-              IdWhereClause.greaterThan(lower: id, includeLower: false),
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
             );
       } else {
         return query
             .addWhereClause(
-              IdWhereClause.greaterThan(lower: id, includeLower: false),
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
             )
             .addWhereClause(
-              IdWhereClause.lessThan(upper: id, includeUpper: false),
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
             );
       }
     });
   }
 
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> idGreaterThan(
-      Id id,
-      {bool include = false}) {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause>
+      isarIdGreaterThan(Id isarId, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        IdWhereClause.greaterThan(lower: id, includeLower: include),
+        IdWhereClause.greaterThan(lower: isarId, includeLower: include),
       );
     });
   }
 
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> idLessThan(
-      Id id,
-      {bool include = false}) {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause>
+      isarIdLessThan(Id isarId, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        IdWhereClause.lessThan(upper: id, includeUpper: include),
+        IdWhereClause.lessThan(upper: isarId, includeUpper: include),
       );
     });
   }
 
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> idBetween(
-    Id lowerId,
-    Id upperId, {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterWhereClause> isarIdBetween(
+    Id lowerIsarId,
+    Id upperIsarId, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
+        lower: lowerIsarId,
         includeLower: includeLower,
-        upper: upperId,
+        upper: upperIsarId,
         includeUpper: includeUpper,
       ));
     });
@@ -302,45 +309,102 @@ extension AuthTokenModelQueryWhere
 
 extension AuthTokenModelQueryFilter
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QFilterCondition> {
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition> idEqualTo(
-      Id value) {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
+      createdAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
+        property: r'createdAt',
         value: value,
       ));
     });
   }
 
   QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
-      idGreaterThan(
+      createdAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
+      createdAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
+      createdAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'createdAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
+      isarIdEqualTo(Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
+      isarIdGreaterThan(
     Id value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'id',
+        property: r'isarId',
         value: value,
       ));
     });
   }
 
   QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
-      idLessThan(
+      isarIdLessThan(
     Id value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'id',
+        property: r'isarId',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition> idBetween(
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterFilterCondition>
+      isarIdBetween(
     Id lower,
     Id upper, {
     bool includeLower = true,
@@ -348,7 +412,7 @@ extension AuthTokenModelQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
+        property: r'isarId',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -638,6 +702,19 @@ extension AuthTokenModelQueryLinks
 
 extension AuthTokenModelQuerySortBy
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QSortBy> {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy> sortByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy>
+      sortByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy> sortByKey() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'key', Sort.asc);
@@ -665,15 +742,29 @@ extension AuthTokenModelQuerySortBy
 
 extension AuthTokenModelQuerySortThenBy
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QSortThenBy> {
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy> thenById() {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy> thenByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'id', Sort.asc);
+      return query.addSortBy(r'createdAt', Sort.asc);
     });
   }
 
-  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy> thenByIdDesc() {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy>
+      thenByCreatedAtDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'id', Sort.desc);
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy> thenByIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QAfterSortBy>
+      thenByIsarIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.desc);
     });
   }
 
@@ -704,6 +795,13 @@ extension AuthTokenModelQuerySortThenBy
 
 extension AuthTokenModelQueryWhereDistinct
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QDistinct> {
+  QueryBuilder<AuthTokenModel, AuthTokenModel, QDistinct>
+      distinctByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'createdAt');
+    });
+  }
+
   QueryBuilder<AuthTokenModel, AuthTokenModel, QDistinct> distinctByKey(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -721,9 +819,15 @@ extension AuthTokenModelQueryWhereDistinct
 
 extension AuthTokenModelQueryProperty
     on QueryBuilder<AuthTokenModel, AuthTokenModel, QQueryProperty> {
-  QueryBuilder<AuthTokenModel, int, QQueryOperations> idProperty() {
+  QueryBuilder<AuthTokenModel, int, QQueryOperations> isarIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'id');
+      return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<AuthTokenModel, DateTime, QQueryOperations> createdAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'createdAt');
     });
   }
 

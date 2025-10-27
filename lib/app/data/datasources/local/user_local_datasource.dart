@@ -1,21 +1,23 @@
+// user_local_data_source.dart
 import 'package:isar/isar.dart';
-import '../../core/database/isar_service.dart';
-import '../../domain/errors/exceptions.dart';
-import '../models/user_model.dart';
-import '../models/auth_token_model.dart';
+import '../../../core/services/isar_service.dart';
+import '../../../core/errors/exceptions.dart';
+import '../../models/user_model.dart';
+import '../../models/auth_token_model.dart';
 
 abstract class UserLocalDataSource {
   Future<UserModel?> getCachedUser();
   Future<void> cacheUser(UserModel user);
   Future<void> clearCachedUser();
+
   Future<String?> getAuthToken();
   Future<void> saveAuthToken(String token);
   Future<void> clearAuthToken();
 }
 
 class UserLocalDataSourceImpl implements UserLocalDataSource {
-  UserLocalDataSourceImpl();
-  
+  const UserLocalDataSourceImpl();
+
   @override
   Future<UserModel?> getCachedUser() async {
     try {
@@ -25,22 +27,20 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       throw CacheException('Failed to get cached user: $e');
     }
   }
-  
+
   @override
   Future<void> cacheUser(UserModel user) async {
     try {
       final isar = await IsarService.instance;
       await isar.writeTxn(() async {
-        // Clear existing user first
-        await isar.userModels.clear();
-        // Save new user
+        await isar.userModels.clear(); // keep a single cached user
         await isar.userModels.put(user);
       });
     } catch (e) {
       throw CacheException('Failed to cache user: $e');
     }
   }
-  
+
   @override
   Future<void> clearCachedUser() async {
     try {
@@ -52,7 +52,7 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       throw CacheException('Failed to clear cached user: $e');
     }
   }
-  
+
   @override
   Future<String?> getAuthToken() async {
     try {
@@ -66,38 +66,42 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       throw CacheException('Failed to get auth token: $e');
     }
   }
-  
+
   @override
   Future<void> saveAuthToken(String token) async {
     try {
       final isar = await IsarService.instance;
       await isar.writeTxn(() async {
-        // Remove existing token
-        await isar.authTokenModels
-            .filter()
-            .keyEqualTo('auth_token')
-            .deleteAll();
-        // Save new token
-        final tokenModel = AuthTokenModel.create(
-          key: 'auth_token',
-          token: token,
+        // Thanks to @Index(unique: true, replace: true),
+        // this put() will upsert by key without manual delete.
+        await isar.authTokenModels.put(
+          AuthTokenModel.create(
+            key: 'auth_token',
+            token: token,
+          ),
         );
-        await isar.authTokenModels.put(tokenModel);
       });
     } catch (e) {
       throw CacheException('Failed to save auth token: $e');
     }
   }
-  
+
   @override
   Future<void> clearAuthToken() async {
     try {
       final isar = await IsarService.instance;
       await isar.writeTxn(() async {
-        await isar.authTokenModels
+        // You can keep this filter-based delete; it’s simple & reliable.
+        final tokens = await isar.authTokenModels
             .filter()
             .keyEqualTo('auth_token')
-            .deleteAll();
+            .findAll();
+
+        if (tokens.isNotEmpty) {
+          await isar.authTokenModels.deleteAll(
+            tokens.map((e) => e.isarId).toList(),
+          );
+        }
       });
     } catch (e) {
       throw CacheException('Failed to clear auth token: $e');

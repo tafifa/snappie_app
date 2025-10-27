@@ -1,57 +1,52 @@
-import '../../domain/entities/articles_entity.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:isar/isar.dart';
 
-class ArticlesModel extends ArticlesEntity {
-  ArticlesModel({
-    required super.id,
-    required super.title,
-    required super.content,
-    required super.excerpt,
-    required super.imageUrl,
-    required super.author,
-    required super.createdAt,
-    required super.updatedAt,
-    required super.category,
-    required super.tags,
-    super.views = 0,
-    super.likes = 0,
-    super.isBookmarked = false,
-  });
+part 'articles_model.g.dart';
 
-  factory ArticlesModel.fromJson(Map<String, dynamic> json) {
-    return ArticlesModel(
-      id: json['id'] as int,
-      title: json['title'] as String,
-      content: json['content'] as String,
-      excerpt: json['excerpt'] as String,
-      imageUrl: json['image_url'] as String,
-      author: json['author'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      category: json['category'] as String,
-      tags: List<String>.from(json['tags'] ?? []),
-      views: json['views'] as int? ?? 0,
-      likes: json['likes'] as int? ?? 0,
-      isBookmarked: json['is_bookmarked'] as bool? ?? false,
-    );
-  }
+@collection
+@JsonSerializable()
+class ArticlesModel {
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Id isarId = Isar.autoIncrement;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'content': content,
-      'excerpt': excerpt,
-      'image_url': imageUrl,
-      'author': author,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-      'category': category,
-      'tags': tags,
-      'views': views,
-      'likes': likes,
-      'is_bookmarked': isBookmarked,
-    };
-  }
+  @Index(unique: true, replace: true)
+  int? id;
 
-  ArticlesEntity toEntity() => this;
+  @Index() @JsonKey(name: 'user_id')  int? userId;
+  @Index() @JsonKey(name: 'place_id') int? placeId;
+
+  String? title;
+  String? content;
+  String? category;
+  @JsonKey(name: 'image_url') String? imageUrl;
+  String? url; // External URL to the article website
+  @JsonKey(name: 'likes_count') int? likesCount;
+  @JsonKey(name: 'comments_count') int? commentsCount;
+
+  @JsonKey(name: 'user') 
+  UserArticle? user;
+
+  @JsonKey(name: 'created_at') DateTime? createdAt;
+  @JsonKey(name: 'updated_at') DateTime? updatedAt;
+
+  ArticlesModel();
+
+  factory ArticlesModel.fromJson(Map<String, dynamic> json) => _$ArticlesModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ArticlesModelToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+@embedded
+class UserArticle {
+  int? id;
+  String? name;
+  String? email;
+  @JsonKey(name: 'image_url') String? imageUrl;
+
+  UserArticle();
+
+  factory UserArticle.fromJson(Map<String, dynamic> json) => _$UserArticleFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UserArticleToJson(this);
 }

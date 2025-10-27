@@ -1,86 +1,39 @@
-import 'package:dartz/dartz.dart';
 import '../../core/network/network_info.dart';
-import '../../domain/entities/articles_entity.dart';
-import '../../domain/repositories/articles_repository.dart';
-import '../../doma../../domain/errors/failures.dart';
-import '../datasources/articles_remote_datasource.dart';
+import '../../core/errors/exceptions.dart';
+import '../datasources/remote/articles_remote_datasource.dart';
+import '../models/articles_model.dart';
 
-class ArticlesRepositoryImpl implements ArticlesRepository {
+/// Articles Repository - No domain layer, direct Model return
+/// Throws exceptions instead of returning Either<Failure, T>
+class ArticlesRepository {
   final ArticlesRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
 
-  ArticlesRepositoryImpl({
+  ArticlesRepository({
     required this.remoteDataSource,
     required this.networkInfo,
   });
 
-  @override
-  Future<Either<Failure, List<ArticlesEntity>>> getArticles() async {
-    if (await networkInfo.isConnected) {
-      try {
-        final articles = await remoteDataSource.getArticles();
-        return Right(articles.map((e) => e.toEntity()).toList());
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return Left(NetworkFailure('No internet connection'));
+  
+  /// Get all articles
+  /// Throws: [NetworkException], [ServerException]
+  Future<List<ArticlesModel>> getArticles() async {
+    if (!(await networkInfo.isConnected)) {
+      throw NetworkException('No internet connection');
     }
+    
+    final articles = await remoteDataSource.getArticles();
+    return articles;
   }
 
-  @override
-  Future<Either<Failure, ArticlesEntity>> getArticleById(int id) async {
-    if (await networkInfo.isConnected) {
-      try {
-        final article = await remoteDataSource.getArticleById(id);
-        return Right(article.toEntity());
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return Left(NetworkFailure('No internet connection'));
+  /// Get article by ID
+  /// Throws: [NetworkException], [ServerException]
+  Future<ArticlesModel> getArticleById(int id) async {
+    if (!(await networkInfo.isConnected)) {
+      throw NetworkException('No internet connection');
     }
-  }
-
-  @override
-  Future<Either<Failure, List<ArticlesEntity>>> searchArticles(String query) async {
-    if (await networkInfo.isConnected) {
-      try {
-        final articles = await remoteDataSource.searchArticles(query);
-        return Right(articles.map((e) => e.toEntity()).toList());
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return Left(NetworkFailure('No internet connection'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, bool>> bookmarkArticle(int id) async {
-    if (await networkInfo.isConnected) {
-      try {
-        final result = await remoteDataSource.bookmarkArticle(id);
-        return Right(result);
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return Left(NetworkFailure('No internet connection'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, List<ArticlesEntity>>> getBookmarkedArticles() async {
-    if (await networkInfo.isConnected) {
-      try {
-        final articles = await remoteDataSource.getBookmarkedArticles();
-        return Right(articles.map((e) => e.toEntity()).toList());
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return Left(NetworkFailure('No internet connection'));
-    }
+    
+    final article = await remoteDataSource.getArticleById(id);
+    return article;
   }
 }

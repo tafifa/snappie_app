@@ -1,87 +1,70 @@
+import 'package:isar/isar.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:snappie_app/app/data/models/comment_model.dart';
+import 'package:snappie_app/app/data/models/like_model.dart';
+
+part 'post_model.g.dart';
+
+@collection
+@JsonSerializable()
 class PostModel {
-  final String id;
-  final String authorName;
-  final String authorLocation;
-  final String? authorAvatar;
-  final String content;
-  final String? imageUrl;
-  final DateTime createdAt;
-  final int likesCount;
-  final int commentsCount;
-  final bool isLiked;
-  final bool isSaved;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Id isarId = Isar.autoIncrement;
 
-  PostModel({
-    required this.id,
-    required this.authorName,
-    required this.authorLocation,
-    this.authorAvatar,
-    required this.content,
-    this.imageUrl,
-    required this.createdAt,
-    this.likesCount = 0,
-    this.commentsCount = 0,
-    this.isLiked = false,
-    this.isSaved = false,
-  });
+  @Index(unique: true, replace: true)
+  int? id;
 
-  PostModel copyWith({
-    String? id,
-    String? authorName,
-    String? authorLocation,
-    String? authorAvatar,
-    String? content,
-    String? imageUrl,
-    DateTime? createdAt,
-    int? likesCount,
-    int? commentsCount,
-    bool? isLiked,
-    bool? isSaved,
-  }) {
-    return PostModel(
-      id: id ?? this.id,
-      authorName: authorName ?? this.authorName,
-      authorLocation: authorLocation ?? this.authorLocation,
-      authorAvatar: authorAvatar ?? this.authorAvatar,
-      content: content ?? this.content,
-      imageUrl: imageUrl ?? this.imageUrl,
-      createdAt: createdAt ?? this.createdAt,
-      likesCount: likesCount ?? this.likesCount,
-      commentsCount: commentsCount ?? this.commentsCount,
-      isLiked: isLiked ?? this.isLiked,
-      isSaved: isSaved ?? this.isSaved,
-    );
-  }
+  @Index() @JsonKey(name: 'user_id')  int? userId;
+  @Index() @JsonKey(name: 'place_id') int? placeId;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'authorName': authorName,
-      'authorLocation': authorLocation,
-      'authorAvatar': authorAvatar,
-      'content': content,
-      'imageUrl': imageUrl,
-      'createdAt': createdAt.toIso8601String(),
-      'likesCount': likesCount,
-      'commentsCount': commentsCount,
-      'isLiked': isLiked,
-      'isSaved': isSaved,
-    };
-  }
+  @JsonKey(name: 'image_urls')        List<String>? imageUrls;
+  String? content;
+  bool? status;
 
-  factory PostModel.fromJson(Map<String, dynamic> json) {
-    return PostModel(
-      id: json['id'],
-      authorName: json['authorName'],
-      authorLocation: json['authorLocation'],
-      authorAvatar: json['authorAvatar'],
-      content: json['content'],
-      imageUrl: json['imageUrl'],
-      createdAt: DateTime.parse(json['createdAt']),
-      likesCount: json['likesCount'] ?? 0,
-      commentsCount: json['commentsCount'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
-      isSaved: json['isSaved'] ?? false,
-    );
-  }
+  @JsonKey(name: 'likes_count')       int? likesCount;
+  @JsonKey(name: 'comments_count')    int? commentsCount;
+
+  @JsonKey(name: 'created_at')        DateTime? createdAt;
+  @JsonKey(name: 'updated_at')        DateTime? updatedAt;
+
+  @JsonKey(name: 'user')              UserPost? user;
+  @JsonKey(name: 'place')             PlacePost? place;
+  @ignore
+  @JsonKey(name: 'likes')             List<LikeModel>? likes;
+  @ignore
+  @JsonKey(name: 'comments')          List<CommentModel>? comments;
+
+  PostModel();
+
+  factory PostModel.fromJson(Map<String, dynamic> json) => _$PostModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PostModelToJson(this);
+}
+
+@JsonSerializable()
+@embedded
+class UserPost {
+  int? id;
+  String? name;
+  @JsonKey(name: 'image_url') String? imageUrl;
+
+  UserPost();
+
+  factory UserPost.fromJson(Map<String, dynamic> json) =>
+      _$UserPostFromJson(json);
+  Map<String, dynamic> toJson() => _$UserPostToJson(this);
+}
+
+@JsonSerializable()
+@embedded
+class PlacePost {
+  int? id;
+  String? name;
+  String? description;
+
+  PlacePost();
+
+  factory PlacePost.fromJson(Map<String, dynamic> json) =>
+      _$PlacePostFromJson(json);
+  Map<String, dynamic> toJson() => _$PlacePostToJson(this);
 }

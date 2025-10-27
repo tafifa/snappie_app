@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../domain/entities/articles_entity.dart';
+import '../../../data/models/articles_model.dart';
 
 class ArticlesDetailView extends StatelessWidget {
   const ArticlesDetailView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ArticlesEntity article = Get.arguments as ArticlesEntity;
+    final ArticlesModel article = Get.arguments as ArticlesModel;
 
     return Scaffold(
       body: CustomScrollView(
@@ -47,10 +47,8 @@ class ArticlesDetailView extends StatelessWidget {
                 onPressed: () {
                   // TODO: Implement bookmark functionality
                 },
-                icon: Icon(
-                  article.isBookmarked
-                      ? Icons.bookmark
-                      : Icons.bookmark_outline,
+                icon: const Icon(
+                  Icons.bookmark_outline,
                   color: Colors.white,
                 ),
               ),
@@ -76,7 +74,7 @@ class ArticlesDetailView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      article.category,
+                      article.category ?? 'Uncategorized',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -89,7 +87,7 @@ class ArticlesDetailView extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      article.title,
+                      article.title ?? 'No Title',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -110,7 +108,7 @@ class ArticlesDetailView extends StatelessWidget {
                           radius: 20,
                           backgroundColor: const Color(0xFF2E8B8B),
                           child: Text(
-                            article.author[0].toUpperCase(),
+                            (article.user?.name ?? 'U')[0].toUpperCase(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -124,7 +122,7 @@ class ArticlesDetailView extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                article.author,
+                                article.user?.name ?? 'Unknown',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -132,7 +130,7 @@ class ArticlesDetailView extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                _formatDate(article.createdAt),
+                                article.createdAt != null ? _formatDate(article.createdAt!) : 'Unknown',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey[600],
@@ -145,13 +143,13 @@ class ArticlesDetailView extends StatelessWidget {
                         Row(
                           children: [
                             Icon(
-                              Icons.visibility_outlined,
+                              Icons.favorite_outline,
                               size: 16,
                               color: Colors.grey[500],
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _formatNumber(article.views),
+                              (article.likesCount ?? 0).toString(),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -159,13 +157,13 @@ class ArticlesDetailView extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Icon(
-                              Icons.favorite_outline,
+                              Icons.comment_outlined,
                               size: 16,
                               color: Colors.grey[500],
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _formatNumber(article.likes),
+                              (article.commentsCount ?? 0).toString(),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -183,7 +181,7 @@ class ArticlesDetailView extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      article.content,
+                      article.content ?? 'No content available',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black87,
@@ -194,52 +192,7 @@ class ArticlesDetailView extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // Tags
-                  if (article.tags.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Tags',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: article.tags.map((tag) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.grey[300]!,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  '#$tag',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // Tags section removed - not available in ArticlesModel
 
                   const SizedBox(height: 32),
 
@@ -254,7 +207,7 @@ class ArticlesDetailView extends StatelessWidget {
                               // TODO: Implement like functionality
                             },
                             icon: const Icon(Icons.favorite_outline),
-                            label: Text('Suka (${article.likes})'),
+                            label: Text('Suka (${article.likesCount ?? 0})'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF2E8B8B),

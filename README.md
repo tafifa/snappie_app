@@ -1,12 +1,11 @@
 # Snappie App
 
-A Flutter application built with Clean Architecture principles, featuring user authentication, state management with GetX, and local storage with Isar database.
+A Flutter application built with simplified architecture principles, featuring user authentication, state management with GetX, and local storage with Isar database.
 
 ## Architecture Overview
 
-This project follows **Clean Architecture** principles, ensuring separation of concerns, testability, and maintainability. The architecture is divided into three main layers:
+This project follows a **simplified architecture** approach, focusing on maintainability and development speed. The architecture is divided into two main layers:
 
-- **Domain Layer**: Contains business logic, entities, and use cases
 - **Data Layer**: Handles data sources, repositories implementation, and models
 - **Presentation Layer**: UI components, controllers, and state management
 
@@ -17,27 +16,37 @@ lib/
 ├── app/
 │   ├── core/                    # Core utilities and configurations
 │   │   ├── constants/           # App-wide constants
-│   │   ├── database/            # Database configuration (Isar)
-│   │   ├── dependency_injection.dart  # DI setup with GetX
+│   │   ├── dependencies/        # Dependency injection setup
 │   │   ├── errors/              # Error handling and exceptions
+│   │   ├── helpers/             # API response helpers
 │   │   ├── network/             # Network configuration and interceptors
+│   │   ├── services/            # Core services (Auth, Isar, etc.)
 │   │   └── utils/               # Utility functions and helpers
 │   ├── data/                    # Data Layer
 │   │   ├── datasources/         # Data sources (local & remote)
+│   │   │   ├── local/           # Local data sources (Isar)
+│   │   │   └── remote/          # Remote data sources (API)
 │   │   ├── models/              # Data models with JSON serialization
 │   │   └── repositories/        # Repository implementations
-│   ├── domain/                  # Domain Layer (Business Logic)
-│   │   ├── entities/            # Business entities
-│   │   ├── repositories/        # Repository interfaces
-│   │   └── usecases/            # Business use cases
 │   ├── modules/                 # Feature modules
-│   │   └── home/                # Home feature
-│   │       ├── bindings/        # GetX bindings for dependency injection
-│   │       ├── controllers/     # GetX controllers for state management
-│   │       └── views/           # UI screens and widgets
+│   │   ├── articles/            # Articles feature
+│   │   ├── auth/                # Authentication feature
+│   │   ├── explore/             # Explore places feature
+│   │   ├── home/                # Home feed feature
+│   │   ├── profile/             # User profile feature
+│   │   └── shared/              # Shared components and widgets
+│   │       ├── components/      # Reusable UI components
+│   │       ├── layout/          # Layout components
+│   │       └── widgets/         # Categorized widget system
+│   │           ├── _card_widgets/      # Card-based widgets
+│   │           ├── _dialog_widgets/    # Dialog and modal widgets
+│   │           ├── _display_widgets/   # Display and image widgets
+│   │           ├── _form_widgets/      # Form input widgets
+│   │           ├── _layout_widgets/    # Layout and container widgets
+│   │           ├── _navigation_widgets/ # Navigation and button widgets
+│   │           └── _state_widgets/     # Loading, error, empty state widgets
 │   ├── routes/                  # App routing configuration
-│   └── shared/                  # Shared UI components and widgets
-└── main.dart                    # App entry point
+│   └── main.dart                # App entry point
 ```
 
 ## Layer Details
@@ -45,11 +54,12 @@ lib/
 ### 🏗️ Core Layer (`lib/app/core/`)
 Contains foundational components used across the entire application:
 
-- **`constants/`**: App-wide constants like API endpoints, colors, strings
-- **`database/`**: Isar database service and configuration
-- **`dependency_injection.dart`**: Centralized dependency injection setup using GetX
-- **`errors/`**: Custom exceptions, failures, and error handling
+- **`constants/`**: App-wide constants like API endpoints, colors, themes, font sizes
+- **`dependencies/`**: Centralized dependency injection setup using GetX
+- **`errors/`**: Custom exceptions and error handling
+- **`helpers/`**: API response parsing and utility helpers
 - **`network/`**: HTTP client configuration, interceptors, and network utilities
+- **`services/`**: Core services (AuthService, IsarService, GoogleAuthService)
 - **`utils/`**: Helper functions, extensions, and utility classes
 
 ### 📊 Data Layer (`lib/app/data/`)
@@ -57,29 +67,36 @@ Handles all data operations and external dependencies:
 
 - **`datasources/`**: 
   - `local/`: Local data sources (Isar database operations)
-  - `remote/`: Remote data sources (API calls)
-- **`models/`**: Data models that extend domain entities with serialization
-- **`repositories/`**: Concrete implementations of domain repository interfaces
-
-### 🎯 Domain Layer (`lib/app/domain/`)
-Contains pure business logic, independent of external frameworks:
-
-- **`entities/`**: Core business objects (pure Dart classes)
-- **`repositories/`**: Abstract repository interfaces
-- **`usecases/`**: Business use cases that orchestrate data flow
+  - `remote/`: Remote data sources (API calls with Dio)
+- **`models/`**: Data models with JSON serialization and Isar annotations
+- **`repositories/`**: Repository implementations with network and local data handling
 
 ### 🎨 Presentation Layer (`lib/app/modules/`)
-Handles UI and user interactions:
+Handles UI and user interactions with feature-based organization:
 
-- **`bindings/`**: GetX bindings for dependency injection per feature
-- **`controllers/`**: GetX controllers managing UI state and business logic
-- **`views/`**: Flutter widgets and screens
+- **`articles/`**: Article browsing with external URL support
+- **`auth/`**: User authentication and registration
+- **`explore/`**: Place discovery and check-in functionality
+- **`home/`**: Social feed with posts and interactions
+- **`profile/`**: User profile management and settings
+- **`shared/`**: Reusable components organized by category:
+  - `components/`: High-level reusable components
+  - `layout/`: Layout containers and scaffold components
+  - `widgets/`: Categorized widget system for consistent UI
 
 ### 🛣️ Routes (`lib/app/routes/`)
-Centralized routing configuration using GetX navigation.
+Centralized routing configuration using GetX navigation with API endpoints.
 
-### 🔄 Shared (`lib/app/shared/`)
-Reusable UI components, widgets, and utilities used across multiple features.
+### 🎨 Shared Widget System (`lib/app/modules/shared/widgets/`)
+Organized widget system for consistent UI development:
+
+- **`_card_widgets/`**: Card-based components (PromotionalBanner, etc.)
+- **`_dialog_widgets/`**: Modal dialogs and bottom sheets
+- **`_display_widgets/`**: Image display and network image widgets
+- **`_form_widgets/`**: Input fields and form components
+- **`_layout_widgets/`**: Containers and layout helpers
+- **`_navigation_widgets/`**: Buttons and navigation components
+- **`_state_widgets/`**: Loading, error, and empty state widgets
 
 ## Key Technologies
 
@@ -87,8 +104,10 @@ Reusable UI components, widgets, and utilities used across multiple features.
 - **Local Database**: Isar (NoSQL database)
 - **HTTP Client**: Dio with custom interceptors
 - **Dependency Injection**: GetX
-- **Architecture**: Clean Architecture
-- **Error Handling**: Dartz (Either type for functional error handling)
+- **Architecture**: Simplified Data + Presentation layers
+- **Error Handling**: Custom exception handling with API response helpers
+- **External URLs**: url_launcher for opening external links
+- **Authentication**: Laravel Sanctum with token management
 
 ## Getting Started
 
@@ -110,9 +129,9 @@ cd snappie_app
 flutter pub get
 ```
 
-3. Generate Isar database schemas:
+3. Generate Isar database schemas and JSON serialization:
 ```bash
-flutter packages pub run build_runner build
+flutter packages pub run build_runner build --delete-conflicting-outputs
 ```
 
 4. Run the app:
@@ -124,38 +143,66 @@ flutter run
 
 ### Adding New Features
 
-1. **Create Domain Layer**:
-   - Define entities in `domain/entities/`
-   - Create repository interfaces in `domain/repositories/`
-   - Implement use cases in `domain/usecases/`
-
-2. **Implement Data Layer**:
-   - Create models in `data/models/`
-   - Implement data sources in `data/datasources/`
+1. **Implement Data Layer**:
+   - Create models in `data/models/` with JSON serialization
+   - Implement data sources in `data/datasources/local/` or `remote/`
    - Implement repository in `data/repositories/`
 
-3. **Build Presentation Layer**:
+2. **Build Presentation Layer**:
    - Create controller in `modules/feature/controllers/`
    - Design views in `modules/feature/views/`
    - Set up bindings in `modules/feature/bindings/`
+   - Use shared widgets from `modules/shared/widgets/`
 
-4. **Update Dependencies**:
-   - Register new dependencies in `core/dependency_injection.dart`
-   - Add routes in `routes/`
+3. **Update Dependencies**:
+   - Register new dependencies in `core/dependencies/data_dependencies.dart`
+   - Add routes in `routes/app_pages.dart`
+   - Update API endpoints in `routes/api_endpoints.dart`
+
+### Widget Development
+
+Use the organized widget system in `modules/shared/widgets/`:
+- **Cards**: Use `_card_widgets/` for card-based components
+- **Forms**: Use `_form_widgets/` for input components
+- **States**: Use `_state_widgets/` for loading/error/empty states
+- **Navigation**: Use `_navigation_widgets/` for buttons and navigation
 
 ### Code Generation
 
-When modifying Isar models, run:
+When modifying Isar models or JSON serialization, run:
 ```bash
 flutter packages pub run build_runner build --delete-conflicting-outputs
 ```
 
+### API Integration
+
+The app uses a structured API response system:
+- API responses are wrapped in `ApiResponse<T>` format
+- Use `extractApiResponseData<T>()` and `extractApiResponseListData<T>()` helpers
+- Error handling is centralized in datasource implementations
+
 ## Testing
 
-The clean architecture makes testing straightforward:
-- **Unit Tests**: Test use cases and entities
-- **Widget Tests**: Test UI components
-- **Integration Tests**: Test complete user flows
+The simplified architecture makes testing straightforward:
+- **Unit Tests**: Test controllers and repository implementations
+- **Widget Tests**: Test UI components and shared widgets
+- **Integration Tests**: Test complete user flows and API integration
+
+## Features
+
+### Current Features
+- **Authentication**: Login/Register with Laravel Sanctum
+- **Social Feed**: Post creation, likes, comments
+- **Place Discovery**: Browse places, check-ins, reviews
+- **Articles**: Browse articles with external URL support
+- **Profile Management**: User profiles and settings
+- **Promotional Banners**: Dismissible promotional content
+
+### Key Components
+- **Article Cards**: Reusable widgets with external URL opening
+- **Promotional Banner**: Dismissible banner with close button
+- **Shared Widget System**: Organized, categorized widget library
+- **API Integration**: Structured response handling and error management
 
 ## Contributing
 

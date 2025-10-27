@@ -1,0 +1,21 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "snappie-c0775",
+          "appId": "1:66231578373:android:09a165472d6a9d3945116c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "snappie-c0775",
+          "configurations": {
+            "android": "1:66231578373:android:09a165472d6a9d3945116c"
+          }
+        }
+      }
+    }
+  }
+}

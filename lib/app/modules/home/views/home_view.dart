@@ -1,77 +1,119 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:snappie_app/app/core/constants/font_size.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 import '../controllers/home_controller.dart';
 import '../../../core/constants/app_colors.dart';
-
-import '../../../domain/entities/post_entity.dart';
+import 'package:snappie_app/app/modules/shared/widgets/_navigation_widgets/button_widget.dart';
+import '../../../data/models/post_model.dart';
 import '../widgets/post_card.dart';
-import '../widgets/post_creation_widget.dart';
-import '../../../core/components/app_header_widget.dart';
-import '../../../core/components/notification_button_widget.dart';
-import '../../articles/widgets/common/loading_state_widget.dart';
+import '../../shared/widgets/index.dart';
+import '../../shared/widgets/_card_widgets/promotional_banner.dart';
+import '../../shared/layout/views/scaffold_frame.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainer,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          controller.refreshData();
-        },
-        child: CustomScrollView(
-          slivers: [
-            Obx(() => AppHeaderWidget(
-              greeting: 'Hello, ${controller.userData['name'] ?? 'User'}!',
-              subtitle: 'Selamat datang kembali',
-              actionButton: NotificationButtonWidget(
-                onPressed: () => _showNotifications(),
-                hasNotification: true,
-              ),
-            )),
+    // Trigger lazy initialization saat view pertama kali di-build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.initializeIfNeeded();
+    });
 
-            // Post Creation Section
-            Obx(() => SliverToBoxAdapter(
-              child: PostCreationWidget(
-                username: controller.userData['name'] ?? 'User',
-                avatarUrl: controller.userData['avatar'],
-                onTap: () => _showCreatePost(),
-                onPhotoTap: () => _showPhotoOptions(),
-              ),
-            )),
-
-            // Posts Timeline
-            Obx(() {
-              if (controller.isLoading && controller.posts.isEmpty) {
-                return const LoadingStateWidget(
-                  isSliver: true,
-                );
-              }
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final post = controller.posts[index];
-                    return PostCard(
-                      post: post,
-                      onCommentTap: () => _showComments(post),
-                      onShareTap: () => _sharePost(post),
-                      onMoreTap: () => _showPostOptions(post),
-                    );
-                  },
-                  childCount: controller.posts.length,
+    return ScaffoldFrame(
+      controller: controller,
+      headerHeight: 45,
+      headerContent: _buildHeader(),
+      slivers: [
+        // Promotional Banner
+        Obx(() => controller.showBanner
+            ? SliverToBoxAdapter(
+                child: PromotionalBanner(
+                  title: 'Ayo Beraksi!',
+                  subtitle: 'Raih XP, Koin, dan hadiah eksklusif lainnya dengan menyelesaikan misi!',
+                  imageAsset: Image.asset('assets/logo/dark-hdpi.png'),
+                  size: BannerSize.compact,
+                  showCloseButton: true,
+                  onClose: () => controller.hideBanner(),
                 ),
-              );
-            }),
-          ],
-        ),
+              )
+            : const SliverToBoxAdapter(child: SizedBox.shrink())),
+        
+        // Posts Timeline
+        Obx(() {
+          if (controller.isLoading && controller.posts.isEmpty) {
+            return const LoadingStateWidget(
+              isSliver: true,
+            );
+          }
+
+          return SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final post = controller.posts[index];
+                return PostCard(
+                  post: post,
+                  onCommentTap: () => _showComments(post),
+                  onShareTap: () => _sharePost(post),
+                  onMoreTap: () => _showPostOptions(post),
+                  onPlaceTap: () => Get.toNamed(AppPages.PLACE_DETAIL, arguments: post.place?.id),
+                );
+              },
+              childCount: controller.posts.length,
+            ),
+          );
+        }),
+      ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreatePostDialog(),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
+        shape: CircleBorder(),
+        elevation: 4,
+        child: const Icon(Icons.add, size: 28),
       ),
     );
   }
 
-  void _showComments(PostEntity post) {
+  Widget _buildHeader() {
+    return Container(
+      // decoration: BoxDecoration(
+      //   border: Border.all(color: AppColors.border),
+      // ),
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              'Hello, ${controller.userData?.name ?? 'User'}!',
+              style: TextStyle(
+                color: AppColors.textOnPrimary,
+                fontSize: FontSize.getSize(FontSizeOption.xl),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ButtonWidget(
+            icon: Icons.person_add_outlined,
+            backgroundColor: AppColors.background,
+            onPressed: () => _showNotifications(),
+          ),
+          const SizedBox(width: 8),
+          ButtonWidget(
+            icon: Icons.notifications_outlined,
+            backgroundColor: AppColors.background,
+            onPressed: () => _showNotifications(),
+            hasNotification: true, // TODO: ganti dengan logika sebenarnya
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showComments(PostModel post) {
     final TextEditingController commentController = TextEditingController();
 
     Get.bottomSheet(
@@ -184,7 +226,7 @@ class HomeView extends GetView<HomeController> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(20),
-                                borderSide: const BorderSide(
+                                borderSide: BorderSide(
                                   color: AppColors.primary,
                                 ),
                               ),
@@ -213,7 +255,7 @@ class HomeView extends GetView<HomeController> {
                           },
                           child: Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
@@ -239,7 +281,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  void _addComment(PostEntity post, String comment) {
+  void _addComment(PostModel post, String comment) {
     // TODO: Implement add comment functionality
     Get.snackbar(
       'Komentar Ditambahkan',
@@ -249,7 +291,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  void _sharePost(PostEntity post) {
+  void _sharePost(PostModel post) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -322,7 +364,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  void _showPostOptions(PostEntity post) {
+  void _showPostOptions(PostModel post) {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -352,7 +394,7 @@ class HomeView extends GetView<HomeController> {
             ),
             ListTile(
               leading: const Icon(Icons.person_remove),
-              title: Text('Sembunyikan dari ${post.username}'),
+              title: Text('Sembunyikan dari ${post.user?.name}'),
               onTap: () {
                 Get.back();
                 Get.snackbar('Info', 'Post disembunyikan');
@@ -370,6 +412,77 @@ class HomeView extends GetView<HomeController> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showCreatePostDialog() {
+    Get.bottomSheet(
+      SafeArea(
+        top: true,
+        bottom: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Buat Postingan',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: AppColors.primary),
+                title: Text('Foto/Video', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Get.back();
+                  // TODO: Navigate to create post with photo
+                  Get.snackbar('Info', 'Fitur upload foto sedang dalam pengembangan');
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.article, color: AppColors.primary),
+                title: Text('Status Text', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Get.back();
+                  // TODO: Navigate to create text post
+                  Get.snackbar('Info', 'Fitur post text sedang dalam pengembangan');
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.location_on, color: AppColors.primary),
+                title: Text('Check-in Lokasi', style: TextStyle(color: AppColors.textPrimary)),
+                onTap: () {
+                  Get.back();
+                  // TODO: Navigate to check-in
+                  Get.snackbar('Info', 'Fitur check-in sedang dalam pengembangan');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 
@@ -438,25 +551,6 @@ class HomeView extends GetView<HomeController> {
       ignoreSafeArea: false, // <- penting agar tidak nabrak notch
       // gunakan barrierColor jika perlu: barrierColor: Colors.black54,
       enableDrag: true,
-    );
-  }
-
-
-  void _showCreatePost() {
-    // TODO: Implement create post functionality
-    Get.snackbar(
-      'Info',
-      'Create post functionality will be implemented',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
-  void _showPhotoOptions() {
-    // TODO: Implement photo options functionality
-    Get.snackbar(
-      'Info',
-      'Photo options functionality will be implemented',
-      snackPosition: SnackPosition.BOTTOM,
     );
   }
 }

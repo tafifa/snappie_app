@@ -1,252 +1,107 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/explore_controller.dart';
-import '../../../domain/entities/place_entity.dart';
+import '../../../data/models/place_model.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../shared/layout/views/scaffold_frame.dart';
+import '../../shared/widgets/index.dart';
+import '../../shared/widgets/_card_widgets/promotional_banner.dart';
+import '../widgets/place_card_widget.dart';
 
 class ExploreView extends GetView<ExploreController> {
   const ExploreView({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
-    // Initialize explore data when view is built
+    // Trigger lazy initialization saat view pertama kali di-build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.initializeExploreData();
+      controller.initializeIfNeeded();
     });
-    
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainer,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await controller.refreshData();
+
+    return ScaffoldFrame(
+      controller: controller,
+      headerHeight: 75,
+      headerContent: SearchBarWidget(
+        hintText: 'Mau makan di mana hari ini?',
+        enableGlassmorphism: true,
+        margin: const EdgeInsets.only(top: 16),
+        onChanged: (value) {
+          controller.searchQuery = value;
+          if (value.isNotEmpty) {
+            controller.searchPlaces(value);
+          }
         },
-        child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 90,
-            floating: true,
-            snap: true,
-            pinned: false,
-            backgroundColor: AppColors.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primaryLight,
-                      AppColors.primaryDark,
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.shadowLight,
-                                spreadRadius: 1,
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.search,
-                                color: AppColors.textSecondary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextField(
-                                  decoration: InputDecoration(
-                                    hintText: 'Mau makan di mana hari ini?',
-                                    hintStyle: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 14,
-                                    ),
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    disabledBorder: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onChanged: (value) => controller.searchQuery = value,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          
-          // Content
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Filter Chips
-                  Obx(() => Row(
-                    children: [
-                      _buildFilterChip('Semua', controller.selectedCategory.isEmpty),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Cafe', controller.selectedCategory == 'cafe'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Restaurant', controller.selectedCategory == 'restaurant'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Traditional', controller.selectedCategory == 'traditional'),
-                    ],
-                  )),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Promotional Banner
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningSurface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.warningContainer),
-                    ),
+      ),
+      slivers: [
+        // Content
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              // Filter Chips
+              Obx(() => SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Kok tidak boleh banget!',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Explore hidden bakul aman dari Jakarta dan sekitarnya yuk!',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textSecondary,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(width: 16),
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: AppColors.warningContainer,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Icon(
-                            Icons.restaurant_menu,
-                            color: AppColors.warning,
-                            size: 30,
-                          ),
-                        ),
+                        _buildFilterChip('Terdekat', false),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Tipe Tempat',
+                            controller.selectedPriceRange != null),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Tipe Kuliner',
+                            controller.selectedPriceRange != null),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                            'Penilaian', controller.selectedRating != null),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                            'Harga', controller.selectedPriceRange != null),
+                        const SizedBox(width: 16),
                       ],
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Favorit Kami Section
-                  Row(
-                    children: [
-                      const Text(
-                        'Favorit kami',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                  )),
+
+              // const SizedBox(height: 16),
+
+              Obx(() => (!controller.isFiltered && controller.showBanner)
+                  ?
+                  // Promotional Banner
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: PromotionalBanner(
+                        title: 'Dapatkan lebih banyak!',
+                        subtitle: 'Dapatkan hadiah dengan menyelesaikan misi!',
+                        imageAsset: Image.asset('assets/logo/dark-hdpi.png'),
+                        size: BannerSize.standard,
+                        showCloseButton: true,
+                        onClose: () => controller.hideBanner(),
                       ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => Get.toNamed('/places'),
-                        child: Text(
-                          'Lihat Semuanya',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Places Grid
-                  _buildPlacesGrid(),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Terlaris Section
-                  Row(
-                    children: [
-                      const Text(
-                        'Terlaris',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => Get.toNamed('/places'),
-                        child: Text(
-                          'Lihat Semuanya',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Places Grid
-                  _buildPlacesGrid(),
-                  
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
+                  )
+                  : const SizedBox.shrink()),
+
+              // Conditional Content based on filter state
+              Obx(() {
+                print('🔍 DEBUG: isFiltered = ${controller.isFiltered}');
+                print('🔍 DEBUG: searchQuery = "${controller.searchQuery}"');
+                print(
+                    '🔍 DEBUG: selectedCategory = "${controller.selectedCategory}"');
+                print(
+                    '🔍 DEBUG: selectedRating = ${controller.selectedRating}');
+                print(
+                    '🔍 DEBUG: selectedPriceRange = "${controller.selectedPriceRange}"');
+
+                return controller.isFiltered
+                    ? _buildFilteredContent()
+                    : _buildDefaultContent();
+              }),
+
+              const SizedBox(height: 16),
+            ],
           ),
-        ],
         ),
-      ),
+      ],
     );
   }
 
@@ -256,19 +111,32 @@ class ExploreView extends GetView<ExploreController> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? AppColors.primary : AppColors.background,
+          borderRadius: BorderRadius.circular(5),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColors.textOnPrimary : AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? AppColors.textOnPrimary : AppColors.primary,
+              ),
+            ),
+            if (label == 'Penilaian' || label == 'Harga') ...[
+              const SizedBox(width: 4),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 16,
+                color: isSelected ? AppColors.textOnPrimary : AppColors.primary,
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -276,41 +144,233 @@ class ExploreView extends GetView<ExploreController> {
 
   void _onFilterChipTapped(String filter) {
     switch (filter) {
-      case 'Semua':
-        controller.selectedCategory = '';
+      case 'Terdekat':
+        // Handle nearby filter
+        _showNearbyOptions();
         break;
-      case 'Cafe':
-        controller.selectedCategory = 'cafe';
+      case 'Penilaian':
+        _showRatingDropdown();
         break;
-      case 'Restaurant':
-        controller.selectedCategory = 'restaurant';
-        break;
-      case 'Traditional':
-        controller.selectedCategory = 'traditional';
+      case 'Harga':
+        _showPriceDropdown();
         break;
     }
-    // Trigger filter action
-    controller.filterByCategory(controller.selectedCategory);
   }
 
+  void _showRatingDropdown() {
+    showModalBottomSheet(
+      context: Get.context!,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Penilaian',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(5, (index) {
+              final rating = 5 - index;
+              return Obx(() => ListTile(
+                    leading: Radio<int>(
+                      value: rating,
+                      groupValue: controller.selectedRating,
+                      onChanged: (value) {
+                        controller.setSelectedRating(value!);
+                      },
+                    ),
+                    title: Row(
+                      children: [
+                        Text('$rating'),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.star,
+                          color: AppColors.warning,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      controller.setSelectedRating(rating);
+                    },
+                  ));
+            }),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      controller.clearRatingFilter();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Hapus'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      controller.applyRatingFilter();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: const Text('Ok'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  void _showPriceDropdown() {
+    showModalBottomSheet(
+      context: Get.context!,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Harga (mulai dari)',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Obx(() => ListTile(
+                  leading: Radio<String>(
+                    value: 'low',
+                    groupValue: controller.selectedPriceRange,
+                    onChanged: (value) {
+                      controller.setSelectedPriceRange(value!);
+                    },
+                  ),
+                  title: const Text('Rp0 - Rp25.000'),
+                  onTap: () {
+                    controller.setSelectedPriceRange('low');
+                  },
+                )),
+            Obx(() => ListTile(
+                  leading: Radio<String>(
+                    value: 'medium',
+                    groupValue: controller.selectedPriceRange,
+                    onChanged: (value) {
+                      controller.setSelectedPriceRange(value!);
+                    },
+                  ),
+                  title: const Text('Rp25.000 - Rp50.000'),
+                  onTap: () {
+                    controller.setSelectedPriceRange('medium');
+                  },
+                )),
+            Obx(() => ListTile(
+                  leading: Radio<String>(
+                    value: 'high',
+                    groupValue: controller.selectedPriceRange,
+                    onChanged: (value) {
+                      controller.setSelectedPriceRange(value!);
+                    },
+                  ),
+                  title: const Text('> Rp50.000'),
+                  onTap: () {
+                    controller.setSelectedPriceRange('high');
+                  },
+                )),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      controller.clearPriceFilter();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Hapus'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      controller.applyPriceFilter();
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: const Text('Ok'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _buildPlacesGrid() {
+  void _showNearbyOptions() {
+    // Handle nearby filter logic
+    controller.filterByNearby();
+  }
+
+  Widget _buildDefaultContent() {
     return Obx(() {
       print('🎨 BUILDING PLACES GRID:');
       print('Controller places length: ${controller.places.length}');
       print('Controller isLoading: ${controller.isLoading}');
       print('Controller places isEmpty: ${controller.places.isEmpty}');
-      
+
       if (controller.isLoading && controller.places.isEmpty) {
-        return const SizedBox(
+        return SizedBox(
           height: 200,
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
                 Text(
                   'Loading places...',
                   style: TextStyle(
@@ -325,86 +385,121 @@ class ExploreView extends GetView<ExploreController> {
       }
 
       if (controller.places.isEmpty) {
-        return Container(
-          height: 200,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.location_on_outlined,
-                size: 24,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Belum ada tempat makan',
-                style: TextStyle(
+        return Center(
+          child: Container(
+            height: 200,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 24,
                   color: AppColors.textSecondary,
-                  fontSize: 14,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Coba refresh atau cek koneksi',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
+                const SizedBox(height: 16),
+                Text(
+                  'Belum ada tempat makan',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => controller.refreshData(),
-                child: Text('Refresh'),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Coba refresh atau cek koneksi',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }
 
-      // Show maximum 4 places in horizontal scrollable list
-      final displayPlaces = controller.places.take(4).toList();
-      
-      return SizedBox(
-        height: 200,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: displayPlaces.length,
-          itemBuilder: (context, index) {
-            return Container(
-              width: 160,
-              margin: EdgeInsets.only(
-                right: index < displayPlaces.length - 1 ? 12 : 0,
-              ),
-              child: _buildPlaceCard(displayPlaces[index]),
-            );
-          },
-        ),
-      );
-    });
-  }
-
-  Widget _buildMorePlacesGrid() {
-    return Obx(() {
-      if (controller.places.length <= 2) {
-        return const SizedBox.shrink();
-      }
-
-      // Show next 2 places (index 2 and 3)
-      final displayPlaces = controller.places.skip(2).take(2).toList();
-      
       return Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (displayPlaces.isNotEmpty) 
-                Expanded(child: _buildPlaceCard(displayPlaces[0])),
-              if (displayPlaces.length > 1) ...[
-                const SizedBox(width: 12),
-                Expanded(child: _buildPlaceCard(displayPlaces[1])),
+          // Favorit Kami Section
+          Container(
+            // decoration: BoxDecoration(
+            //   border: Border.all(
+            //     color: AppColors.border,
+            //   ),
+            // ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Favorit kami!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => controller.setFavoritFilter(),
+                        child: Text(
+                          'Lihat Selengkapnya',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            
+                // Places Grid
+                _buildPlacesGrid(),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Terlaris Section
+          Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Text(
+                      'Teratas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => controller.setTerlarisFilter(),
+                      child: Text(
+                        'Lihat Selengkapnya',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          
+              // Places Grid
+              _buildPlacesGrid(),
             ],
           ),
         ],
@@ -412,118 +507,187 @@ class ExploreView extends GetView<ExploreController> {
     });
   }
 
-  Widget _buildPlaceCard(PlaceEntity place) {
-    return GestureDetector(
-      onTap: () => _onPlaceCardTapped(place),
-      child: Container(
-        constraints: const BoxConstraints(maxHeight: 200),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowLight,
-              spreadRadius: 1,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+  String _getFilteredContentTitle() {
+    if (controller.selectedFilter == 'favorit') {
+      return 'Favorit Kami';
+    } else if (controller.selectedFilter == 'terlaris') {
+      return 'Terlaris';
+    } else {
+      return 'Hasil Pencarian';
+    }
+  }
+
+  Widget _buildFilteredContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Results header
+        Container(
+          decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.success,
+                width: 1,
+              ),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Image
-            Flexible(
-              child: Container(
-                height: 100,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  color: AppColors.surfaceVariant,
+          child: Row(
+            children: [
+              Obx(() => Text(
+                    _getFilteredContentTitle(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  )),
+              const Spacer(),
+              Obx(() => Text(
+                    '${controller.places.length} tempat',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  )),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => controller.clearFilters(),
+                icon: Icon(
+                  Icons.close,
+                  color: AppColors.textSecondary,
+                  size: 20,
                 ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.network(
-                    place.imageUrl ?? '',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            color: AppColors.textTertiary,
-                            size: 30,
-                          ),
-                        ),
-                      );
-                    },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Loading indicator while fetching filtered results
+        if (controller.isLoading && controller.places.isEmpty)
+          SizedBox(
+            height: 200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Mencari tempat...',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        // Empty state when no results match filters
+        else if (controller.places.isEmpty)
+          Container(
+            height: 200,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 48,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Tidak ada hasil',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-            ),
-            
-            // Content
-            Flexible(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      place.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Flexible(
-                      child: Text(
-                        place.address,
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.star,
-                          color: AppColors.warning,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          place.rating.toString(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  'Coba ubah filter atau kata kunci pencarian',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          )
+        // Vertical scrollable list - only show when there are places
+        else
+          _buildFilteredPlacesList(),
+      ],
+    );
+  }
+
+  Widget _buildFilteredPlacesList() {
+    // Show all places in vertical scrollable list
+    final displayPlaces = controller.places;
+
+    print('🎯 _buildFilteredPlacesList called');
+    print('📱 displayPlaces.length: ${displayPlaces.length}');
+    print('📱 controller.isLoading: ${controller.isLoading}');
+    print('📱 controller.places.isEmpty: ${controller.places.isEmpty}');
+
+    return Container(
+      // decoration: BoxDecoration(
+      //   border: Border.all(
+      //     color: AppColors.accent,
+      //     width: 1,
+      //   ),
+      // ),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.vertical,
+        itemCount: displayPlaces.length,
+        itemBuilder: (context, index) {
+          print('🏗️ Building place card for index: $index');
+          return PlaceCardWidget(
+            place: displayPlaces[index],
+            cardSize: CardSize.fullWidth,
+            onTap: () => _onPlaceCardTapped(displayPlaces[index]),
+          );
+        },
       ),
     );
   }
 
-  void _onPlaceCardTapped(PlaceEntity place) {
+  Widget _buildPlacesGrid() {
+    // Show maximum 4 places in horizontal scrollable list
+    final displayPlaces = controller.places.take(4).toList();
+
+    return Container(
+      // decoration: BoxDecoration(
+      //   border: Border.all(
+      //     color: AppColors.accent,
+      //     width: 1,
+      //   ),
+      // ),
+      height: 240, // Set height constraint for horizontal ListView
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: displayPlaces.length,
+        itemBuilder: (context, index) {
+          return PlaceCardWidget(
+            place: displayPlaces[index],
+            cardSize: CardSize.large,
+            onTap: () => _onPlaceCardTapped(displayPlaces[index]),
+          );
+        },
+      ),
+    );
+  }
+
+  void _onPlaceCardTapped(PlaceModel place) {
     controller.selectPlace(place);
     Get.toNamed('/place-detail', arguments: place);
   }

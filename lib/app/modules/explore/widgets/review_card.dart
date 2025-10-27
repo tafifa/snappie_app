@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/review_entity.dart';
+import '../../../data/models/review_model.dart';
 
 class ReviewCard extends StatelessWidget {
-  final ReviewEntity review;
+  final ReviewModel review;
   final VoidCallback? onTap;
 
   const ReviewCard({
@@ -35,7 +35,7 @@ class ReviewCard extends StatelessWidget {
                     radius: 20,
                     backgroundColor: Colors.blue[100],
                     child: Text(
-                      review.user.name[0].toUpperCase(),
+                      review.user!.name![0].toUpperCase(),
                       style: TextStyle(
                         color: Colors.blue[700],
                         fontWeight: FontWeight.bold,
@@ -50,14 +50,14 @@ class ReviewCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          review.user.name,
+                          review.user!.name!,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                         ),
                         Text(
-                          _formatDate(review.createdAt),
+                          _formatDate(review.createdAt!),
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -76,7 +76,7 @@ class ReviewCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: List.generate(5, (index) {
                           return Icon(
-                            index < review.vote ? Icons.star : Icons.star_border,
+                            index < review.totalLike! ? Icons.star : Icons.star_border,
                             color: Colors.amber,
                             size: 16,
                           );
@@ -84,7 +84,7 @@ class ReviewCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       // Status chip
-                      _buildStatusChip(_getReviewStatusFromString(review.status)),
+                      _buildStatusChip(review.status),
                     ],
                   ),
                 ],
@@ -111,14 +111,14 @@ class ReviewCard extends StatelessWidget {
                       color: Colors.grey[600],
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      review.place.name,
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    // Text(
+                    //   place.review!.name!,
+                    //   style: TextStyle(
+                    //     color: Colors.grey[700],
+                    //     fontSize: 12,
+                    //     fontWeight: FontWeight.w500,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
@@ -127,7 +127,7 @@ class ReviewCard extends StatelessWidget {
               
               // Review content
               Text(
-                review.content,
+                review.content!,
                 style: const TextStyle(
                   fontSize: 14,
                   height: 1.4,
@@ -137,13 +137,13 @@ class ReviewCard extends StatelessWidget {
               ),
               
               // Images (if any)
-              if (review.imageUrls.isNotEmpty) ...[
+              if (review.imageUrls!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 80,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: review.imageUrls.length,
+                    itemCount: review.imageUrls?.length,
                     itemBuilder: (context, index) {
                       return Container(
                         margin: const EdgeInsets.only(right: 8),
@@ -156,7 +156,7 @@ class ReviewCard extends StatelessWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            review.imageUrls[index],
+                            review.imageUrls![index],
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
@@ -199,53 +199,12 @@ class ReviewCard extends StatelessWidget {
     );
   }
 
-  ReviewStatus _getReviewStatusFromString(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return ReviewStatus.approved;
-      case 'pending':
-        return ReviewStatus.pending;
-      case 'rejected':
-        return ReviewStatus.rejected;
-      case 'flagged':
-        return ReviewStatus.flagged;
-      default:
-        return ReviewStatus.pending;
-    }
-  }
-
-  Widget _buildStatusChip(ReviewStatus status) {
-    Color backgroundColor;
-    Color textColor;
-    String text;
-    IconData icon;
-
-    switch (status) {
-      case ReviewStatus.approved:
-        backgroundColor = Colors.green[100]!;
-        textColor = Colors.green[700]!;
-        text = 'Approved';
-        icon = Icons.check_circle;
-        break;
-      case ReviewStatus.pending:
-        backgroundColor = Colors.orange[100]!;
-        textColor = Colors.orange[700]!;
-        text = 'Pending';
-        icon = Icons.schedule;
-        break;
-      case ReviewStatus.rejected:
-        backgroundColor = Colors.red[100]!;
-        textColor = Colors.red[700]!;
-        text = 'Rejected';
-        icon = Icons.cancel;
-        break;
-      case ReviewStatus.flagged:
-        backgroundColor = Colors.purple[100]!;
-        textColor = Colors.purple[700]!;
-        text = 'Flagged';
-        icon = Icons.flag;
-        break;
-    }
+  Widget _buildStatusChip(bool? status) {
+    final isApproved = status == true;
+    final backgroundColor = isApproved ? Colors.green[100]! : Colors.orange[100]!;
+    final textColor = isApproved ? Colors.green[700]! : Colors.orange[700]!;
+    final text = isApproved ? 'Approved' : 'Pending';
+    final icon = isApproved ? Icons.check_circle : Icons.schedule;
 
     return Container(
       padding: const EdgeInsets.symmetric(

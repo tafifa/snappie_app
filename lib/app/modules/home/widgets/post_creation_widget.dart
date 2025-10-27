@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:snappie_app/app/modules/shared/widgets/_display_widgets/avatar_widget.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 import '../../../core/constants/app_colors.dart';
-
-import '../../../core/components/user_avatar.dart';
 
 class PostCreationWidget extends StatelessWidget {
   final String? username;
@@ -31,10 +32,10 @@ class PostCreationWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          UserAvatar(
-            username: username ?? 'User',
-            avatarUrl: avatarUrl,
-            radius: 24,
+          AvatarWidget(
+            imageUrl: avatarUrl,
+            size: AvatarSize.small,
+            onTap: () => Get.toNamed(AppPages.USER_PROFILE),
           ),
           const SizedBox(width: 12),
           Expanded(

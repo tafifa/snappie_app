@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../domain/entities/review_entity.dart';
+import '../../../data/models/review_model.dart';
 import '../controllers/explore_controller.dart';
 import '../widgets/review_card.dart';
 import '../widgets/review_stats_card.dart';
@@ -261,11 +261,11 @@ class ReviewsView extends GetView<ExploreController> {
     );
   }
 
-  void _showReviewDetail(ReviewEntity review) {
+  void _showReviewDetail(ReviewModel review) {
     showDialog(
       context: Get.context!,
       builder: (context) => AlertDialog(
-        title: Text('Review for ${review.place.name}'),
+        title: Text('Review Details'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,12 +276,12 @@ class ReviewsView extends GetView<ExploreController> {
                 const Text('Rating: '),
                 ...List.generate(5, (index) {
                   return Icon(
-                    index < review.vote ? Icons.star : Icons.star_border,
+                    index < (review.rating ?? 0) ? Icons.star : Icons.star_border,
                     color: Colors.amber,
                     size: 20,
                   );
                 }),
-                Text(' (${review.vote}/5)'),
+                Text(' (${(review.rating ?? 0).toStringAsFixed(1)}/5)'),
               ],
             ),
             const SizedBox(height: 8),
@@ -292,43 +292,46 @@ class ReviewsView extends GetView<ExploreController> {
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
-            Text(review.content),
+            Text(review.content ?? 'No content'),
             const SizedBox(height: 8),
             
             // Status
-            Row(
-              children: [
-                const Text('Status: '),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(review.status as ReviewStatus),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _getStatusText(review.status as ReviewStatus),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+            if (review.status != null) ...[
+              Row(
+                children: [
+                  const Text('Status: '),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: review.status == true ? Colors.green : Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      review.status == true ? 'Approved' : 'Pending',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             
             // Date
-            Text(
-              'Posted: ${_formatDate(review.createdAt)}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
+            if (review.createdAt != null)
+              Text(
+                'Posted: ${_formatDate(review.createdAt!)}',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                ),
               ),
-            ),
           ],
         ),
         actions: [
@@ -336,42 +339,9 @@ class ReviewsView extends GetView<ExploreController> {
             onPressed: () => Get.back(),
             child: const Text('Close'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              Get.toNamed('/place-detail', arguments: review.place);
-            },
-            child: const Text('View Place'),
-          ),
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(ReviewStatus status) {
-    switch (status) {
-      case ReviewStatus.approved:
-        return Colors.green;
-      case ReviewStatus.pending:
-        return Colors.orange;
-      case ReviewStatus.rejected:
-        return Colors.red;
-      case ReviewStatus.flagged:
-        return Colors.purple;
-    }
-  }
-
-  String _getStatusText(ReviewStatus status) {
-    switch (status) {
-      case ReviewStatus.approved:
-        return 'Approved';
-      case ReviewStatus.pending:
-        return 'Pending';
-      case ReviewStatus.rejected:
-        return 'Rejected';
-      case ReviewStatus.flagged:
-        return 'Flagged';
-    }
   }
 
   String _formatDate(DateTime date) {

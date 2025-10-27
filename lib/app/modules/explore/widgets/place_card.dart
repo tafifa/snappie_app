@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/place_entity.dart';
+import '../../../data/models/place_model.dart';
 
 class PlaceCard extends StatelessWidget {
-  final PlaceEntity place;
+  final PlaceModel place;
   final VoidCallback? onTap;
   final VoidCallback? onCheckin;
 
@@ -29,7 +29,7 @@ class PlaceCard extends StatelessWidget {
           children: [
             // Image section
             Container(
-              height: 200,
+              height: 100,
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
@@ -38,14 +38,14 @@ class PlaceCard extends StatelessWidget {
                 ),
                 color: Colors.grey[300],
               ),
-              child: place.imageUrls.isNotEmpty
+              child: place.imageUrls!.isNotEmpty
                   ? ClipRRect(
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12),
                       ),
                       child: Image.network(
-                        place.imageUrls.first,
+                        place.imageUrls!.first,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return _buildPlaceholderImage();
@@ -66,31 +66,13 @@ class PlaceCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          place.name,
+                          place.name!,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getCategoryColor(place.category),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _getCategoryDisplayName(place.category),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
                         ),
                       ),
                     ],
@@ -109,7 +91,7 @@ class PlaceCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          place.address,
+                          place.placeDetail?.address ?? 'No address available',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
@@ -136,13 +118,13 @@ class PlaceCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            (place.averageRating ?? 0.0).toStringAsFixed(1),
+                            (place.avgRating ?? 0.0).toStringAsFixed(1),
                             style: const TextStyle(
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           Text(
-                            ' (${place.totalReviews ?? 0})',
+                            ' (${place.totalReview ?? 0})',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 12,
@@ -152,28 +134,11 @@ class PlaceCard extends StatelessWidget {
                       ),
                       
                       const Spacer(),
-                      
-                      // Distance (if available)
-                      if (place.distance != null) ...[
-                        Icon(
-                          Icons.directions_walk,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${place.distance!.toStringAsFixed(1)} km',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   
                   // Partnership status and rewards
-                  if (place.partnershipStatus) ...[
+                  if (place.partnershipStatus!) ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -193,7 +158,7 @@ class PlaceCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Earn ${place.rewardInfo?.baseExp ?? 0} XP + ${place.rewardInfo?.baseCoin ?? 0} coins',
+                            'Earn ${place.expReward ?? 0} XP + ${place.coinReward ?? 0} coins',
                             style: TextStyle(
                               color: Colors.green[700],
                               fontSize: 12,
@@ -268,100 +233,5 @@ class PlaceCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  PlaceCategory _getCategoryFromString(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'restaurant':
-        return PlaceCategory.restaurant;
-      case 'cafe':
-        return PlaceCategory.cafe;
-      case 'traditional':
-        return PlaceCategory.traditional;
-      case 'foodcourt':
-      case 'food_court':
-        return PlaceCategory.foodCourt;
-      case 'streetfood':
-      case 'street_food':
-        return PlaceCategory.streetFood;
-      case 'shopping':
-        return PlaceCategory.shopping;
-      case 'entertainment':
-        return PlaceCategory.entertainment;
-      case 'tourism':
-        return PlaceCategory.tourism;
-      case 'education':
-        return PlaceCategory.education;
-      case 'healthcare':
-        return PlaceCategory.healthcare;
-      case 'transportation':
-        return PlaceCategory.transportation;
-      default:
-        return PlaceCategory.other;
-    }
-  }
-
-  String _getCategoryDisplayName(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'restaurant':
-        return 'Restaurant';
-      case 'cafe':
-        return 'Cafe';
-      case 'traditional':
-        return 'Traditional';
-      case 'foodcourt':
-      case 'food_court':
-        return 'Food Court';
-      case 'streetfood':
-      case 'street_food':
-        return 'Street Food';
-      case 'shopping':
-        return 'Shopping';
-      case 'entertainment':
-        return 'Entertainment';
-      case 'tourism':
-        return 'Tourism';
-      case 'education':
-        return 'Education';
-      case 'healthcare':
-        return 'Healthcare';
-      case 'transportation':
-        return 'Transportation';
-      default:
-        return 'Other';
-    }
-  }
-
-  Color _getCategoryColor(String? category) {
-    PlaceCategory categoryEnum = _getCategoryFromString(category);
-    switch (categoryEnum) {
-      case PlaceCategory.restaurant:
-        return Colors.orange;
-      case PlaceCategory.cafe:
-        return Colors.brown;
-      case PlaceCategory.shopping:
-        return Colors.purple;
-      case PlaceCategory.entertainment:
-        return Colors.pink;
-      case PlaceCategory.tourism:
-        return Colors.green;
-      case PlaceCategory.education:
-        return Colors.blue;
-      case PlaceCategory.healthcare:
-        return Colors.red;
-      case PlaceCategory.transportation:
-        return Colors.indigo;
-      case PlaceCategory.other:
-        return Colors.grey;
-      case PlaceCategory.traditional:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case PlaceCategory.foodCourt:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-      case PlaceCategory.streetFood:
-        // TODO: Handle this case.
-        throw UnimplementedError();
-    }
   }
 }

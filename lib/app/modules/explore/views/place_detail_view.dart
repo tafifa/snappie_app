@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/explore_controller.dart';
 import '../widgets/review_card.dart';
-import '../../../domain/entities/place_entity.dart';
-import '../../../domain/entities/review_entity.dart';
+import '../../../data/models/place_model.dart';
+import '../../../data/models/review_model.dart';
 
 class PlaceDetailView extends GetView<ExploreController> {
   const PlaceDetailView({super.key});
@@ -11,13 +11,13 @@ class PlaceDetailView extends GetView<ExploreController> {
   @override
   Widget build(BuildContext context) {
     // Get place from arguments if passed
-    final PlaceEntity? place = Get.arguments as PlaceEntity?;
+    final PlaceModel? place = Get.arguments as PlaceModel?;
     
     // Load place reviews when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (place != null) {
         controller.selectPlace(place);
-        controller.loadPlaceReviews(place.id);
+        controller.loadPlaceReviews(place.id!);
       }
     });
 
@@ -42,9 +42,9 @@ class PlaceDetailView extends GetView<ExploreController> {
                   fit: StackFit.expand,
                   children: [
                     // Place Image
-                    place.imageUrl!.isNotEmpty
+                    place.imageUrls!.isNotEmpty
                         ? Image.network(
-                            place.imageUrl!,
+                            place.imageUrls!.first,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
@@ -90,8 +90,10 @@ class PlaceDetailView extends GetView<ExploreController> {
                 IconButton(
                   onPressed: () => _toggleFavorite(place),
                   icon: Icon(
-                    place.isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: place.isFavorite ? Colors.red : null,
+                    // place.isFavorite ? Icons.favorite : Icons.favorite_border,
+                    // color: place.isFavorite ? Colors.red : null,
+                    Icons.favorite,
+                    color: Colors.red,
                   ),
                 ),
               ],
@@ -113,31 +115,31 @@ class PlaceDetailView extends GetView<ExploreController> {
                           children: [
                             Expanded(
                               child: Text(
-                                place.name,
+                                place.name!,
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getCategoryColor(place.category),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                place.category ?? 'Unknown',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
+                            // Container(
+                            //   padding: const EdgeInsets.symmetric(
+                            //     horizontal: 12,
+                            //     vertical: 6,
+                            //   ),
+                            //   decoration: BoxDecoration(
+                            //     color: _getCategoryColor(place.category),
+                            //     borderRadius: BorderRadius.circular(20),
+                            //   ),
+                            //   child: Text(
+                            //     place.category ?? 'Unknown',
+                            //     style: const TextStyle(
+                            //       color: Colors.white,
+                            //       fontSize: 12,
+                            //       fontWeight: FontWeight.w500,
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         
@@ -149,7 +151,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                             Row(
                               children: List.generate(5, (index) {
                                 return Icon(
-                                  index < place.rating.floor()
+                                  index < place.avgRating!.floor()
                                       ? Icons.star
                                       : Icons.star_border,
                                   color: Colors.amber,
@@ -159,28 +161,28 @@ class PlaceDetailView extends GetView<ExploreController> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '${place.rating.toStringAsFixed(1)} (${place.reviewCount} reviews)',
+                              '${place.avgRating!.toStringAsFixed(1)} (${place.totalReview!.toString()} reviews)',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
                               ),
                             ),
-                            if (place.distance != null) ...[
-                              const SizedBox(width: 16),
-                              Icon(
-                                Icons.location_on,
-                                size: 16,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${place.distance!.toStringAsFixed(1)} km',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
+                            // if (place.distance != null) ...[
+                            //   const SizedBox(width: 16),
+                            //   Icon(
+                            //     Icons.location_on,
+                            //     size: 16,
+                            //     color: Colors.grey[600],
+                            //   ),
+                            //   const SizedBox(width: 4),
+                            //   Text(
+                            //     '${place.distance!.toStringAsFixed(1)} km',
+                            //     style: TextStyle(
+                            //       color: Colors.grey[600],
+                            //       fontSize: 14,
+                            //     ),
+                            //   ),
+                            // ],
                           ],
                         ),
                         
@@ -197,7 +199,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                place.address,
+                                place.placeDetail?.address ?? 'No address available',
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 14,
@@ -210,7 +212,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                         const SizedBox(height: 16),
                         
                         // Partnership and Rewards Info
-                        if (place.isPartner) ...[
+                        if (place.partnershipStatus!) ...[
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
@@ -250,11 +252,11 @@ class PlaceDetailView extends GetView<ExploreController> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                if (place.rewardXp > 0 || place.rewardCoins > 0) ...[
+                                if (place.expReward! > 0 || place.coinReward! > 0) ...[
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      if (place.rewardXp > 0) ...[
+                                      if (place.expReward! > 0) ...[
                                         Icon(
                                           Icons.star,
                                           color: Colors.amber[600],
@@ -262,16 +264,16 @@ class PlaceDetailView extends GetView<ExploreController> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${place.rewardXp} XP',
+                                          '${place.expReward} XP',
                                           style: TextStyle(
                                             color: Colors.green[600],
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
-                                      if (place.rewardXp > 0 && place.rewardCoins > 0)
+                                      if (place.expReward! > 0 && place.coinReward! > 0)
                                         const SizedBox(width: 16),
-                                      if (place.rewardCoins > 0) ...[
+                                      if (place.coinReward! > 0) ...[
                                         Icon(
                                           Icons.monetization_on,
                                           color: Colors.amber[600],
@@ -279,7 +281,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '${place.rewardCoins} Coins',
+                                          '${place.coinReward} Coins',
                                           style: TextStyle(
                                             color: Colors.green[600],
                                             fontWeight: FontWeight.w500,
@@ -296,7 +298,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                         ],
                         
                         // Description
-                        if (place.description.isNotEmpty) ...[
+                        if (place.description != null) ...[
                           const Text(
                             'Description',
                             style: TextStyle(
@@ -306,7 +308,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            place.description,
+                            place.description!,
                             style: const TextStyle(
                               fontSize: 14,
                               height: 1.5,
@@ -392,7 +394,7 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildReviewsTab(PlaceEntity place) {
+  Widget _buildReviewsTab(PlaceModel place) {
     return Obx(() {
       if (controller.isLoading) {
         return const Center(
@@ -421,7 +423,7 @@ class PlaceDetailView extends GetView<ExploreController> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => controller.loadPlaceReviews(place.id),
+                onPressed: () => controller.loadPlaceReviews(place.id!),
                 child: const Text('Retry'),
               ),
             ],
@@ -477,21 +479,21 @@ class PlaceDetailView extends GetView<ExploreController> {
     });
   }
 
-  Widget _buildPhotosTab(PlaceEntity place) {
+  Widget _buildPhotosTab(PlaceModel place) {
     // Get photos from reviews
     final photos = <String>[];
     
     // Add place main image
-    if (place.imageUrl != null) {
-      photos.add(place.imageUrl!);
+    if (place.imageUrls != null) {
+      photos.add(place.imageUrls![0]);
     }
     
     // Add photos from reviews
-    for (final review in controller.reviews) {
-      if (review.place.id == place.id) {
-        photos.addAll(review.imageUrls);
-      }
-    }
+    // for (final review in controller.reviews) {
+    //   if (review.placeId == place.id) {
+    //     photos.addAll(review.imageUrls.first);
+    //   }
+    // }
     
     if (photos.isEmpty) {
       return Center(
@@ -561,26 +563,8 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  Color _getCategoryColor(String? category) {
-    switch (category?.toLowerCase()) {
-      case 'restaurant':
-        return Colors.orange;
-      case 'cafe':
-        return Colors.brown;
-      case 'hotel':
-        return Colors.blue;
-      case 'attraction':
-        return Colors.purple;
-      case 'shopping':
-        return Colors.pink;
-      case 'entertainment':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
 
-  void _showShareDialog(PlaceEntity place) {
+  void _showShareDialog(PlaceModel place) {
     Get.dialog(
       AlertDialog(
         title: const Text('Share Place'),
@@ -607,18 +591,18 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  void _toggleFavorite(PlaceEntity place) {
+  void _toggleFavorite(PlaceModel place) {
     // Implement toggle favorite functionality
-    Get.snackbar(
-      place.isFavorite ? 'Removed from Favorites' : 'Added to Favorites',
-      place.isFavorite 
-          ? '${place.name} removed from your favorites'
-          : '${place.name} added to your favorites',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    // Get.snackbar(
+    //   place.isFavorite ? 'Removed from Favorites' : 'Added to Favorites',
+    //   place.isFavorite 
+    //       ? '${place.name} removed from your favorites'
+    //       : '${place.name} added to your favorites',
+    //   snackPosition: SnackPosition.BOTTOM,
+    // );
   }
 
-  void _showCheckinDialog(PlaceEntity place) {
+  void _showCheckinDialog(PlaceModel place) {
     Get.dialog(
       AlertDialog(
         title: const Text('Check In'),
@@ -627,7 +611,7 @@ class PlaceDetailView extends GetView<ExploreController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Check in at ${place.name}?'),
-            if (place.isPartner) ...[
+            if (place.partnershipStatus!) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -647,10 +631,10 @@ class PlaceDetailView extends GetView<ExploreController> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    if (place.rewardXp > 0)
-                      Text('• ${place.rewardXp} XP'),
-                    if (place.rewardCoins > 0)
-                      Text('• ${place.rewardCoins} Coins'),
+                    if (place.expReward! > 0)
+                      Text('• ${place.expReward} XP'),
+                    if (place.coinReward! > 0)
+                      Text('• ${place.coinReward} Coins'),
                   ],
                 ),
               ),
@@ -679,13 +663,13 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  void _performCheckin(PlaceEntity place) async {
+  void _performCheckin(PlaceModel place) async {
     // Get current location (mock coordinates for now)
     const latitude = -6.2088;
     const longitude = 106.8456;
     
     await controller.createCheckin(
-      placeId: place.id.toString(),
+      placeId: place.id!,
       latitude: latitude,
       longitude: longitude,
     );
@@ -693,7 +677,7 @@ class PlaceDetailView extends GetView<ExploreController> {
     Get.back();
   }
 
-  void _showDirections(PlaceEntity place) {
+  void _showDirections(PlaceModel place) {
     Get.snackbar(
       'Directions',
       'Opening directions to ${place.name}',
@@ -807,10 +791,10 @@ class PlaceDetailView extends GetView<ExploreController> {
     Get.back();
   }
 
-  void _showReviewDetail(ReviewEntity review) {
+  void _showReviewDetail(ReviewModel review) {
     Get.dialog(
       AlertDialog(
-        title: Text('Review by ${review.user.name}'),
+        title: Text('Review by ${review.user?.name}'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -820,7 +804,7 @@ class PlaceDetailView extends GetView<ExploreController> {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < review.vote ? Icons.star : Icons.star_border,
+                    index < review.totalLike! ? Icons.star : Icons.star_border,
                     color: Colors.amber,
                     size: 20,
                   );
@@ -829,16 +813,16 @@ class PlaceDetailView extends GetView<ExploreController> {
               const SizedBox(height: 12),
               
               // Content
-              Text(review.content),
+              Text(review.content!),
               
               // Images
-              if (review.imageUrls.isNotEmpty) ...[
+              if (review.imageUrls!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 100,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: review.imageUrls.length,
+                    itemCount: review.imageUrls!.length,
                     itemBuilder: (context, index) {
                       return Container(
                         margin: const EdgeInsets.only(right: 8),
@@ -847,7 +831,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            review.imageUrls[index],
+                            review.imageUrls![index],
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -863,14 +847,15 @@ class PlaceDetailView extends GetView<ExploreController> {
               Row(
                 children: [
                   Text(
-                    _formatDate(review.createdAt),
+                    _formatDate(review.createdAt!),
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 12,
                     ),
                   ),
                   const Spacer(),
-                  _buildStatusChip(_getReviewStatusFromString(review.status)),
+                  if (review.status != null)
+                    _buildStatusChip(review.status!),
                 ],
               ),
             ],
@@ -886,48 +871,10 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  ReviewStatus _getReviewStatusFromString(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return ReviewStatus.approved;
-      case 'pending':
-        return ReviewStatus.pending;
-      case 'rejected':
-        return ReviewStatus.rejected;
-      case 'flagged':
-        return ReviewStatus.flagged;
-      default:
-        return ReviewStatus.pending;
-    }
-  }
-
-  Widget _buildStatusChip(ReviewStatus status) {
-    Color backgroundColor;
-    Color textColor;
-    String text;
-
-    switch (status) {
-      case ReviewStatus.approved:
-        backgroundColor = Colors.green[100]!;
-        textColor = Colors.green[700]!;
-        text = 'Approved';
-        break;
-      case ReviewStatus.pending:
-        backgroundColor = Colors.orange[100]!;
-        textColor = Colors.orange[700]!;
-        text = 'Pending';
-        break;
-      case ReviewStatus.rejected:
-        backgroundColor = Colors.red[100]!;
-        textColor = Colors.red[700]!;
-        text = 'Rejected';
-        break;
-      case ReviewStatus.flagged:
-        backgroundColor = Colors.purple[100]!;
-        textColor = Colors.purple[700]!;
-        text = 'Flagged';
-        break;
-    }
+  Widget _buildStatusChip(bool status) {
+    final backgroundColor = status ? Colors.green[100]! : Colors.orange[100]!;
+    final textColor = status ? Colors.green[700]! : Colors.orange[700]!;
+    final text = status ? 'Approved' : 'Pending';
 
     return Container(
       padding: const EdgeInsets.symmetric(

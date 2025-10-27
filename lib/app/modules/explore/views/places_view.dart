@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../domain/entities/place_entity.dart';
+import '../../../data/models/place_model.dart';
 import '../controllers/explore_controller.dart';
 import '../widgets/place_card.dart';
 import '../widgets/place_filter_bar.dart';
@@ -248,15 +248,15 @@ class PlacesView extends GetView<ExploreController> {
     );
   }
 
-  void _navigateToPlaceDetail(PlaceEntity place) {
+  void _navigateToPlaceDetail(PlaceModel place) {
     Get.toNamed('/place-detail', arguments: place);
   }
 
-  void _showCheckinDialog(PlaceEntity place) {
+  void _showCheckinDialog(PlaceModel place) {
     showDialog(
       context: Get.context!,
       builder: (context) => AlertDialog(
-        title: Text('Check-in to ${place.name}'),
+        title: Text('Check-in to ${place.name ?? "this place"}'),
         content: const Text('Are you sure you want to check-in to this place?'),
         actions: [
           TextButton(
@@ -268,7 +268,7 @@ class PlacesView extends GetView<ExploreController> {
               // This would typically get current location
               // For now, using place coordinates
               controller.createCheckin(
-                placeId: place.id.toString(),
+                placeId: place.id ?? 0,
                 latitude: place.latitude ?? 0.0,
                 longitude: place.longitude ?? 0.0,
               );

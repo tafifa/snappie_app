@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/components/user_avatar.dart';
-import '../../../core/components/fullscreen_image_viewer.dart';
-import '../../../core/components/custom_button.dart';
+import 'package:snappie_app/app/core/constants/app_colors.dart';
+import 'package:snappie_app/app/modules/shared/widgets/_form_widgets/rectangle_button_widget.dart';
+import '../../shared/widgets/_display_widgets/avatar_widget.dart';
+import '../../shared/widgets/_display_widgets/fullscreen_image_viewer.dart';
+import '../../shared/widgets/_navigation_widgets/button_widget.dart';
 import '../../../core/utils/time_formatter.dart';
-import '../../../domain/entities/post_entity.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../data/models/post_model.dart';
 import '../controllers/home_controller.dart';
 
 class PostCard extends StatelessWidget {
-  final PostEntity post;
+  final PostModel post;
   final VoidCallback? onLikeTap;
   final VoidCallback? onCommentTap;
   final VoidCallback? onShareTap;
@@ -48,14 +51,17 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildPostHeader() {
+    final username = post.user?.name ?? 'Unknown';
+    final avatarUrl = post.user?.imageUrl;
+    final placeName = post.place?.name ?? 'Unknown Place';
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          UserAvatar(
-            username: post.username,
-            avatarUrl: post.userAvatar,
-            radius: 20,
+          AvatarWidget(
+            imageUrl: avatarUrl,
+            size: AvatarSize.medium,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -63,7 +69,7 @@ class PostCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  post.username,
+                  username,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -72,10 +78,10 @@ class PostCard extends StatelessWidget {
                 GestureDetector(
                   onTap: onPlaceTap,
                   child: Text(
-                    post.placeName,
+                    placeName,
                     style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -84,6 +90,11 @@ class PostCard extends StatelessWidget {
             ),
           ),
           _buildFollowButton(),
+          ButtonWidget(
+            icon: Icons.more_vert_outlined,
+            iconColor: AppColors.textPrimary,
+            onPressed: onMoreTap,
+          ),
         ],
       ),
     );
@@ -96,7 +107,7 @@ class PostCard extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            post.content,
+            post.content ?? '',
             style: const TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -108,6 +119,13 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildPostImage(BuildContext context) {
+    // Use first image from imageUrls array
+    final imageUrl = (post.imageUrls != null && post.imageUrls!.isNotEmpty) 
+        ? post.imageUrls!.first 
+        : null;
+    
+    if (imageUrl == null) return const SizedBox.shrink();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -115,15 +133,19 @@ class PostCard extends StatelessWidget {
           onTap: () => _showFullscreenImage(context),
           child: Container(
             width: double.infinity,
+            constraints: const BoxConstraints(
+              maxHeight: 400, // Limit maximum height to prevent overflow
+            ),
             decoration: BoxDecoration(
               color: Colors.grey[200],
             ),
-            child: post.imageUrl != null ? Image.network(
-              post.imageUrl!,
-              fit: BoxFit.fill,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.cover, // Changed from fill to cover for better aspect ratio
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
                 return Container(
+                  height: 300,
                   color: Colors.grey[200],
                   child: Center(
                     child: CircularProgressIndicator(
@@ -139,6 +161,7 @@ class PostCard extends StatelessWidget {
               },
               errorBuilder: (context, error, stackTrace) {
                 return Container(
+                  height: 200,
                   padding: const EdgeInsets.all(20),
                   color: Colors.grey[200],
                   child: const Center(
@@ -150,15 +173,6 @@ class PostCard extends StatelessWidget {
                   ),
                 );
               },
-            ) : Container(
-              color: Colors.grey[200],
-              child: const Center(
-                child: Icon(
-                  Icons.image_not_supported_outlined,
-                  color: Colors.grey,
-                  size: 40,
-                ),
-              ),
             ),
           ),
         ),
@@ -166,11 +180,13 @@ class PostCard extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            TimeFormatter.formatTimeAgo(post.createdAt),
+            post.createdAt != null ? TimeFormatter.formatTimeAgo(post.createdAt!) : 'Unknown',
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 11,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -193,30 +209,31 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildLikeButton() {
-    return Obx(() {
-      final controller = Get.find<HomeController>();
-      final currentPost = controller.posts.firstWhere((p) => p.id == post.id);
-      return GestureDetector(
-        onTap: onLikeTap ?? () => controller.likePost(post.id),
-        child: Row(
-          children: [
-            Icon(
-              currentPost.isLiked ? Icons.favorite : Icons.favorite_border,
-              color: currentPost.isLiked ? Colors.red : Colors.grey[600],
-              size: 20,
+    // Check if current user has liked this post by checking likes array
+    final authService = Get.find<AuthService>();
+    final currentUserId = authService.userData?.id;
+    final isLiked = post.likes?.any((like) => like.userId == currentUserId) ?? false;
+    
+    return GestureDetector(
+      onTap: onLikeTap ?? () => Get.find<HomeController>().likePost(post.id!),
+      child: Row(
+        children: [
+          Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            color: isLiked ? Colors.red : Colors.grey[600],
+            size: 20,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${post.likesCount ?? 0}',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
             ),
-            const SizedBox(width: 4),
-            Text(
-              '${currentPost.likes}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    });
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildCommentButton() {
@@ -231,7 +248,7 @@ class PostCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            '${post.comments}',
+            '${post.commentsCount ?? 0}',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 12,
@@ -254,26 +271,21 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildFollowButton() {
-    return Obx(() {
-      final controller = Get.find<HomeController>();
-      final currentPost = controller.posts.firstWhere((p) => p.id == post.id);
-      
-      return CustomButton(
-        text: currentPost.isFollowing ? 'Mengikuti' : 'Ikuti',
-        icon: currentPost.isFollowing ? Icons.person : Icons.person_add_outlined,
-        backgroundColor: currentPost.isFollowing ? Colors.grey[200] : Colors.orange[100],
-        textColor: currentPost.isFollowing ? Colors.grey[700] : Colors.orange,
-        borderColor: currentPost.isFollowing ? Colors.grey[400] : null,
-        onTap: () => controller.followUser(post.username),
-      );
-    });
+    return RectangleButtonWidget(
+      text: 'Ikuti',
+      backgroundColor: AppColors.accent,
+      textColor: AppColors.textOnPrimary,
+      size: RectangleButtonSize.small,
+      borderRadius: BorderRadius.circular(24),
+      onPressed: () => Get.find<HomeController>().followUser('${post.userId ?? 0}'),
+    );
   }
 
   void _showFullscreenImage(BuildContext context) {
     FullscreenImageViewer.show(
       context: context,
       currentPost: post,
-      onLikeTap: onLikeTap ?? () => Get.find<HomeController>().likePost(post.id),
+      onLikeTap: onLikeTap ?? () => Get.find<HomeController>().likePost(post.id!),
       onCommentTap: onCommentTap ?? () {},
       onShareTap: onShareTap ?? () {},
     );

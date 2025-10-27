@@ -1,174 +1,218 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:snappie_app/app/modules/shared/layout/views/scaffold_frame.dart';
 import '../controllers/profile_controller.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../shared/widgets/index.dart';
 
-class ProfileView extends StatefulWidget {
+class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
 
   @override
-  State<ProfileView> createState() => _ProfileViewState();
-}
-
-class _ProfileViewState extends State<ProfileView> {
-  final ProfileController controller = Get.find<ProfileController>();
-  int _selectedTabIndex = 0;
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainer,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          controller.refreshProfile();
-        },
-        child: CustomScrollView(
-          slivers: [
-            // App Bar with Profile Header
-            SliverAppBar(
-              expandedHeight: 300,
-              floating: false,
-              pinned: true,
-              backgroundColor: AppColors.primary,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primaryLight,
-                        AppColors.primaryDark,
-                      ],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 60, 16, 20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        // Profile Avatar
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppColors.textOnPrimary,
-                              width: 3,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 38,
-                            backgroundColor: AppColors.primary,
-                            child: Icon(
-                              Icons.person,
-                              size: 40,
-                              color: AppColors.textOnPrimary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // User Name
-                        Obx(() => Text(
-                              controller.user?.name ?? 'User',
-                              style: TextStyle(
-                                color: AppColors.textOnPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )),
-                        const SizedBox(height: 4),
-                        // User Email
-                        Obx(() => Text(
-                              controller.user?.email ?? 'user@email.com',
-                              style: TextStyle(
-                                color: AppColors.textOnPrimary,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            )),
-                        const SizedBox(height: 16),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Obx(() => _buildStatColumn(
-                                '${controller.stats?['total_checkins'] ?? 0}',
-                                'Check-ins',
-                              )),
-                              Obx(() => _buildStatColumn(
-                                '${controller.stats?['total_reviews'] ?? 0}',
-                                'Reviews',
-                              )),
-                              Obx(() => _buildStatColumn(
-                                '${controller.stats?['total_points'] ?? 0}',
-                                'Points',
-                              )),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+    // Trigger lazy initialization saat view pertama kali dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.initializeIfNeeded();
+    });
+
+    return ScaffoldFrame(
+      controller: controller,
+      headerHeight: 315,
+      headerContent: _buildHeader(),
+      slivers: [
+        // Tab Bar (Clickable)
+        SliverToBoxAdapter(
+          child: Container(
+            color: AppColors.backgroundContainer,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTabItem('Postingan Saya', 0),
+                  _buildTabItem('Tersimpan', 1),
+                  _buildTabItem('Pencapaian', 2),
+                ],
               ),
-              actions: [
-                IconButton(
-                  onPressed: () => _showProfileSettings(),
-                  icon: Icon(
-                    Icons.settings,
-                    color: AppColors.textOnPrimary,
+            ),
+          ),
+        ),
+
+        // Tab Content
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate(_buildTabContent()),
+          ),
+        ),
+      ],
+    );
+    // ]);
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      // decoration: BoxDecoration(
+      //   border: Border.all(color: AppColors.border),
+      // ),
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 75,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Center(
+                        child: Text(
+                      '900 XP',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )),
                   ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 75,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Center(
+                        child: Text(
+                      '250 Koin',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  ButtonWidget(
+                    icon: Icons.person_add_outlined,
+                    backgroundColor: AppColors.background,
+                    onPressed: () => _showProfileSettings(),
+                  ),
+                  const SizedBox(width: 8),
+                  ButtonWidget(
+                    icon: Icons.share_outlined,
+                    backgroundColor: AppColors.background,
+                    onPressed: () => _showProfileSettings(),
+                  ),
+                  const SizedBox(width: 8),
+                  ButtonWidget(
+                    icon: Icons.settings_outlined,
+                    backgroundColor: AppColors.background,
+                    onPressed: () => _showProfileSettings(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+      
+          const SizedBox(height: 4),
+      
+          // Profile Avatar
+          AvatarWidget(
+            imageUrl: 'avatar_f1_hdpi.png',
+            size: AvatarSize.extraLarge,
+          ),
+      
+          const SizedBox(height: 8),
+      
+          // User Name
+          Obx(() => Text(
+                controller.userName,
+                style: TextStyle(
+                  color: AppColors.textOnPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              )),
+      
+          // User Email
+          Obx(() => Text(
+                controller.userNickname,
+                style: TextStyle(
+                  color: AppColors.textOnPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              )),
+      
+          const SizedBox(height: 8),
+      
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: Obx(() => _buildStatColumn(
+                        '${controller.totalCheckins}',
+                        'Check-ins',
+                      )),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.borderLight,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                Expanded(
+                  child: Obx(() => _buildStatColumn(
+                        '${controller.totalReviews}',
+                        'Reviews',
+                      )),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.borderLight,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                Expanded(
+                  child: Obx(() => _buildStatColumn(
+                        '${controller.totalExp}',
+                        'Points',
+                      )),
                 ),
               ],
             ),
-
-            // Tab Bar (Clickable)
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildTabItem('Aktivitas', 0),
-                        const SizedBox(width: 12),
-                        _buildTabItem('Favorit', 1),
-                        const SizedBox(width: 12),
-                        _buildTabItem('Pencapaian', 2),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Tab Content
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate(_buildTabContent()),
-              ),
-            ),
-          ],
-        ),
+          ),
+      
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
 
   Widget _buildStatColumn(String count, String label) {
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(
+        // border: Border.all(color: AppColors.accent),
+        borderRadius: BorderRadius.circular(12),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         children: [
@@ -194,32 +238,33 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildTabItem(String title, int index) {
-    bool isSelected = _selectedTabIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTabIndex = index;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
+    return Obx(() {
+      bool isSelected = controller.selectedTabIndex == index;
+      return GestureDetector(
+        onTap: () {
+          controller.setSelectedTabIndex(index);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(24)),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected
+                  ? AppColors.textOnPrimary
+                  : AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   List<Widget> _buildTabContent() {
-    switch (_selectedTabIndex) {
+    switch (controller.selectedTabIndex) {
       case 0: // Postingan Saya
         return [
           Obx(() {
@@ -231,7 +276,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               );
             }
-            
+
             return Container(
               padding: const EdgeInsets.all(32),
               child: Column(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 
-import '../../../core/utils/date_utils.dart';
-import '../../../core/components/user_avatar.dart';
-import '../../../core/components/rating_widget.dart';
+import '../../../core/utils/time_formatter.dart';
+import '../../shared/widgets/_display_widgets/avatar_widget.dart';
+import '../../shared/widgets/_display_widgets/rating_widget.dart';
 
 class ReviewCardWidget extends StatelessWidget {
   final dynamic review; // Replace with actual Review entity
@@ -55,10 +55,9 @@ class ReviewCardWidget extends StatelessWidget {
             // User info and rating
             Row(
               children: [
-                UserAvatar(
-                  username: review.userName ?? 'Anonymous',
-                  avatarUrl: review.userAvatar,
-                  radius: 20,
+                AvatarWidget(
+                  imageUrl: review.userAvatar,
+                  size: AvatarSize.small,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -82,7 +81,7 @@ class ReviewCardWidget extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            AppDateUtils.formatTimeAgo(review.createdAt ?? DateTime.now()),
+                            TimeFormatter.formatTimeAgo(review.createdAt ?? DateTime.now()),
                             style: TextStyle(
                               fontSize: 11,
                               color: AppColors.textTertiary,

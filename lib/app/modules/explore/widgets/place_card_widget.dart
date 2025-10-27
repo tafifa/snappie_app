@@ -1,219 +1,280 @@
 import 'package:flutter/material.dart';
+import '../../../data/models/place_model.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/components/rating_widget.dart';
-import '../../articles/widgets/common/network_image_widget.dart';
 
-class PlaceCardWidget extends StatelessWidget {
-  final dynamic place; // Replace with actual Place entity
-  final VoidCallback? onTap;
+enum CardSize {
+  small,
+  large,
+  fullWidth,
+}
+
+class CardConfig {
+  final double imageHeight;
+  final double contentPadding;
+  final double titleFontSize;
+  final int titleMaxLines;
+  final double descriptionFontSize;
+  final int descriptionMaxLines;
+  final double ratingIconSize;
+  final double ratingFontSize;
+  final double overlayIconSize;
+  final double borderRadius;
+  final EdgeInsets margin;
   final double? width;
   final double? height;
-  final EdgeInsetsGeometry? margin;
-  final bool showDistance;
-  final bool showRating;
-  final bool isHorizontal;
+
+  CardConfig({
+    required this.imageHeight,
+    required this.contentPadding,
+    required this.titleFontSize,
+    required this.titleMaxLines,
+    required this.descriptionFontSize,
+    required this.descriptionMaxLines,
+    required this.ratingIconSize,
+    required this.ratingFontSize,
+    required this.overlayIconSize,
+    required this.borderRadius,
+    required this.margin,
+    this.width,
+    this.height,
+  });
+}
+
+class PlaceCardWidget extends StatelessWidget {
+  final PlaceModel place;
+  final VoidCallback? onTap;
+  final CardSize cardSize;
+  final bool showOverlayIcon;
+  final IconData? overlayIcon;
+  final Color? overlayIconColor;
+  final Color? backgroundColor;
+  final EdgeInsets? margin;
+  final EdgeInsets? padding;
 
   const PlaceCardWidget({
     super.key,
     required this.place,
     this.onTap,
-    this.width,
-    this.height,
+    this.cardSize = CardSize.large,
+    this.showOverlayIcon = false,
+    this.overlayIcon = Icons.store,
+    this.overlayIconColor,
+    this.backgroundColor,
     this.margin,
-    this.showDistance = true,
-    this.showRating = true,
-    this.isHorizontal = false,
+    this.padding,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    if (isHorizontal) {
-      return _buildHorizontalCard();
-    } else {
-      return _buildVerticalCard();
+   CardConfig _getCardConfig() {
+    switch (cardSize) {
+      case CardSize.small:
+        return CardConfig(
+          imageHeight: 80,
+          contentPadding: 8,
+          titleFontSize: 14,
+          titleMaxLines: 1,
+          descriptionFontSize: 10,
+          descriptionMaxLines: 1,
+          ratingIconSize: 14,
+          ratingFontSize: 12,
+          overlayIconSize: 32,
+          borderRadius: 8,
+          margin: const EdgeInsets.only(bottom: 8),
+          width: 180,
+          height: 160,
+        );
+      case CardSize.large:
+        return CardConfig(
+          imageHeight: 100,
+          contentPadding: 8,
+          titleFontSize: 16,
+          titleMaxLines: 1,
+          descriptionFontSize: 12,
+          descriptionMaxLines: 2,
+          ratingIconSize: 18,
+          ratingFontSize: 14,
+          overlayIconSize: 48,
+          borderRadius: 4,
+          margin: const EdgeInsets.only(left: 16),
+          width: 270,
+          height: 240,
+        );
+      case CardSize.fullWidth:
+        return CardConfig(
+          imageHeight: 100,
+          contentPadding: 8,
+          titleFontSize: 16,
+          titleMaxLines: 1,
+          descriptionFontSize: 12,
+          descriptionMaxLines: 2,
+          ratingIconSize: 18,
+          ratingFontSize: 14,
+          overlayIconSize: 48,
+          borderRadius: 4,
+          margin: const EdgeInsets.only(bottom: 12),
+          width: 270,
+          height: 240,
+        );
     }
   }
 
-  Widget _buildVerticalCard() {
+  @override
+  Widget build(BuildContext context) {
+    final cardConfig = _getCardConfig();
+    
     return Container(
-      width: width ?? 160,
-      margin: margin ?? const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: InkWell(
+      // decoration: BoxDecoration(
+      //   border: Border.all(
+      //     color: AppColors.error,
+      //     width: 1,
+      //   ),
+      // ),
+      width: cardConfig.width,
+      height: cardConfig.height,
+      margin: cardConfig.margin,
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
+        child: Container(
+          padding: padding ?? EdgeInsets.all(cardConfig.contentPadding),
+          decoration: BoxDecoration(
+            color: backgroundColor ?? AppColors.background,
+            borderRadius: BorderRadius.circular(cardConfig.borderRadius),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowLight.withOpacity(0.1),
+                spreadRadius: 0,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              child: NetworkImageWidget(
-                imageUrl: place.imageUrl ?? '',
-                width: double.infinity,
-                height: height ?? 100,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    place.name ?? 'Unknown Place',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    place.category ?? 'Category',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (showRating) ...[
-                        RatingWidget(
-                          rating: place.rating?.toDouble() ?? 0.0,
-                          size: 12,
-                          showRatingText: true,
-                        ),
-                        const Spacer(),
-                      ],
-                      if (showDistance)
-                        Text(
-                          '${place.distance ?? 0} km',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Image with optional overlay icon
+              _buildImageSection(cardConfig),
+              
+              // Content
+              _buildContentSection(cardConfig),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHorizontalCard() {
-    return Container(
-      margin: margin ?? const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: NetworkImageWidget(
-                  imageUrl: place.imageUrl ?? '',
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      place.name ?? 'Unknown Place',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+  Widget _buildImageSection(CardConfig config) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.all(Radius.circular(config.borderRadius)),
+          child: Container(
+            height: config.height! * 0.60,
+            width: double.infinity,
+            color: AppColors.background,
+            child: Image.network(
+              // (place.imageUrls != null && place.imageUrls!.isNotEmpty)
+              //     ? place.imageUrls!.first
+              //     : '',
+              'https://static.promediateknologi.id/crop/0x0:0x0/0x0/webp/photo/p2/146/2024/04/30/Sagarmatha-3522761961.jpeg',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: AppColors.background,
+                  child: Center(
+                    child: Icon(
+                      Icons.restaurant,
+                      color: AppColors.textTertiary,
+                      size: config.imageHeight * 0.3,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      place.category ?? 'Category',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (place.description != null)
-                      Text(
-                        place.description!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textTertiary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        if (showRating) ...[
-                          RatingWidget(
-                            rating: place.rating?.toDouble() ?? 0.0,
-                            size: 14,
-                            showRatingText: true,
-                          ),
-                          const Spacer(),
-                        ],
-                        if (showDistance)
-                          Text(
-                            '${place.distance ?? 0} km',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textTertiary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
+        // Overlay icon (optional)
+        if (showOverlayIcon)
+          Positioned.fill(
+            child: Center(
+              child: Container(
+                width: config.overlayIconSize,
+                height: config.overlayIconSize,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  overlayIcon,
+                  color: overlayIconColor ?? AppColors.primary,
+                  size: config.overlayIconSize * 0.5,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildContentSection(CardConfig config) {
+    return Padding(
+      padding: EdgeInsets.all(config.contentPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Place Name with Rating
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  place.name ?? 'Unknown Place',
+                  style: TextStyle(
+                    fontSize: config.titleFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: config.titleMaxLines,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (cardSize != CardSize.small) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.star,
+                  color: Colors.amber,
+                  size: config.ratingIconSize,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  (place.avgRating ?? 0.0).toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: config.ratingFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          
+          if (cardSize != CardSize.small) ...[
+            const SizedBox(height: 6),
+            
+            // Short Description
+            Text(
+              place.placeDetail?.shortDescription ??
+              'Tempat makan yang nyaman',
+              style: TextStyle(
+                fontSize: config.descriptionFontSize,
+                fontWeight: FontWeight.normal,
+                color: AppColors.textSecondary,
+              ),
+              maxLines: config.descriptionMaxLines,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
       ),
     );
   }

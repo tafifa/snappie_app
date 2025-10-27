@@ -1,34 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../domain/entities/user_entity.dart';
+import 'package:snappie_app/app/data/repositories/user_repository_impl.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../data/models/user_model.dart';
 
 class ProfileController extends GetxController {
   final AuthService authService;
-  
-  ProfileController({required this.authService});
-  
-  final _userProfile = <String, dynamic>{}.obs;
+  final UserRepository userRepository;
+
+  ProfileController({
+    required this.authService,
+    required this.userRepository
+  });
+
+  final Rx<UserModel?> _userData = Rx<UserModel?>(null);
   final _isLoading = false.obs;
+  final _isInitialized = false.obs;
+  final _selectedTabIndex = 0.obs;
 
-  Map<String, dynamic> get userProfile => _userProfile;
+  UserModel? get userData => _userData.value;
   bool get isLoading => _isLoading.value;
+  int get selectedTabIndex => _selectedTabIndex.value;
 
-  UserEntity? get user => _userProfile['user'] as UserEntity?;
-  Map<String, dynamic>? get stats => _userProfile['stats'] as Map<String, dynamic>?;
-  List<Map<String, dynamic>>? get recentActivity => _userProfile['recentActivity'] as List<Map<String, dynamic>>?;
+  // Access user data directly from UserModel
+  String get userName => _userData.value?.name ?? 'User';
+  String get userNickname => _userData.value?.username ?? '';
+  String get userAvatar => _userData.value?.imageUrl ?? '';
+  String get userEmail => _userData.value?.email ?? '';
+  String get userImageUrl => _userData.value?.imageUrl ?? '';
+  int get totalCheckins => _userData.value?.totalCheckin ?? 0;
+  int get totalReviews => _userData.value?.totalReview ?? 0;
+  int get totalPosts => _userData.value?.totalPost ?? 0;
+  int get totalCoins => _userData.value?.totalCoin ?? 0;
+  int get totalExp => _userData.value?.totalExp ?? 0;
+  
+  // Add stats getter for compatibility with profile_view
+  Map<String, dynamic> get stats => {
+    'total_checkins': totalCheckins,
+    'total_reviews': totalReviews,
+    'total_posts': totalPosts,
+  };
 
   @override
   void onInit() {
     super.onInit();
-    loadUserProfile();
+    print('👤 ProfileController created (not initialized yet)');
     
     // Listen for auth status changes
     ever(authService.isLoggedInObs, (isLoggedIn) {
-      if (isLoggedIn) {
+      if (isLoggedIn && _isInitialized.value) {
         loadUserProfile();
       }
     });
+  }
+  
+  /// Initialize data hanya saat tab pertama kali dibuka
+  void initializeIfNeeded() {
+    if (!_isInitialized.value) {
+      _isInitialized.value = true;
+      print('👤 ProfileController initializing...');
+      loadUserProfile();
+    }
   }
 
   Future<void> loadUserProfile() async {
@@ -39,34 +71,22 @@ class ProfileController extends GetxController {
       if (authService.isLoggedIn) {
         final userData = authService.userData;
         if (userData != null) {
-          _userProfile.value = {
-            'user': UserEntity(
-              id: userData['id'] ?? '',
-              email: userData['email'] ?? '',
-              name: userData['name'] ?? '',
-              avatar: userData['avatar'],
-              createdAt: DateTime.now(), // TODO: Parse from API
-              updatedAt: DateTime.now(), // TODO: Parse from API
-              isActive: userData['is_active'] ?? true,
-            ),
-            'stats': {
-              'total_checkins': userData['total_checkins'] ?? 0,
-              'total_reviews': userData['total_reviews'] ?? 0,
-              'total_points': userData['total_points'] ?? 0,
-              'level': userData['level'] ?? 1,
-            },
-            'recentActivity': [], // TODO: Load from API
-          };
-          
-          print('👤 User profile loaded: ${userData['name']}');
+          _userData.value = userData;
+          print('👤 User profile loaded: ${userData.name}');
+          print('   - Email: ${userData.email}');
+          print('   - Checkins: ${userData.totalCheckin}');
+          print('   - Reviews: ${userData.totalReview}');
+          print('   - Posts: ${userData.totalPost}');
         } else {
           print('❌ No user data available');
         }
       } else {
         print('❌ User not logged in');
+        _userData.value = null;
       }
     } catch (e) {
       print('❌ Error loading user profile: $e');
+      _userData.value = null;
     }
     
     _setLoading(false);
@@ -76,20 +96,19 @@ class ProfileController extends GetxController {
     await loadUserProfile();
   }
 
+  Future<void> refreshData() async {
+    await refreshProfile();
+  }
+
+  void setSelectedTabIndex(int index) {
+    _selectedTabIndex.value = index;
+  }
+
   void editProfile() {
     // TODO: Implement edit profile functionality
     Get.snackbar(
       'Edit Profile',
       'Edit profile feature coming soon!',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
-  void changePassword() {
-    // TODO: Implement change password functionality
-    Get.snackbar(
-      'Change Password',
-      'Change password feature coming soon!',
       snackPosition: SnackPosition.BOTTOM,
     );
   }

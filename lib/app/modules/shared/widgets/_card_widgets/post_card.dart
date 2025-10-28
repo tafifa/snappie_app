@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/core/constants/app_colors.dart';
 import 'package:snappie_app/app/modules/shared/widgets/_form_widgets/rectangle_button_widget.dart';
-import '../../shared/widgets/_display_widgets/avatar_widget.dart';
-import '../../shared/widgets/_display_widgets/fullscreen_image_viewer.dart';
-import '../../shared/widgets/_navigation_widgets/button_widget.dart';
-import '../../../core/utils/time_formatter.dart';
-import '../../../core/services/auth_service.dart';
-import '../../../data/models/post_model.dart';
-import '../controllers/home_controller.dart';
+import '../_display_widgets/avatar_widget.dart';
+import '../_display_widgets/fullscreen_image_viewer.dart';
+import '../_navigation_widgets/button_widget.dart';
+import '../../../../core/utils/time_formatter.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../data/models/post_model.dart';
+import '../../../../modules/home/controllers/home_controller.dart';
 
 class PostCard extends StatelessWidget {
   final PostModel post;
@@ -120,9 +120,8 @@ class PostCard extends StatelessWidget {
 
   Widget _buildPostImage(BuildContext context) {
     // Use first image from imageUrls array
-    final imageUrl = (post.imageUrls != null && post.imageUrls!.isNotEmpty) 
-        ? post.imageUrls!.first 
-        : null;
+    // final imageUrl = (post.imageUrls != null && post.imageUrls!.isNotEmpty) ? post.imageUrls!.first : null;
+    final imageUrl = 'https://statik.tempo.co/data/2023/12/19/id_1264597/1264597_720.jpg';
     
     if (imageUrl == null) return const SizedBox.shrink();
     

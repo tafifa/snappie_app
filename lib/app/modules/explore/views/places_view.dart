@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/place_model.dart';
 import '../controllers/explore_controller.dart';
-import '../widgets/place_card.dart';
-import '../widgets/place_filter_bar.dart';
+import '../../shared/widgets/index.dart';
 
 class PlacesView extends GetView<ExploreController> {
   const PlacesView({super.key});

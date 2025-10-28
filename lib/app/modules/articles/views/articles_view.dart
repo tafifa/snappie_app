@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/articles_controller.dart';
 import '../../shared/widgets/index.dart';
-import '../widgets/article_card_widget.dart';
 import '../../shared/layout/views/scaffold_frame.dart';
 
 class ArticlesView extends GetView<ArticlesController> {

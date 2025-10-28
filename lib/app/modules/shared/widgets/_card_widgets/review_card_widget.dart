@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_colors.dart';
 
-import '../../../core/utils/time_formatter.dart';
-import '../../shared/widgets/_display_widgets/avatar_widget.dart';
-import '../../shared/widgets/_display_widgets/rating_widget.dart';
+import '../../../../core/utils/time_formatter.dart';
+import '../_display_widgets/avatar_widget.dart';
+import '../_display_widgets/rating_widget.dart';
 
 class ReviewCardWidget extends StatelessWidget {
   final dynamic review; // Replace with actual Review entity

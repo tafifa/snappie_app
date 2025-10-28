@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../_form_widgets/button_widget.dart' show ButtonWidget, ButtonType, ButtonSize;
 
 /// ErrorStateWidget untuk menampilkan error state dengan full customization
 class ErrorStateWidget extends StatelessWidget {
@@ -39,15 +38,6 @@ class ErrorStateWidget extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          if (buttonText != null && onRetry != null) ...[
-            const SizedBox(height: 16),
-            ButtonWidget(
-              text: buttonText!,
-              onPressed: onRetry,
-              type: ButtonType.primary,
-              size: ButtonSize.medium,
-            ),
-          ],
         ],
       ),
     );

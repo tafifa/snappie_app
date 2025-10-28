@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/explore_controller.dart';
+import '../../../../modules/explore/controllers/explore_controller.dart';
 
 class CreateReviewDialog extends StatefulWidget {
   final int placeId;

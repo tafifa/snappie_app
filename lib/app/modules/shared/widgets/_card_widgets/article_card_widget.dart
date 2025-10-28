@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../data/models/articles_model.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/utils/time_formatter.dart';
-import '../../shared/widgets/_display_widgets/network_image_widget.dart';
+import '../../../../data/models/articles_model.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/time_formatter.dart';
+import '../_display_widgets/network_image_widget.dart';
 
 /// Reusable Article Card Widget
-/// 
+///
 /// Displays article in a horizontal layout with:
 /// - Left: Article image (60x60)
 /// - Right: Content (title, excerpt, category, date, publisher)
@@ -47,9 +47,9 @@ class ArticleCardWidget extends StatelessWidget {
             children: [
               // Article Image (Left Side)
               _buildArticleImage(),
-              
+
               const SizedBox(width: 12),
-              
+
               // Article Content (Right Side)
               _buildArticleContent()
             ],
@@ -63,7 +63,9 @@ class ArticleCardWidget extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: NetworkImageWidget(
-        imageUrl: article.imageUrl ?? '',
+        // imageUrl: article.imageUrl ?? '',
+        imageUrl:
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT03PO9JTj8_-WxAUE02ehEJj3WoR9lPv22VA&s',
         width: 90,
         height: 90,
         fit: BoxFit.cover,
@@ -82,10 +84,10 @@ class ArticleCardWidget extends StatelessWidget {
   }
 
   Widget _buildArticleContent() {
-    return Column(
+    return Expanded(
+        child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        
         // Title (2 lines max)
         Text(
           article.title ?? 'No Title',
@@ -98,9 +100,9 @@ class ArticleCardWidget extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        
+
         const SizedBox(height: 4),
-        
+
         // Excerpt/Description (2 lines)
         if (article.content != null)
           Text(
@@ -113,9 +115,9 @@ class ArticleCardWidget extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-        
+          
         const SizedBox(height: 8),
-        
+
         // Category
         Text(
           article.category ?? 'Uncategorized',
@@ -127,7 +129,7 @@ class ArticleCardWidget extends StatelessWidget {
         ),
 
         const SizedBox(height: 4),
-        
+
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -152,17 +154,17 @@ class ArticleCardWidget extends StatelessWidget {
           ],
         ),
       ],
-    );
+    ));
   }
 
   String _formatDate() {
     if (article.createdAt == null) {
       return 'Unknown';
     }
-    
+
     final now = DateTime.now();
     final difference = now.difference(article.createdAt!);
-    
+
     // If less than 7 days, show "X hari yang lalu"
     if (difference.inDays < 7) {
       if (difference.inDays == 0) {
@@ -173,7 +175,7 @@ class ArticleCardWidget extends StatelessWidget {
         return '${difference.inDays} hari yang lalu';
       }
     }
-    
+
     // Otherwise show full date
     return TimeFormatter.formatDate(article.createdAt!);
   }

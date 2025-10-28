@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/review_model.dart';
 import '../controllers/explore_controller.dart';
-import '../widgets/review_card.dart';
-import '../widgets/review_stats_card.dart';
-import '../widgets/create_review_dialog.dart';
+import '../../shared/widgets/index.dart';
 
 class ReviewsView extends GetView<ExploreController> {
   const ReviewsView({super.key});

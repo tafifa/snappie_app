@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/articles_model.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/utils/time_formatter.dart';
-import '../../shared/widgets/_display_widgets/network_image_widget.dart';
+import '../../../../data/models/articles_model.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/time_formatter.dart';
+import '../_display_widgets/network_image_widget.dart';
 
 /// Horizontal Article Card for Featured Articles
 /// 

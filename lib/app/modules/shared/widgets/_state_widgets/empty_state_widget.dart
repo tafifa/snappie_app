@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../_form_widgets/button_widget.dart' show ButtonWidget, ButtonType, ButtonSize;
 
 /// Main EmptyStateWidget with full customization support
 class EmptyStateWidget extends StatelessWidget {
@@ -135,15 +134,6 @@ class EmptyStateWidget extends StatelessWidget {
   Widget _buildAction() {
     if (customAction != null) {
       return customAction!;
-    }
-
-    if (actionText != null && onAction != null) {
-      return ButtonWidget(
-        text: actionText!,
-        onPressed: onAction,
-        type: ButtonType.primary,
-        size: ButtonSize.medium,
-      );
     }
 
     return const SizedBox.shrink();

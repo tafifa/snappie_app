@@ -5,8 +5,6 @@ import '../../../data/models/place_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/layout/views/scaffold_frame.dart';
 import '../../shared/widgets/index.dart';
-import '../../shared/widgets/_card_widgets/promotional_banner.dart';
-import '../widgets/place_card_widget.dart';
 
 class ExploreView extends GetView<ExploreController> {
   const ExploreView({super.key});

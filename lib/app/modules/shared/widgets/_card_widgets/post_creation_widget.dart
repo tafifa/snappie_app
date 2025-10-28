@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/modules/shared/widgets/_display_widgets/avatar_widget.dart';
 import 'package:snappie_app/app/routes/app_pages.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class PostCreationWidget extends StatelessWidget {
   final String? username;

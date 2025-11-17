@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 import '../controllers/auth_controller.dart';
 
 class TestingLoginView extends StatelessWidget {
@@ -21,7 +22,7 @@ class TestingLoginView extends StatelessWidget {
           } else {
             // Release mode - navigate to onboarding
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              Get.offAllNamed('/login');
+              Get.offAllNamed(AppPages.LOGIN);
             });
             return const Center(
               child: CircularProgressIndicator(),

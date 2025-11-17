@@ -201,7 +201,7 @@ class AuthController extends GetxController {
         print('🔍 User not found, navigating to registration');
         // Load Google user data before navigating
         _loadGoogleUserData();
-        Get.offAllNamed('/register');
+        Get.toNamed(AppPages.REGISTER);
         return;
       }
       
@@ -226,7 +226,7 @@ class AuthController extends GetxController {
       if (success) {
         _loadGoogleUserData();
         // Navigate to registration page
-        Get.offAllNamed('/register');
+        Get.toNamed(AppPages.REGISTER);
       } else {
         Get.snackbar(
           'Error',
@@ -241,7 +241,7 @@ class AuthController extends GetxController {
       if (e == 'USER_NOT_FOUND') {
         print('🔍 User not found, navigating to registration');
         _loadGoogleUserData();
-        Get.offAllNamed('/register');
+        Get.toNamed(AppPages.REGISTER);
         return;
       }
       
@@ -449,7 +449,7 @@ class AuthController extends GetxController {
   void cancelRegistration() {
     // Sign out from Google and return to login
     googleAuthService.signOut();
-    Get.offAllNamed('/login');
+    Get.toNamed(AppPages.LOGIN);
     
     Get.snackbar(
       'Cancelled',
@@ -491,7 +491,7 @@ class AuthController extends GetxController {
     );
     
     // Navigate back to login
-    Get.offAllNamed('/login');
+    Get.toNamed(AppPages.LOGIN);
   }
   
   void _setLoading(bool loading) {

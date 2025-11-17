@@ -8,6 +8,7 @@ import 'package:snappie_app/app/core/network/dio_client.dart';
 import 'package:snappie_app/app/data/models/user_model.dart';
 import 'package:snappie_app/app/data/datasources/local/user_local_datasource.dart';
 import '../constants/app_constants.dart';
+import '../constants/environment_config.dart';
 import '../../routes/api_endpoints.dart';
 import '../helpers/json_mapping_helper.dart';
 import 'google_auth_service.dart';
@@ -181,9 +182,9 @@ class AuthService extends GetxService {
       // Send Google user data to backend API
       final dio = dio_lib.Dio(
         dio_lib.BaseOptions(
-          connectTimeout: const Duration(seconds: 15), // 15 seconds connection timeout
-          receiveTimeout: const Duration(seconds: 15), // 15 seconds receive timeout
-          sendTimeout: const Duration(seconds: 15), // 15 seconds send timeout
+          connectTimeout: const Duration(seconds: 60), // 60 seconds connection timeout
+          receiveTimeout: const Duration(seconds: 60), // 60 seconds receive timeout
+          sendTimeout: const Duration(seconds: 60), // 60 seconds send timeout
           followRedirects: true,
           maxRedirects: 5,
         ),
@@ -470,6 +471,7 @@ class AuthService extends GetxService {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${EnvironmentConfig.registrationApiKey}',
           },
         ),
       ).timeout(

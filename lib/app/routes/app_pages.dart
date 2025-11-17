@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:snappie_app/app/modules/explore/views/place_view.dart';
 import 'package:snappie_app/app/modules/profile/views/profile_view.dart';
 import 'package:snappie_app/app/modules/profile/views/user_profile_view.dart';
 import 'package:snappie_app/app/modules/shared/components/tnc_view.dart';
@@ -8,7 +9,6 @@ import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/shared/layout/views/main_layout.dart';
 import '../modules/shared/layout/bindings/main_binding.dart';
 import '../modules/explore/views/place_detail_view.dart';
-import '../modules/explore/views/places_view.dart';
 import '../modules/explore/views/reviews_view.dart';
 import '../modules/explore/bindings/explore_binding.dart';
 import '../modules/testing/views/login_view.dart';
@@ -88,13 +88,8 @@ class AppPages {
 
     // Explore detail pages - full screen navigation dari tab explore
     GetPage(
-      name: PLACES,
-      page: () => const PlacesView(),
-      binding: ExploreBinding(),
-    ),
-    GetPage(
       name: PLACE_DETAIL,
-      page: () => const PlaceDetailView(),
+      page: () => const PlaceView(),
       binding: ExploreBinding(),
     ),
     GetPage(

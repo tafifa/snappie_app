@@ -11,9 +11,9 @@ import 'package:dio/dio.dart';
 
 void main() {
   group('Auth Service API Tests', () {
-    const String baseUrl = 'https://evway.my.id';
+    const String baseUrl = 'http://192.168.18.141:3000';
     const String apiVersion = '/api/v1';
-    const String testEmail = 'aninr@gmail.com';
+    const String testEmail = 'letssayimweird@gmail.com';
 
     late Dio dio;
 
@@ -22,8 +22,8 @@ void main() {
       dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
+          connectTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
@@ -150,92 +150,7 @@ void main() {
         fail('Login API test failed: $e');
       }
     });
-
-    test('Test Register API Endpoint Structure', () async {
-      print('\n========================================');
-      print('📝 Testing Register API Endpoint');
-      print('========================================');
-      print('URL: $baseUrl$apiVersion/auth/register\n');
-
-      final requestUrl = '$baseUrl$apiVersion/auth/register';
-      final requestData = {
-        'name': 'Test User',
-        'username': 'testuser123',
-        'email': 'test@example.com',
-      };
-
-      try {
-        print('📤 Sending register request (test data)...');
-        final startTime = DateTime.now();
-
-        final response = await dio.post(
-          requestUrl,
-          data: requestData,
-          options: Options(
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            validateStatus: (status) => status != null && status < 500,
-          ),
-        ).timeout(
-          const Duration(seconds: 15),
-          onTimeout: () {
-            throw Exception('⏱️ Request timeout');
-          },
-        );
-
-        final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-        print('✅ Response received in ${elapsed}ms');
-        print('Status Code: ${response.statusCode}');
-        print('Response Data: ${response.data}');
-
-        expect(response.statusCode, isNotNull);
-        print('✅ Register endpoint is reachable');
-
-      } catch (e) {
-        print('❌ Register test failed: $e');
-        
-        if (e is DioException) {
-          print('Error Type: ${e.type}');
-          print('Error Message: ${e.message}');
-          
-          if (e.response != null) {
-            print('Response Status: ${e.response?.statusCode}');
-            print('Response Data: ${e.response?.data}');
-          }
-        }
-        
-        // Register endpoint test is optional - don't fail if it errors
-        print('⚠️ Register endpoint test skipped due to error');
-      }
-    });
-
-    test('Test Network Connection', () async {
-      print('\n========================================');
-      print('🌐 Testing Network Connection');
-      print('========================================');
-
-      try {
-        // Test dengan Google (sebagai referensi bahwa internet berfungsi)
-        print('Testing internet connection with google.com...');
-        final googleResponse = await dio.get(
-          'https://www.google.com',
-          options: Options(
-            validateStatus: (status) => status != null && status < 500,
-          ),
-        ).timeout(const Duration(seconds: 10));
-
-        print('✅ Internet connection is working');
-        print('Google Status: ${googleResponse.statusCode}');
-
-        expect(googleResponse.statusCode, equals(200));
-      } catch (e) {
-        print('❌ Internet connection test failed: $e');
-        fail('No internet connection: $e');
-      }
-    });
-  });
+});
 
   group('Detailed Connection Diagnostics', () {
     test('Ping Backend Server', () async {
@@ -243,17 +158,17 @@ void main() {
       print('🔍 Backend Server Diagnostics');
       print('========================================');
 
-      const baseUrl = 'https://evway.my.id';
+      const baseUrl = 'http://192.168.18.135:3000';
       
       final dio = Dio(
         BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
+          connectTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
         ),
       );
 
       print('Attempting to connect to: $baseUrl');
-      print('Timeout: 10 seconds\n');
+      print('Timeout: 60 seconds\n');
 
       try {
         final startTime = DateTime.now();

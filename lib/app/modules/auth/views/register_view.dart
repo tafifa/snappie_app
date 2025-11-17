@@ -10,6 +10,7 @@ class RegisterView extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return DetailLayout(
+      isCard: true,
       title: 'Snappie',
       onBackPressed: () {
         if (controller.selectedPageIndex > 0) {

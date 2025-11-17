@@ -30,6 +30,9 @@ class RemoteAssets {
   
   static String background(String filename) => '$baseUrl/backgrounds/$filename';
 
+  // https://res.cloudinary.com/deqnkuhbv/image/upload/v1761683559/places/01K8P8BHBW4P60YEG5T59GAMQ6.png
+  static String image(String filename) => '$baseUrl/places/$filename';
+
   // Local fallback paths
   static String localAvatar(String filename) => 'assets/avatar/$filename';
   static String localLogo(String filename) => 'assets/logo/$filename';

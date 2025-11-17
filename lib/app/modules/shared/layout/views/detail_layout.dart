@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/core/constants/app_colors.dart';
+import 'package:snappie_app/app/core/constants/font_size.dart';
 
 /// Reusable scaffold layout with AppBar and content wrapper
-/// 
+///
 /// Usage:
 /// ```dart
 /// DetailLayout(
 ///   title: 'Page Title',
 ///   body: YourWidget(),
+///   isCard: true, // Optional: adds margin and card decoration
+///   leading: CustomLeadingWidget(), // Optional: custom leading widget
 /// )
 /// ```
 class DetailLayout extends StatelessWidget {
@@ -21,6 +24,8 @@ class DetailLayout extends StatelessWidget {
   final Color? appBarBackgroundColor;
   final bool useContainerWrapper;
   final EdgeInsets? bodyPadding;
+  final bool isCard;
+  final Widget? leading;
 
   const DetailLayout({
     super.key,
@@ -33,6 +38,8 @@ class DetailLayout extends StatelessWidget {
     this.appBarBackgroundColor,
     this.useContainerWrapper = true,
     this.bodyPadding,
+    this.isCard = false,
+    this.leading,
   });
 
   @override
@@ -43,50 +50,49 @@ class DetailLayout extends StatelessWidget {
         title: Text(
           title,
           style: TextStyle(
+            fontSize: FontSize.getSize(FontSizeOption.medium),
             color: AppColors.textPrimary,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.bold,
           ),
         ),
         backgroundColor: appBarBackgroundColor ?? AppColors.background,
         surfaceTintColor: AppColors.surface,
         elevation: 2,
         shadowColor: AppColors.shadowDark,
-        leading: showBackButton
-            ? IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: AppColors.primary,
-                ),
-                onPressed: onBackPressed ?? () => Get.back(),
-              )
-            : null,
-        actions: actions,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: AppColors.primary,
+          ),
+          onPressed: () => Get.back(),
+        ),
+        actions: actions == null ? null : [
+          ...actions!,
+        ],
+        titleSpacing: 0, // Remove default spacing between leading and title
       ),
-      body: SafeArea(
-        child: useContainerWrapper
-            ? Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadowDark,
-                      blurRadius: 4,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: bodyPadding ?? const EdgeInsets.all(24.0),
-                  child: body,
-                ),
-              )
-            : Padding(
-                padding: bodyPadding ?? const EdgeInsets.all(24.0),
-                child: body,
-              ),
+      body: isCard ? _buildCardBody() : body,
+    );
+  }
+
+  Widget _buildCardBody() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          // border: Border.all(color: AppColors.border),
+          color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowDark,
+            blurRadius: 16,
+            spreadRadius: 2,
+          ),
+        ],
+        ),
+        padding: bodyPadding ?? const EdgeInsets.all(24.0),
+        child: body,
       ),
     );
   }

@@ -51,7 +51,7 @@ class TestingAuthController extends GetxController {
         _isLoggedIn.value = true;
         
         // Navigate to main app
-        Get.offAllNamed('/home');
+        Get.offAllNamed(AppPages.MAIN);
       } else {
         Get.snackbar(
           'Error',
@@ -98,7 +98,7 @@ class TestingAuthController extends GetxController {
       // Check if user not found and needs registration
       if (e == 'USER_NOT_FOUND') {
         print('🔍 User not found, navigating to registration');
-        Get.offAllNamed('/registerTest');
+        Get.offAllNamed(AppPages.REGISTER_TEST);
         return;
       }
       
@@ -143,7 +143,7 @@ class TestingAuthController extends GetxController {
     );
     
     // Navigate back to login
-    Get.offAllNamed('/loginTest');
+    Get.offAllNamed(AppPages.LOGIN_TEST);
   }
   
   void _setLoading(bool loading) {

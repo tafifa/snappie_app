@@ -34,11 +34,11 @@ Json flattenContainerKeys(
 /// Tambahkan model lain seiring kebutuhan.
 const Map<String, List<String>> _liftKeysRegistry = {
   'user': [
-    'user_detail',
-    'user_preferences',
-    'user_saved',
-    'user_settings',
-    'user_notification',
+    'user_detail', 'userDetail',
+    'user_preferences', 'userPreferences',
+    'user_saved', 'userSaved',
+    'user_settings', 'userSettings',
+    'user_notification', 'userNotification',
   ],
   'place': [
     'place_detail',
@@ -61,12 +61,101 @@ Json flattenByModelPreset(
   bool removeContainer = false,
 }) {
   final keys = _liftKeysRegistry[modelKey] ?? const <String>[];
-  return flattenContainerKeys(
+  
+  // First, flatten the container keys
+  var result = flattenContainerKeys(
     src,
     containerKey: containerKey,
     keysToLift: keys,
     removeContainer: removeContainer,
   );
+  
+  // Handle duplicate fields (snake_case and camelCase) by preferring camelCase
+  // and converting snake_case to proper types if needed
+  result = _fixDuplicateFieldsAndTypeMismatches(result);
+  
+  return result;
+}
+
+/// Fix duplicate fields and type mismatches in the flattened JSON
+/// Prefers camelCase fields and handles type conversions
+Json _fixDuplicateFieldsAndTypeMismatches(Json data) {
+  final result = Map<String, dynamic>.from(data);
+  
+  // Handle user_detail vs userDetail - ALWAYS prefer camelCase
+  if (result.containsKey('user_detail') && result.containsKey('userDetail')) {
+    // Prefer userDetail (camelCase) over user_detail (snake_case)
+    result['userDetail'] = result['userDetail'];
+    result.remove('user_detail');
+  } else if (result.containsKey('user_detail')) {
+    // Rename user_detail to userDetail
+    result['userDetail'] = result['user_detail'];
+    result.remove('user_detail');
+  }
+  
+  // Handle user_preferences vs userPreferences - ALWAYS prefer camelCase
+  if (result.containsKey('user_preferences') && result.containsKey('userPreferences')) {
+    result['userPreferences'] = result['userPreferences'];
+    result.remove('user_preferences');
+  } else if (result.containsKey('user_preferences')) {
+    result['userPreferences'] = result['user_preferences'];
+    result.remove('user_preferences');
+  }
+  
+  // Handle user_saved vs userSaved - ALWAYS prefer camelCase
+  if (result.containsKey('user_saved') && result.containsKey('userSaved')) {
+    result['userSaved'] = result['userSaved'];
+    result.remove('user_saved');
+  } else if (result.containsKey('user_saved')) {
+    result['userSaved'] = result['user_saved'];
+    result.remove('user_saved');
+  }
+  
+  // Handle user_settings vs userSettings - ALWAYS prefer camelCase
+  if (result.containsKey('user_settings') && result.containsKey('userSettings')) {
+    result['userSettings'] = result['userSettings'];
+    result.remove('user_settings');
+  } else if (result.containsKey('user_settings')) {
+    result['userSettings'] = result['user_settings'];
+    result.remove('user_settings');
+  }
+  
+  // Handle user_notification vs userNotification - ALWAYS prefer camelCase
+  if (result.containsKey('user_notification') && result.containsKey('userNotification')) {
+    result['userNotification'] = result['userNotification'];
+    result.remove('user_notification');
+  } else if (result.containsKey('user_notification')) {
+    result['userNotification'] = result['user_notification'];
+    result.remove('user_notification');
+  }
+  
+  // Fix type mismatches in numeric fields
+  _fixNumericFieldTypes(result);
+  
+  return result;
+}
+
+/// Fix type mismatches for numeric fields that might come as strings
+void _fixNumericFieldTypes(Json data) {
+  final numericFields = [
+    'totalCoin', 'totalExp', 'totalFollowing', 'totalFollower',
+    'totalCheckin', 'totalPost', 'totalArticle', 'totalReview',
+    'totalAchievement', 'totalChallenge', 'id'
+  ];
+  
+  for (final field in numericFields) {
+    if (data.containsKey(field) && data[field] is String) {
+      try {
+        final value = data[field] as String;
+        if (value.isNotEmpty) {
+          data[field] = int.tryParse(value) ?? double.tryParse(value) ?? data[field];
+        }
+      } catch (e) {
+        // Keep original value if parsing fails
+        print('⚠️ Failed to parse numeric field $field: ${data[field]}');
+      }
+    }
+  }
 }
 
 /// Versi yang lebih eksplisit per model (sintaks manis).
@@ -89,7 +178,19 @@ Json flattenAdditionalInfoForPlace(
   return flattenByModelPreset(
     src,
     modelKey: 'place',
-    containerKey: 'additional_info',
+    containerKey: 'additionalInfo',
+    removeContainer: removeContainer,
+  );
+}
+
+Json flattenAdditionalInfoForPost(
+  Json src, {
+  bool removeContainer = false,
+}) {
+  return flattenByModelPreset(
+    src,
+    modelKey: 'post',
+    containerKey: 'additionalInfo',
     removeContainer: removeContainer,
   );
 }

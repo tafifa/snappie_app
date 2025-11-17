@@ -135,7 +135,7 @@ class AppColors {
   /// Shadow colors for elevation
   static Color shadowLight = MetaColors.meta500.withAlpha(10);
   static Color shadowMedium = MetaColors.meta500.withAlpha(20);
-  static Color shadowDark = MetaColors.meta500.withAlpha(30);
+  static Color shadowDark = MetaColors.meta500.withAlpha(50);
 
   // ============================================================================
   // HELPER METHODS

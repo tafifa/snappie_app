@@ -16,6 +16,7 @@ class _TncViewState extends State<TncView> {
   @override
   Widget build(BuildContext context) {
     return DetailLayout(
+      isCard: true,
       title: _currentPage == 0 ? 'Syarat dan Ketentuan' : 'Kebijakan Privasi',
       body: _currentPage == 0 ? _buildTermsPage() : _buildPrivacyPage(),
     );

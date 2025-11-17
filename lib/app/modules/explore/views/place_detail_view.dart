@@ -4,6 +4,7 @@ import '../controllers/explore_controller.dart';
 import '../../shared/widgets/index.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
+import '../../../core/constants/app_colors.dart';
 
 class PlaceDetailView extends GetView<ExploreController> {
   const PlaceDetailView({super.key});
@@ -21,375 +22,450 @@ class PlaceDetailView extends GetView<ExploreController> {
       }
     });
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-      body: Obx(() {
-        if (place == null) {
-          return const Center(
-            child: Text('Place not found'),
-          );
-        }
-        
-        return CustomScrollView(
-          slivers: [
-            // App Bar with Image
-            SliverAppBar(
-              expandedHeight: 300,
-              pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Place Image
-                    place.imageUrls!.isNotEmpty
-                        ? Image.network(
-                            place.imageUrls!.first,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.image,
-                                  size: 80,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.image,
-                              size: 80,
-                              color: Colors.grey,
-                            ),
-                          ),
-                    
-                    // Gradient Overlay
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                IconButton(
-                  onPressed: () => _showShareDialog(place),
-                  icon: const Icon(Icons.share),
-                ),
-                IconButton(
-                  onPressed: () => _toggleFavorite(place),
-                  icon: Icon(
-                    // place.isFavorite ? Icons.favorite : Icons.favorite_border,
-                    // color: place.isFavorite ? Colors.red : null,
-                    Icons.favorite,
-                    color: Colors.red,
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Builder(
+        builder: (context) {
+          if (place == null) {
+            return const Center(
+              child: Text('Place not found'),
+            );
+          }
+          
+          return CustomScrollView(
+            slivers: [
+              // Custom App Bar with Image
+              SliverAppBar(
+                expandedHeight: 250,
+                pinned: true,
+                backgroundColor: AppColors.background,
+                elevation: 0,
+                leading: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Get.back(),
                   ),
                 ),
-              ],
-            ),
-            
-            // Content
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Place Info
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name and Category
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                place.name!,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            // Container(
-                            //   padding: const EdgeInsets.symmetric(
-                            //     horizontal: 12,
-                            //     vertical: 6,
-                            //   ),
-                            //   decoration: BoxDecoration(
-                            //     color: _getCategoryColor(place.category),
-                            //     borderRadius: BorderRadius.circular(20),
-                            //   ),
-                            //   child: Text(
-                            //     place.category ?? 'Unknown',
-                            //     style: const TextStyle(
-                            //       color: Colors.white,
-                            //       fontSize: 12,
-                            //       fontWeight: FontWeight.w500,
-                            //     ),
-                            //   ),
-                            // ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        // Rating and Distance
-                        Row(
-                          children: [
-                            Row(
-                              children: List.generate(5, (index) {
-                                return Icon(
-                                  index < place.avgRating!.floor()
-                                      ? Icons.star
-                                      : Icons.star_border,
-                                  color: Colors.amber,
-                                  size: 20,
+                actions: [
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.share, color: Colors.white),
+                      onPressed: () => _showShareDialog(place),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.favorite_border, color: Colors.white),
+                      onPressed: () => _toggleFavorite(place),
+                    ),
+                  ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Place Image
+                      place.imageUrls!.isNotEmpty
+                          ? Image.network(
+                              place.imageUrls!.first,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: AppColors.surfaceContainer,
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 80,
+                                    color: AppColors.textTertiary,
+                                  ),
                                 );
-                              }),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${place.avgRating!.toStringAsFixed(1)} (${place.totalReview!.toString()} reviews)',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
+                              },
+                            )
+                          : Container(
+                              color: AppColors.surfaceContainer,
+                              child: Icon(
+                                Icons.image,
+                                size: 80,
+                                color: AppColors.textTertiary,
                               ),
                             ),
-                            // if (place.distance != null) ...[
-                            //   const SizedBox(width: 16),
-                            //   Icon(
-                            //     Icons.location_on,
-                            //     size: 16,
-                            //     color: Colors.grey[600],
-                            //   ),
-                            //   const SizedBox(width: 4),
-                            //   Text(
-                            //     '${place.distance!.toStringAsFixed(1)} km',
-                            //     style: TextStyle(
-                            //       color: Colors.grey[600],
-                            //       fontSize: 14,
-                            //     ),
-                            //   ),
-                            // ],
+                      
+                      // Gradient Overlay
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.3),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Content
+              SliverToBoxAdapter(
+                child: Container(
+                  color: AppColors.background,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Place Info Card
+                      Container(
+                        margin: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.shadowLight,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
                           ],
                         ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Address
-                        Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                place.placeDetail?.address ?? 'No address available',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
+                            // Name and Category
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    place.name!,
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryContainer,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    place.foodType?.isNotEmpty == true 
+                                        ? place.foodType!.first 
+                                        : 'Restaurant',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Partnership and Rewards Info
-                        if (place.partnershipStatus!) ...[
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.green[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.green[200]!,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            
+                            const SizedBox(height: 12),
+                            
+                            // Rating and Reviews
+                            Row(
                               children: [
                                 Row(
-                                  children: [
-                                    Icon(
-                                      Icons.verified,
-                                      color: Colors.green[600],
+                                  children: List.generate(5, (index) {
+                                    return Icon(
+                                      index < (place.avgRating ?? 0).floor()
+                                          ? Icons.star
+                                          : Icons.star_border,
+                                      color: AppColors.warning,
                                       size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Partner Location',
-                                      style: TextStyle(
-                                        color: Colors.green[700],
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
+                                    );
+                                  }),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Check-in here to earn rewards!',
+                                  '${(place.avgRating ?? 0).toStringAsFixed(1)} (${place.totalReview ?? 0} reviews)',
                                   style: TextStyle(
-                                    color: Colors.green[600],
+                                    color: AppColors.textSecondary,
                                     fontSize: 14,
                                   ),
                                 ),
-                                if (place.expReward! > 0 || place.coinReward! > 0) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      if (place.expReward! > 0) ...[
-                                        Icon(
-                                          Icons.star,
-                                          color: Colors.amber[600],
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${place.expReward} XP',
-                                          style: TextStyle(
-                                            color: Colors.green[600],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                      if (place.expReward! > 0 && place.coinReward! > 0)
-                                        const SizedBox(width: 16),
-                                      if (place.coinReward! > 0) ...[
-                                        Icon(
-                                          Icons.monetization_on,
-                                          color: Colors.amber[600],
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${place.coinReward} Coins',
-                                          style: TextStyle(
-                                            color: Colors.green[600],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        
-                        // Description
-                        if (place.description != null) ...[
-                          const Text(
-                            'Description',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                            
+                            const SizedBox(height: 12),
+                            
+                            // Address
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  size: 16,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    place.placeDetail?.address ?? 'No address available',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            place.description!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        
-                        // Action Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () => _showCheckinDialog(place),
-                                icon: const Icon(Icons.check_circle),
-                                label: const Text('Check In'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                            
+                            const SizedBox(height: 16),
+                            
+                            // Partnership Info
+                            if (place.partnershipStatus == true) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppColors.success,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.verified,
+                                          color: AppColors.success,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Partner Location',
+                                          style: TextStyle(
+                                            color: AppColors.success,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Check-in here to earn rewards!',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    if (place.expReward! > 0 || place.coinReward! > 0) ...[
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          if (place.expReward! > 0) ...[
+                                            Icon(
+                                              Icons.star,
+                                              color: AppColors.warning,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${place.expReward} XP',
+                                              style: TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                          if (place.expReward! > 0 && place.coinReward! > 0)
+                                            const SizedBox(width: 16),
+                                          if (place.coinReward! > 0) ...[
+                                            Icon(
+                                              Icons.monetization_on,
+                                              color: AppColors.warning,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${place.coinReward} Coins',
+                                              style: TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => _showDirections(place),
-                                icon: const Icon(Icons.directions),
-                                label: const Text('Directions'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                              const SizedBox(height: 16),
+                            ],
+                            
+                            // Action Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _showCheckinDialog(place),
+                                    icon: Icon(Icons.check_circle),
+                                    label: Text('Check In'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.textOnPrimary,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _showDirections(place),
+                                    icon: Icon(Icons.directions),
+                                    label: Text('Directions'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      side: BorderSide(color: AppColors.primary),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
+                      ),
+                      
+                      // Description
+                      if (place.description != null) ...[
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadowLight,
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Description',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                place.description!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                       ],
-                    ),
+                      
+                      // Tabs
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.shadowLight,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: DefaultTabController(
+                          length: 2,
+                          child: Column(
+                            children: [
+                              TabBar(
+                                labelColor: AppColors.primary,
+                                unselectedLabelColor: AppColors.textSecondary,
+                                indicatorColor: AppColors.primary,
+                                indicatorWeight: 3,
+                                tabs: [
+                                  Tab(text: 'Reviews'),
+                                  Tab(text: 'Photos'),
+                                ],
+                              ),
+                              SizedBox(
+                                height: 400,
+                                child: TabBarView(
+                                  children: [
+                                    // Reviews Tab
+                                    _buildReviewsTab(place),
+                                    
+                                    // Photos Tab
+                                    _buildPhotosTab(place),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 100), // Space for FAB
+                    ],
                   ),
-                  
-                  // Tabs
-                  Container(
-                    color: Colors.grey[50],
-                    child: const TabBar(
-                      labelColor: Colors.blue,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: Colors.blue,
-                      tabs: [
-                        Tab(text: 'Reviews'),
-                        Tab(text: 'Photos'),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            
-            // Tab Content
-            SliverFillRemaining(
-              child: TabBarView(
-                children: [
-                  // Reviews Tab
-                  _buildReviewsTab(place),
-                  
-                  // Photos Tab
-                  _buildPhotosTab(place),
-                ],
-              ),
-            ),
-          ],
-        );
-      }),
+            ],
+          );
+        },
+      ),
       
       // Floating Action Button for Review
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateReviewDialog(),
         icon: const Icon(Icons.rate_review),
         label: const Text('Write Review'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textOnPrimary,
       ),
     );
   }
@@ -398,70 +474,23 @@ class PlaceDetailView extends GetView<ExploreController> {
     return Obx(() {
       if (controller.isLoading) {
         return const Center(
-          child: CircularProgressIndicator(),
+          child: LoadingStateWidget(),
         );
       }
       
       if (controller.errorMessage.isNotEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                controller.errorMessage,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => controller.loadPlaceReviews(place.id!),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+        return ErrorStateWidget(
+          message: controller.errorMessage,
+          onRetry: () => controller.loadPlaceReviews(place.id!),
         );
       }
       
       final reviews = controller.reviews;
       
       if (reviews.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.rate_review_outlined,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No reviews yet',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Be the first to write a review!',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
+        return const NoDataEmptyState(
+          title: 'No reviews yet',
+          subtitle: 'Be the first to write a review!',
         );
       }
       
@@ -470,9 +499,12 @@ class PlaceDetailView extends GetView<ExploreController> {
         itemCount: reviews.length,
         itemBuilder: (context, index) {
           final review = reviews[index];
-          return ReviewCard(
-            review: review,
-            onTap: () => _showReviewDetail(review),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ReviewCard(
+              review: review,
+              onTap: () => _showReviewDetail(review),
+            ),
           );
         },
       );
@@ -484,46 +516,21 @@ class PlaceDetailView extends GetView<ExploreController> {
     final photos = <String>[];
     
     // Add place main image
-    if (place.imageUrls != null) {
-      photos.add(place.imageUrls![0]);
+    if (place.imageUrls != null && place.imageUrls!.isNotEmpty) {
+      photos.addAll(place.imageUrls!);
     }
     
     // Add photos from reviews
-    // for (final review in controller.reviews) {
-    //   if (review.placeId == place.id) {
-    //     photos.addAll(review.imageUrls.first);
-    //   }
-    // }
+    for (final review in controller.reviews) {
+      if (review.imageUrls != null && review.imageUrls!.isNotEmpty) {
+        photos.addAll(review.imageUrls!);
+      }
+    }
     
     if (photos.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.photo_library_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No photos yet',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Share photos in your reviews!',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
+      return const NoDataEmptyState(
+        title: 'No photos yet',
+        subtitle: 'Share photos in your reviews!',
       );
     }
     
@@ -533,6 +540,7 @@ class PlaceDetailView extends GetView<ExploreController> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
+        childAspectRatio: 1,
       ),
       itemCount: photos.length,
       itemBuilder: (context, index) {
@@ -540,22 +548,10 @@ class PlaceDetailView extends GetView<ExploreController> {
           onTap: () => _showPhotoViewer(photos, index),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              photos[index],
+            child: NetworkImageWidget(
+              imageUrl: photos[index],
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.image,
-                    color: Colors.grey[500],
-                    size: 40,
-                  ),
-                );
-              },
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -567,12 +563,22 @@ class PlaceDetailView extends GetView<ExploreController> {
   void _showShareDialog(PlaceModel place) {
     Get.dialog(
       AlertDialog(
-        title: const Text('Share Place'),
-        content: Text('Share ${place.name} with your friends!'),
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Share Place',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Share ${place.name} with your friends!',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -582,8 +588,14 @@ class PlaceDetailView extends GetView<ExploreController> {
                 'Shared',
                 'Place shared successfully!',
                 snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: AppColors.success,
+                colorText: AppColors.textOnPrimary,
               );
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+            ),
             child: const Text('Share'),
           ),
         ],
@@ -593,32 +605,39 @@ class PlaceDetailView extends GetView<ExploreController> {
 
   void _toggleFavorite(PlaceModel place) {
     // Implement toggle favorite functionality
-    // Get.snackbar(
-    //   place.isFavorite ? 'Removed from Favorites' : 'Added to Favorites',
-    //   place.isFavorite 
-    //       ? '${place.name} removed from your favorites'
-    //       : '${place.name} added to your favorites',
-    //   snackPosition: SnackPosition.BOTTOM,
-    // );
+    Get.snackbar(
+      'Added to Favorites',
+      '${place.name} added to your favorites',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppColors.success,
+      colorText: AppColors.textOnPrimary,
+    );
   }
 
   void _showCheckinDialog(PlaceModel place) {
     Get.dialog(
       AlertDialog(
-        title: const Text('Check In'),
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Check In',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Check in at ${place.name}?'),
-            if (place.partnershipStatus!) ...[
+            Text(
+              'Check in at ${place.name}?',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            if (place.partnershipStatus == true) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green[50],
+                  color: AppColors.successContainer,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green[200]!),
+                  border: Border.all(color: AppColors.success),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,15 +645,21 @@ class PlaceDetailView extends GetView<ExploreController> {
                     Text(
                       'Rewards Available:',
                       style: TextStyle(
-                        color: Colors.green[700],
+                        color: AppColors.success,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     if (place.expReward! > 0)
-                      Text('• ${place.expReward} XP'),
+                      Text(
+                        '• ${place.expReward} XP',
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
                     if (place.coinReward! > 0)
-                      Text('• ${place.coinReward} Coins'),
+                      Text(
+                        '• ${place.coinReward} Coins',
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
                   ],
                 ),
               ),
@@ -644,12 +669,19 @@ class PlaceDetailView extends GetView<ExploreController> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           Obx(() => ElevatedButton(
                 onPressed: controller.isCreatingCheckin
                     ? null
                     : () => _performCheckin(place),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                ),
                 child: controller.isCreatingCheckin
                     ? const SizedBox(
                         width: 16,
@@ -682,6 +714,8 @@ class PlaceDetailView extends GetView<ExploreController> {
       'Directions',
       'Opening directions to ${place.name}',
       snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppColors.primary,
+      colorText: AppColors.textOnPrimary,
     );
   }
 
@@ -694,19 +728,29 @@ class PlaceDetailView extends GetView<ExploreController> {
     
     Get.dialog(
       AlertDialog(
-        title: const Text('Write Review'),
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Write Review',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Review for ${place.name}'),
+              Text(
+                'Review for ${place.name}',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 16),
               
               // Rating
-              const Text(
+              Text(
                 'Rating',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               ValueListenableBuilder<int>(
@@ -718,7 +762,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                         onTap: () => voteNotifier.value = index + 1,
                         child: Icon(
                           index < vote ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
+                          color: AppColors.warning,
                           size: 32,
                         ),
                       );
@@ -730,17 +774,33 @@ class PlaceDetailView extends GetView<ExploreController> {
               const SizedBox(height: 16),
               
               // Content
-              const Text(
+              Text(
                 'Review',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: contentController,
                 maxLines: 4,
-                decoration: const InputDecoration(
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
                   hintText: 'Write your review here...',
-                  border: OutlineInputBorder(),
+                  hintStyle: TextStyle(color: AppColors.textTertiary),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primary),
+                  ),
                 ),
               ),
             ],
@@ -749,7 +809,10 @@ class PlaceDetailView extends GetView<ExploreController> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           Obx(() => ElevatedButton(
                 onPressed: controller.isCreatingReview
@@ -759,6 +822,10 @@ class PlaceDetailView extends GetView<ExploreController> {
                           voteNotifier.value,
                           contentController.text,
                         ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                ),
                 child: controller.isCreatingReview
                     ? const SizedBox(
                         width: 16,
@@ -778,6 +845,8 @@ class PlaceDetailView extends GetView<ExploreController> {
         'Error',
         'Please write a review',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
       );
       return;
     }
@@ -794,7 +863,11 @@ class PlaceDetailView extends GetView<ExploreController> {
   void _showReviewDetail(ReviewModel review) {
     Get.dialog(
       AlertDialog(
-        title: Text('Review by ${review.user?.name}'),
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Review by ${review.user?.name}',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -804,8 +877,8 @@ class PlaceDetailView extends GetView<ExploreController> {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < review.totalLike! ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
+                    index < (review.totalLike ?? 0) ? Icons.star : Icons.star_border,
+                    color: AppColors.warning,
                     size: 20,
                   );
                 }),
@@ -813,10 +886,13 @@ class PlaceDetailView extends GetView<ExploreController> {
               const SizedBox(height: 12),
               
               // Content
-              Text(review.content!),
+              Text(
+                review.content ?? 'No content',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
               
               // Images
-              if (review.imageUrls!.isNotEmpty) ...[
+              if (review.imageUrls != null && review.imageUrls!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 SizedBox(
                   height: 100,
@@ -830,8 +906,8 @@ class PlaceDetailView extends GetView<ExploreController> {
                         height: 100,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            review.imageUrls![index],
+                          child: NetworkImageWidget(
+                            imageUrl: review.imageUrls![index],
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -849,7 +925,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                   Text(
                     _formatDate(review.createdAt!),
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -864,7 +940,10 @@ class PlaceDetailView extends GetView<ExploreController> {
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Close'),
+            child: Text(
+              'Close',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
         ],
       ),
@@ -872,8 +951,8 @@ class PlaceDetailView extends GetView<ExploreController> {
   }
 
   Widget _buildStatusChip(bool status) {
-    final backgroundColor = status ? Colors.green[100]! : Colors.orange[100]!;
-    final textColor = status ? Colors.green[700]! : Colors.orange[700]!;
+    final backgroundColor = status ? AppColors.successContainer : AppColors.warningContainer;
+    final textColor = status ? AppColors.success : AppColors.warning;
     final text = status ? 'Approved' : 'Pending';
 
     return Container(
@@ -907,8 +986,8 @@ class PlaceDetailView extends GetView<ExploreController> {
               controller: PageController(initialPage: initialIndex),
               itemBuilder: (context, index) {
                 return Center(
-                  child: Image.network(
-                    photos[index],
+                  child: NetworkImageWidget(
+                    imageUrl: photos[index],
                     fit: BoxFit.contain,
                   ),
                 );

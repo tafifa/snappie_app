@@ -173,7 +173,7 @@ class TestingRegisterController extends GetxController {
   void cancelRegistration() {
     // Sign out from Google and return to login
     googleAuthService.signOut();
-    Get.offAllNamed('/loginTest');
+    Get.offAllNamed(AppPages.LOGIN_TEST);
     
     Get.snackbar(
       'Cancelled',

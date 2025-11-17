@@ -17,7 +17,8 @@ class AuthController extends GetxController {
   final TextEditingController emailController = TextEditingController();
   
   // Register form controllers
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController firstnameController = TextEditingController();
+  final TextEditingController lastnameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
   
@@ -101,7 +102,8 @@ class AuthController extends GetxController {
   void onClose() {
     // Clear content but don't dispose - controller is reused in auth flow
     emailController.clear();
-    nameController.clear();
+    firstnameController.clear();
+    lastnameController.clear();
     usernameController.clear();
     registerEmailController.clear();
     super.onClose();
@@ -222,29 +224,23 @@ class AuthController extends GetxController {
     
     try {
       final success = await authService.signInWithGoogle();
+      print('✅ Google Sign Up attempt completed: $success');
       
       if (success) {
         _loadGoogleUserData();
-        // Navigate to registration page
+
         Get.toNamed(AppPages.REGISTER);
       } else {
         Get.snackbar(
           'Error',
-          'Google Sign Up failed. Please try again.',
+          'User already created.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
+        await loginWithGoogle();
       }
-    } catch (e) {
-      // Check if user not found and needs registration
-      if (e == 'USER_NOT_FOUND') {
-        print('🔍 User not found, navigating to registration');
-        _loadGoogleUserData();
-        Get.toNamed(AppPages.REGISTER);
-        return;
-      }
-      
+    } catch (e) {      
       Get.snackbar(
         'Error',
         'Network error: Please check your connection and try again.',
@@ -278,7 +274,7 @@ class AuthController extends GetxController {
     
     try {
       final success = await authService.registerUser(
-        name: nameController.text.trim(),
+        name: '${firstnameController.text.trim()} ${lastnameController.text.trim()}',
         username: usernameController.text.trim(),
         email: registerEmailController.text.trim(),
         gender: _selectedGender.value,
@@ -337,7 +333,7 @@ class AuthController extends GetxController {
   }
   
   bool _validateForm() {
-    if (nameController.text.trim().isEmpty) {
+    if (firstnameController.text.trim().isEmpty || lastnameController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
         'Please enter your full name',

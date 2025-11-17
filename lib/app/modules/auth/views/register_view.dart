@@ -221,7 +221,7 @@ class RegisterView extends GetView<AuthController> {
 
         // First Name and Last Name Row
         const Text(
-          'Nama Depan',
+          'Nama Lengkap',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -233,7 +233,7 @@ class RegisterView extends GetView<AuthController> {
           children: [
             Expanded(
               child: TextField(
-                controller: controller.nameController,
+                controller: controller.firstnameController,
                 decoration: InputDecoration(
                   hintText: 'Nama Depan',
                   border: OutlineInputBorder(
@@ -257,6 +257,7 @@ class RegisterView extends GetView<AuthController> {
             const SizedBox(width: 12),
             Expanded(
               child: TextField(
+                controller: controller.lastnameController,
                 decoration: InputDecoration(
                   hintText: 'Nama Belakang',
                   border: OutlineInputBorder(

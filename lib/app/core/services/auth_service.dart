@@ -81,6 +81,7 @@ class AuthService extends GetxService {
       final requestHeaders = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${EnvironmentConfig.registrationApiKey}',
       };
 
       print('🔐 LOGIN REQUEST:');
@@ -91,6 +92,9 @@ class AuthService extends GetxService {
       final response = await dioClient.dio.post(
         requestUrl,
         data: requestData,
+        options: dio_lib.Options(
+          headers: requestHeaders,
+        ),
       );
 
       // Debug: Print response details
@@ -179,237 +183,9 @@ class AuthService extends GetxService {
       print('User Name: ${user.displayName}');
       print('User Photo: ${user.photoURL}');
 
-      // Send Google user data to backend API
-      final dio = dio_lib.Dio(
-        dio_lib.BaseOptions(
-          connectTimeout: const Duration(seconds: 60), // 60 seconds connection timeout
-          receiveTimeout: const Duration(seconds: 60), // 60 seconds receive timeout
-          sendTimeout: const Duration(seconds: 60), // 60 seconds send timeout
-          followRedirects: true,
-          maxRedirects: 5,
-        ),
-      );
-
-      // Add logging interceptor
-      dio.interceptors.add(dio_lib.LogInterceptor(
-        request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
-        error: true,
-        logPrint: (obj) => print('🌐 DIO: $obj'),
-      ));
-
-      print('🔍 Testing connection to server...');
-      print('🔍 Server: ${AppConstants.baseUrl}');
-
-      final requestUrl =
-          '${AppConstants.baseUrl}${AppConstants.apiVersion}/auth/login';
-      final requestData = {
-        'email': user.email,
-      };
-
-      print('🔐 GOOGLE LOGIN API REQUEST:');
-      print('URL: $requestUrl');
-      print('Data: $requestData');
-      print('⏰ Waiting for response (timeout: 30s)...');
-
-      final startTime = DateTime.now();
-      
-      dio_lib.Response? response;
-      
-      try {
-        response = await dio.post(
-          requestUrl,
-          data: requestData,
-          options: dio_lib.Options(
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            validateStatus: (status) {
-              // Accept all status codes to handle them manually
-              return status != null && status < 500;
-            },
-          ),
-        ).timeout(
-          const Duration(seconds: 15),
-          onTimeout: () {
-            final elapsed = DateTime.now().difference(startTime).inSeconds;
-            print('⏱️ REQUEST TIMEOUT after $elapsed seconds');
-            print('❌ Login endpoint tidak merespons');
-            print('💡 WORKAROUND: Asumsikan user belum terdaftar, redirect ke registrasi');
-            
-            throw dio_lib.DioException(
-              requestOptions: dio_lib.RequestOptions(path: requestUrl),
-              type: dio_lib.DioExceptionType.connectionTimeout,
-              message: 'Login endpoint timeout - redirecting to register',
-            );
-          },
-        );
-
-        final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-        print('✅ Response received in ${elapsed}ms');
-      } on dio_lib.DioException catch (timeoutError) {
-        if (timeoutError.type == dio_lib.DioExceptionType.connectionTimeout) {
-          print('🔄 Login endpoint timeout detected');
-          print('🔄 Treating as USER_NOT_FOUND (workaround for slow backend)');
-          
-          Get.snackbar(
-            'Informasi',
-            'Server login lambat merespons. Silakan lengkapi data registrasi.',
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
-          );
-          
-          // Don't sign out from Google - user data needed for registration
-          throw 'USER_NOT_FOUND';
-        }
-        rethrow;
-      }
-
-      print('🔐 GOOGLE LOGIN API RESPONSE:');
-      print('Status: ${response.statusCode}');
-      print('Data: ${response.data}');
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-
-        if (data['success'] == true && data['data'] != null) {
-          final userData = data['data']['user'];
-          final token = data['data']['token'];
-
-          print('✅ GOOGLE LOGIN SUCCESS:');
-          print('User: $userData');
-          print('Token: $token');
-
-          // Save auth data
-          _userEmail = user.email;
-          _token = token;
-
-          // Flatten additional_info before parsing to UserModel
-          final flattenedUserData = flattenAdditionalInfoForUser(
-            Map<String, dynamic>.from(userData),
-            removeContainer: false,
-          );
-          _userData = UserModel.fromJson(flattenedUserData);
-
-          // Save to SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_tokenKey, token);
-          await prefs.setString(_userEmailKey, user.email ?? '');
-          await prefs.setString(_userDataKey, jsonEncode(userData));
-
-          print('💾 GOOGLE AUTH DATA SAVED SUCCESSFULLY');
-
-          // Update observable
-          _isLoggedIn.value = true;
-
-          return true;
-        } else {
-          print('❌ GOOGLE LOGIN FAILED: ${data['message']}');
-
-          // Sign out from Google if backend authentication failed
-          await googleAuthService.signOut();
-          return false;
-        }
-      } else {
-        print('❌ GOOGLE LOGIN FAILED with status: ${response.statusCode}');
-
-        // Check if user not found (404 or 422 - invalid email means user doesn't exist)
-        if (response.statusCode == 404 || response.statusCode == 422) {
-          print('🔍 User not found in database, needs registration');
-          // Don't sign out from Google, user data needed for registration
-          throw 'USER_NOT_FOUND';
-        }
-
-        // Sign out from Google if backend authentication failed
-        await googleAuthService.signOut();
-        return false;
-      }
+      return true;
     } catch (e) {
       print('❌ GOOGLE LOGIN ERROR: $e');
-
-      if (e is dio_lib.DioException) {
-        print('DioError Type: ${e.type}');
-        print('DioError Message: ${e.message}');
-        print('DioError Response: ${e.response?.data}');
-        print('DioError Status: ${e.response?.statusCode}');
-
-        // Check for timeout errors
-        if (e.type == dio_lib.DioExceptionType.connectionTimeout ||
-            e.type == dio_lib.DioExceptionType.receiveTimeout ||
-            e.type == dio_lib.DioExceptionType.sendTimeout) {
-          print('⏱️ Connection timeout - Server tidak merespons');
-          Get.snackbar(
-            'Timeout',
-            'Server tidak merespons. Silakan coba lagi.',
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
-          );
-          
-          // Sign out from Google on timeout
-          try {
-            final googleAuthService = Get.find<GoogleAuthService>();
-            await googleAuthService.signOut();
-          } catch (signOutError) {
-            print('❌ Error signing out from Google: $signOutError');
-          }
-          
-          return false;
-        }
-
-        // Check for connection errors
-        if (e.type == dio_lib.DioExceptionType.connectionError) {
-          print('🔌 Connection error - Tidak dapat terhubung ke server');
-          print('🔍 Error details: ${e.error}');
-          Get.snackbar(
-            'Connection Error',
-            'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
-          );
-          
-          // Sign out from Google on connection error
-          try {
-            final googleAuthService = Get.find<GoogleAuthService>();
-            await googleAuthService.signOut();
-          } catch (signOutError) {
-            print('❌ Error signing out from Google: $signOutError');
-          }
-          
-          return false;
-        }
-
-        // Check for bad certificate (SSL issues)
-        if (e.type == dio_lib.DioExceptionType.badCertificate) {
-          print('🔐 SSL Certificate error');
-          Get.snackbar(
-            'SSL Error',
-            'Ada masalah dengan sertifikat keamanan server.',
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 5),
-          );
-          
-          // Sign out from Google
-          try {
-            final googleAuthService = Get.find<GoogleAuthService>();
-            await googleAuthService.signOut();
-          } catch (signOutError) {
-            print('❌ Error signing out from Google: $signOutError');
-          }
-          
-          return false;
-        }
-
-        // Check if user not found (404 or 422)
-        if (e.response?.statusCode == 404 || e.response?.statusCode == 422) {
-          print('🔍 User not found in database, needs registration');
-          // Don't sign out from Google, user data needed for registration
-          throw 'USER_NOT_FOUND';
-        }
-      }
 
       // Re-throw if it's USER_NOT_FOUND
       if (e == 'USER_NOT_FOUND') {
@@ -463,6 +239,8 @@ class AuthService extends GetxService {
       print('📝 REGISTER API REQUEST:');
       print('URL: $requestUrl');
       print('Data: $requestData');
+      print('Authorization: Bearer ${EnvironmentConfig.registrationApiKey}');
+      print('⏰ Waiting for response (timeout: 60s)...');
 
       final response = await dio.post(
         requestUrl,
@@ -494,7 +272,7 @@ class AuthService extends GetxService {
         final data = response.data;
 
         if (data['success'] == true && data['data'] != null) {
-          final userData = data['data']['user'];
+          final userData = data['data'];
 
           print('✅ REGISTRATION SUCCESS:');
           print('User: $userData');

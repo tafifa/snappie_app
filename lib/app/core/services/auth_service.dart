@@ -62,7 +62,7 @@ class AuthService extends GetxService {
         print('User Data Parsed: ${_userData?.name}');
       }
 
-      print('📱 AUTH STATUS AFTER LOAD: ${isLoggedIn}');
+      print('📱 AUTH STATUS AFTER LOAD: $isLoggedIn');
 
       // Update observable
       _isLoggedIn.value = _token != null && _token!.isNotEmpty;
@@ -71,18 +71,54 @@ class AuthService extends GetxService {
     }
   }
 
-  Future<bool> login(String email) async {
+  // TODO: replace /auth/login email-only with Firebase-ID-token check before public release.
+  Future<bool> login() async {
     try {
+      try {
+        print('🔐 Starting Google Sign In with backend integration...');
+
+        // Get GoogleAuthService instance
+        final googleAuthService = Get.find<GoogleAuthService>();
+
+        // Sign in with Google
+        final userCredential = await googleAuthService.signInWithGoogle();
+
+        if (userCredential == null) {
+          print('🔐 Google Sign In was cancelled');
+        }
+
+        final user = userCredential?.user;
+        if (user == null) {
+          print('❌ No user data from Google Sign In');
+        }
+
+        print('🔐 Google Sign In successful, now authenticating with backend...');
+        
+        print('User Email: ${user?.email}');
+        _userEmail = user?.email;
+      } catch (e) {
+        print('❌ GOOGLE LOGIN ERROR: $e');
+
+        // Re-throw if it's USER_NOT_FOUND
+        if (e == 'USER_NOT_FOUND') {
+          rethrow;
+        }
+
+        // Sign out from Google if there's an error
+        try {
+          final googleAuthService = Get.find<GoogleAuthService>();
+          await googleAuthService.signOut();
+        } catch (signOutError) {
+          print('❌ Error signing out from Google: $signOutError');
+        }
+      }
+
       final DioClient dioClient = DioClient();
 
       // Debug: Print request details
       final requestUrl = '${AppConstants.baseUrl}${AppConstants.apiVersion}/auth/login';
-      final requestData = {'email': email};
-      final requestHeaders = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${EnvironmentConfig.registrationApiKey}',
-      };
+      final requestData = {'email': _userEmail};
+      final requestHeaders = getAuthHeaders();
 
       print('🔐 LOGIN REQUEST:');
       print('URL: $requestUrl');
@@ -116,12 +152,12 @@ class AuthService extends GetxService {
 
         // Save auth data
         print('💾 SAVING AUTH DATA TO STORAGE...');
-        _userEmail = email;
-        print('Email to save: $email');
+        print('Email to save: $_userEmail');
         _token = token;
         print('Token to save: $token');
 
-        final userJson = flattenAdditionalInfoForUser(userData, removeContainer: false);
+        final userJson =
+            flattenAdditionalInfoForUser(userData, removeContainer: false);
         print('User Data to save: $userJson');
         _userData = UserModel.fromJson(userJson);
         print('User Data to save: $userData');
@@ -129,11 +165,11 @@ class AuthService extends GetxService {
         // Save to SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_tokenKey, token);
-        await prefs.setString(_userEmailKey, email);
+        await prefs.setString(_userEmailKey, _userEmail!);
         await prefs.setString(_userDataKey, jsonEncode(userData));
 
         print('💾 AUTH DATA SAVED SUCCESSFULLY');
-        print('📱 AUTH STATUS AFTER SAVE: ${isLoggedIn}');
+        print('📱 AUTH STATUS AFTER SAVE: $isLoggedIn');
 
         // Update observable
         _isLoggedIn.value = true;
@@ -155,55 +191,7 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Sign in with Google and authenticate with backend API
-  /// Returns: true if login successful, false if cancelled/error, throws 'USER_NOT_FOUND' if user needs registration
-  Future<bool> signInWithGoogle() async {
-    try {
-      print('🔐 Starting Google Sign In with backend integration...');
-
-      // Get GoogleAuthService instance
-      final googleAuthService = Get.find<GoogleAuthService>();
-
-      // Sign in with Google
-      final userCredential = await googleAuthService.signInWithGoogle();
-
-      if (userCredential == null) {
-        print('🔐 Google Sign In was cancelled');
-        return false;
-      }
-
-      final user = userCredential.user;
-      if (user == null) {
-        print('❌ No user data from Google Sign In');
-        return false;
-      }
-
-      print('🔐 Google Sign In successful, now authenticating with backend...');
-      print('User Email: ${user.email}');
-      print('User Name: ${user.displayName}');
-      print('User Photo: ${user.photoURL}');
-
-      return true;
-    } catch (e) {
-      print('❌ GOOGLE LOGIN ERROR: $e');
-
-      // Re-throw if it's USER_NOT_FOUND
-      if (e == 'USER_NOT_FOUND') {
-        rethrow;
-      }
-
-      // Sign out from Google if there's an error
-      try {
-        final googleAuthService = Get.find<GoogleAuthService>();
-        await googleAuthService.signOut();
-      } catch (signOutError) {
-        print('❌ Error signing out from Google: $signOutError');
-      }
-
-      return false;
-    }
-  }
-
+  // TODO: replace /auth/login email-only with Firebase-ID-token check before public release.
   /// Register new user with backend API
   Future<bool> registerUser({
     required String name,
@@ -242,7 +230,8 @@ class AuthService extends GetxService {
       print('Authorization: Bearer ${EnvironmentConfig.registrationApiKey}');
       print('⏰ Waiting for response (timeout: 60s)...');
 
-      final response = await dio.post(
+      final response = await dio
+          .post(
         requestUrl,
         data: requestData,
         options: dio_lib.Options(
@@ -252,14 +241,16 @@ class AuthService extends GetxService {
             'Authorization': 'Bearer ${EnvironmentConfig.registrationApiKey}',
           },
         ),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 60),
         onTimeout: () {
           print('⏱️ REGISTER REQUEST TIMEOUT after 60 seconds');
           throw dio_lib.DioException(
             requestOptions: dio_lib.RequestOptions(path: requestUrl),
             type: dio_lib.DioExceptionType.connectionTimeout,
-            message: 'Connection timeout - Server membutuhkan waktu terlalu lama',
+            message:
+                'Connection timeout - Server membutuhkan waktu terlalu lama',
           );
         },
       );
@@ -279,12 +270,12 @@ class AuthService extends GetxService {
 
           // Save user email for auto-login
           final userEmail = userData['email'] as String;
-          
+
           print('🔄 Performing auto-login with email: $userEmail');
-          
+
           // Auto-login with the registered email
-          final loginSuccess = await login(userEmail);
-          
+          final loginSuccess = await login();
+
           if (!loginSuccess) {
             print('❌ AUTO-LOGIN FAILED after registration');
             return false;
@@ -359,7 +350,7 @@ class AuthService extends GetxService {
       await prefs.remove(_tokenKey);
       await prefs.remove(_userEmailKey);
       await prefs.remove(_userDataKey);
-      
+
       // Clear cached user data from local database
       try {
         final userLocalDataSource = Get.find<UserLocalDataSource>();

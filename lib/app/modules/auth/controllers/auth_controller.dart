@@ -115,7 +115,6 @@ class AuthController extends GetxController {
       final user = googleAuthService.currentUser;
       if (user != null) {
         print('📱 Loading Google user data:');
-        print('Name: ${user.displayName}');
         print('Email: ${user.email}');
 
         _googleUserEmail.value = user.email ?? '';
@@ -133,59 +132,23 @@ class AuthController extends GetxController {
     }
   }
   
-  Future<void> login() async {
-    if (emailController.text.trim().isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please enter your email',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-    
-    _setLoading(true);
-    
-    try {
-      final success = await authService.login(emailController.text.trim());
-      
-      if (success) {
-        _isLoggedIn.value = true;
-        
-        // Navigate to main app
-        Get.offAllNamed(AppPages.MAIN);
-      } else {
-        Get.snackbar(
-          'Error',
-          'Login failed. Please check your email or try again.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Network error: Please check your connection and try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-    
-    _setLoading(false);
-  }
-
   Future<void> loginWithGoogle() async {
     _setLoading(true);
     
     try {
-      final success = await authService.signInWithGoogle();
+      final success = await authService.login();
       
       if (success) {
         _isLoggedIn.value = true;
         
+        Get.snackbar(
+          'Success',
+          'Google Sign In successful. wait a minute sir',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
         // Navigate to main app
         Get.offAllNamed(AppPages.MAIN);
       } else {
@@ -223,22 +186,35 @@ class AuthController extends GetxController {
     _setLoading(true);
     
     try {
-      final success = await authService.signInWithGoogle();
+      final success = await authService.login();
       print('✅ Google Sign Up attempt completed: $success');
       
       if (success) {
+        Get.snackbar(
+          'Success',
+          'User already created.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
+        _isLoggedIn.value = true;
+        
+        Get.snackbar(
+          'Success',
+          'Google Sign In successful. wait a minute sir',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        
+        // Navigate to main app
+        Get.offAllNamed(AppPages.MAIN);
+        
+      } else {
         _loadGoogleUserData();
 
         Get.toNamed(AppPages.REGISTER);
-      } else {
-        Get.snackbar(
-          'Error',
-          'User already created.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        await loginWithGoogle();
       }
     } catch (e) {      
       Get.snackbar(

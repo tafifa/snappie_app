@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/core/constants/app_colors.dart';
+import 'package:snappie_app/app/core/constants/font_size.dart';
 import 'package:snappie_app/app/modules/shared/widgets/_form_widgets/rectangle_button_widget.dart';
 import '../_display_widgets/avatar_widget.dart';
 import '../_display_widgets/fullscreen_image_viewer.dart';
@@ -75,15 +76,12 @@ class PostCard extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                GestureDetector(
-                  onTap: onPlaceTap,
-                  child: Text(
-                    placeName,
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                Text(
+                  placeName,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -129,7 +127,15 @@ class PostCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: () => _showFullscreenImage(context),
+          onTap: () {
+            final homeController = Get.find<HomeController>();
+            homeController.selectPost(post);
+            FullscreenImageViewer.show(
+              context: context,
+              controller: homeController,
+              imageIndex: 0, // Single image, so index is 0
+            );
+          },
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(
@@ -178,14 +184,27 @@ class PostCard extends StatelessWidget {
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            post.createdAt != null ? TimeFormatter.formatTimeAgo(post.createdAt!) : 'Unknown',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 11,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Text(
+                post.createdAt != null ? TimeFormatter.formatTimeAgo(post.createdAt!) : 'Unknown',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: FontSize.getSize(FontSizeOption.small),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // const SizedBox(width: 8),
+              Spacer(),
+              RectangleButtonWidget(
+                text: 'Lihat Tempat',
+                size: RectangleButtonSize.small,
+                backgroundColor: AppColors.accent,
+                borderRadius: BorderRadius.circular(24),
+                onPressed: onPlaceTap,
+              ),
+            ],
           ),
         ),
       ],
@@ -219,14 +238,14 @@ class PostCard extends StatelessWidget {
         children: [
           Icon(
             isLiked ? Icons.favorite : Icons.favorite_border,
-            color: isLiked ? Colors.red : Colors.grey[600],
+            color: isLiked ? AppColors.error : AppColors.accent,
             size: 20,
           ),
           const SizedBox(width: 4),
           Text(
             '${post.likesCount ?? 0}',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: AppColors.accent,
               fontSize: 12,
             ),
           ),
@@ -242,14 +261,14 @@ class PostCard extends StatelessWidget {
         children: [
           Icon(
             Icons.chat_bubble_outline,
-            color: Colors.grey[600],
+            color: AppColors.accent,
             size: 20,
           ),
           const SizedBox(width: 4),
           Text(
             '${post.commentsCount ?? 0}',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: AppColors.accent,
               fontSize: 12,
             ),
           ),
@@ -263,7 +282,7 @@ class PostCard extends StatelessWidget {
       onTap: onShareTap,
       child: Icon(
         Icons.share_outlined,
-        color: Colors.grey[600],
+        color: AppColors.accent,
         size: 20,
       ),
     );
@@ -277,16 +296,6 @@ class PostCard extends StatelessWidget {
       size: RectangleButtonSize.small,
       borderRadius: BorderRadius.circular(24),
       onPressed: () => Get.find<HomeController>().followUser('${post.userId ?? 0}'),
-    );
-  }
-
-  void _showFullscreenImage(BuildContext context) {
-    FullscreenImageViewer.show(
-      context: context,
-      currentPost: post,
-      onLikeTap: onLikeTap ?? () => Get.find<HomeController>().likePost(post.id!),
-      onCommentTap: onCommentTap ?? () {},
-      onShareTap: onShareTap ?? () {},
     );
   }
 }

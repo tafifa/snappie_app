@@ -14,6 +14,8 @@ class HomeController extends GetxController {
   });
   
   final _posts = <PostModel>[].obs;
+  final _selectedPost = Rxn<PostModel>();
+  final _selectedImageUrls = Rxn<List<String>>();
   final Rx<UserModel?> _userData = Rx<UserModel?>(null);
   final _isLoading = false.obs;
   final _errorMessage = ''.obs;
@@ -21,6 +23,8 @@ class HomeController extends GetxController {
   final _showBanner = true.obs; // State untuk banner visibility
 
   List<PostModel> get posts => _posts;
+  PostModel? get selectedPost => _selectedPost.value;
+  List<String>? get selectedImageUrls => _selectedImageUrls.value;
   UserModel? get userData => _userData.value;
   bool get isLoading => _isLoading.value;
   String get errorMessage => _errorMessage.value;
@@ -42,6 +46,11 @@ class HomeController extends GetxController {
       print('🏠 HomeController initializing...');
       loadHomeData();
     }
+  }
+
+  void selectPost(PostModel post) {
+    _selectedPost.value = post;
+    _selectedImageUrls.value = post.imageUrls;
   }
 
   Future<void> loadHomeData() async {

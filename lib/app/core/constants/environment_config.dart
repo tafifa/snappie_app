@@ -1,29 +1,38 @@
-class EnvironmentConfig {
-  // Single environment configuration - always development for now
-  
-  // Option 1: Environment Type
-  static const String environmentType = 'production';
-  
-  // Option 2: Host IP Address (works for real device & emulator)
-  static const String hostBaseUrl = 'https://evway.my.id';
-  
-  // Option 3: localhost (only for web/desktop)
-  static const String localBaseUrl = 'http://192.168.18.11:8000';
-  // static const String localBaseUrl = 'http://172.16.5.211:8000';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-  static const String apiVersion = '/api/v1';
-  static const Duration connectionTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+class EnvironmentConfig {
+  // Helper method to get environment variables (no default values)
+  static String _getEnv(String key) {
+    try {
+      final value = dotenv.env[key];
+      if (value == null || value.isEmpty) {
+        throw Exception('Environment variable $key is not set in .env file');
+      }
+      return value;
+    } catch (e) {
+      throw Exception('Failed to load environment variable $key: $e');
+    }
+  }
+
+  // Environment Type
+  static String get environmentType => _getEnv('ENVIRONMENT');
+
+  static String get apiVersion => _getEnv('API_VERSION');
+  static const Duration connectionTimeout = Duration(seconds: 60);
+  static const Duration receiveTimeout = Duration(seconds: 60);
   
-  // Option 4: Select Environment Type
+  // Registration API Key
+  static String get registrationApiKey => _getEnv('REGISTRATION_API_KEY');
+  
+  // Select Environment Type
   static String get baseUrl {
     switch (environmentType) {
       case 'development':
-        return localBaseUrl;
+        return _getEnv('LOCAL_BASE_URL');
       case 'production':
-        return hostBaseUrl;
+        return _getEnv('HOST_BASE_URL');
       default:
-        return localBaseUrl;
+        return _getEnv('LOCAL_BASE_URL');
     }
   }
 

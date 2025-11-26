@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:snappie_app/app/core/helpers/json_mapping_helper.dart';
 import '../../../core/errors/exceptions.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../routes/api_endpoints.dart';
@@ -74,9 +75,15 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
         queryParameters: queryParams,
       );
 
+      print("placeResponse: $response");
+
       return extractApiResponseListData<PlaceModel>(
         response,
-        (json) => PlaceModel.fromJson(json as Map<String, dynamic>),
+        (json) {
+          final raw = Map<String, dynamic>.from(json as Map<String, dynamic>);
+          final placeJson = flattenAdditionalInfoForPlace(raw, removeContainer: false);
+          return PlaceModel.fromJson(placeJson);
+        },
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
@@ -101,10 +108,12 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
         ApiEndpoints.replaceId(ApiEndpoints.placeDetail, '$id'),
       );
 
-      return extractApiResponseData<PlaceModel>(
+      final raw = extractApiResponseData<Map<String, dynamic>>(
         response,
-        (json) => PlaceModel.fromJson(json as Map<String, dynamic>),
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
       );
+      final placeJson = flattenAdditionalInfoForPlace(raw, removeContainer: false);
+      return PlaceModel.fromJson(placeJson);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw AuthenticationException('Authentication required');

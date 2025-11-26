@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/data/repositories/user_repository_impl.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/models/user_model.dart';
 
@@ -162,7 +163,7 @@ class ProfileController extends GetxController {
         );
         
         // Navigate back to login screen
-        Get.offAllNamed('/login');
+        Get.offAllNamed(AppPages.LOGIN);
       }
     } catch (e) {
       // Close loading dialog if open

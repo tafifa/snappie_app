@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 
 class SplashView extends StatelessWidget {
   const SplashView({Key? key}) : super(key: key);
@@ -9,7 +10,7 @@ class SplashView extends StatelessWidget {
     // Navigate to next screen after delay
     Future.delayed(const Duration(seconds: 3), () {
       if (Get.context != null) {
-        Get.offAllNamed('/login'); // Change this to your desired route
+        Get.offAllNamed(AppPages.LOGIN); // Change this to your desired route
       }
     });
 

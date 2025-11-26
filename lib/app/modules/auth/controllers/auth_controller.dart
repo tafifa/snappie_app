@@ -17,7 +17,8 @@ class AuthController extends GetxController {
   final TextEditingController emailController = TextEditingController();
   
   // Register form controllers
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController firstnameController = TextEditingController();
+  final TextEditingController lastnameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
   
@@ -101,7 +102,8 @@ class AuthController extends GetxController {
   void onClose() {
     // Clear content but don't dispose - controller is reused in auth flow
     emailController.clear();
-    nameController.clear();
+    firstnameController.clear();
+    lastnameController.clear();
     usernameController.clear();
     registerEmailController.clear();
     super.onClose();
@@ -113,7 +115,6 @@ class AuthController extends GetxController {
       final user = googleAuthService.currentUser;
       if (user != null) {
         print('📱 Loading Google user data:');
-        print('Name: ${user.displayName}');
         print('Email: ${user.email}');
 
         _googleUserEmail.value = user.email ?? '';
@@ -131,59 +132,23 @@ class AuthController extends GetxController {
     }
   }
   
-  Future<void> login() async {
-    if (emailController.text.trim().isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please enter your email',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-    
-    _setLoading(true);
-    
-    try {
-      final success = await authService.login(emailController.text.trim());
-      
-      if (success) {
-        _isLoggedIn.value = true;
-        
-        // Navigate to main app
-        Get.offAllNamed(AppPages.MAIN);
-      } else {
-        Get.snackbar(
-          'Error',
-          'Login failed. Please check your email or try again.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Network error: Please check your connection and try again.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-    
-    _setLoading(false);
-  }
-
   Future<void> loginWithGoogle() async {
     _setLoading(true);
     
     try {
-      final success = await authService.signInWithGoogle();
+      final success = await authService.login();
       
       if (success) {
         _isLoggedIn.value = true;
         
+        Get.snackbar(
+          'Success',
+          'Google Sign In successful. wait a minute sir',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+
         // Navigate to main app
         Get.offAllNamed(AppPages.MAIN);
       } else {
@@ -201,7 +166,7 @@ class AuthController extends GetxController {
         print('🔍 User not found, navigating to registration');
         // Load Google user data before navigating
         _loadGoogleUserData();
-        Get.offAllNamed('/register');
+        Get.toNamed(AppPages.REGISTER);
         return;
       }
       
@@ -221,30 +186,37 @@ class AuthController extends GetxController {
     _setLoading(true);
     
     try {
-      final success = await authService.signInWithGoogle();
+      final success = await authService.login();
+      print('✅ Google Sign Up attempt completed: $success');
       
       if (success) {
-        _loadGoogleUserData();
-        // Navigate to registration page
-        Get.offAllNamed('/register');
-      } else {
         Get.snackbar(
-          'Error',
-          'Google Sign Up failed. Please try again.',
+          'Success',
+          'User already created.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.green,
           colorText: Colors.white,
         );
-      }
-    } catch (e) {
-      // Check if user not found and needs registration
-      if (e == 'USER_NOT_FOUND') {
-        print('🔍 User not found, navigating to registration');
+
+        _isLoggedIn.value = true;
+        
+        Get.snackbar(
+          'Success',
+          'Google Sign In successful. wait a minute sir',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        
+        // Navigate to main app
+        Get.offAllNamed(AppPages.MAIN);
+        
+      } else {
         _loadGoogleUserData();
-        Get.offAllNamed('/register');
-        return;
+
+        Get.toNamed(AppPages.REGISTER);
       }
-      
+    } catch (e) {      
       Get.snackbar(
         'Error',
         'Network error: Please check your connection and try again.',
@@ -278,7 +250,7 @@ class AuthController extends GetxController {
     
     try {
       final success = await authService.registerUser(
-        name: nameController.text.trim(),
+        name: '${firstnameController.text.trim()} ${lastnameController.text.trim()}',
         username: usernameController.text.trim(),
         email: registerEmailController.text.trim(),
         gender: _selectedGender.value,
@@ -337,7 +309,7 @@ class AuthController extends GetxController {
   }
   
   bool _validateForm() {
-    if (nameController.text.trim().isEmpty) {
+    if (firstnameController.text.trim().isEmpty || lastnameController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
         'Please enter your full name',
@@ -449,7 +421,7 @@ class AuthController extends GetxController {
   void cancelRegistration() {
     // Sign out from Google and return to login
     googleAuthService.signOut();
-    Get.offAllNamed('/login');
+    Get.toNamed(AppPages.LOGIN);
     
     Get.snackbar(
       'Cancelled',
@@ -491,7 +463,7 @@ class AuthController extends GetxController {
     );
     
     // Navigate back to login
-    Get.offAllNamed('/login');
+    Get.toNamed(AppPages.LOGIN);
   }
   
   void _setLoading(bool loading) {

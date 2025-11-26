@@ -3,6 +3,7 @@ import '../../../core/errors/exceptions.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../routes/api_endpoints.dart';
 import '../../../core/helpers/api_response_helper.dart';
+import 'package:snappie_app/app/core/helpers/json_mapping_helper.dart';
 import '../../models/post_model.dart';
 
 abstract class PostRemoteDataSource {
@@ -28,12 +29,18 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
 
       final response = await dioClient.dio.get(
         ApiEndpoints.posts,
-        queryParameters: queryParams
+        queryParameters: queryParams,
       );
+
+      print("postResponse: $response");
 
       return extractApiResponseListData<PostModel>(
         response,
-        (json) => PostModel.fromJson(json as Map<String, dynamic>),
+        (json) {
+          final raw = Map<String, dynamic>.from(json as Map<String, dynamic>);
+          final postJson = flattenAdditionalInfoForPost(raw, removeContainer: false);
+          return PostModel.fromJson(postJson);
+        },
       );
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {

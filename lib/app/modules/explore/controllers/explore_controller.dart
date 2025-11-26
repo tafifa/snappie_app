@@ -24,6 +24,7 @@ class ExploreController extends GetxController {
   final _places = <PlaceModel>[].obs;
   final _categories = <String>[].obs;
   final _selectedPlace = Rxn<PlaceModel>();
+  final _selectedImageUrls = Rxn<List<String>>();
   final _errorMessage = ''.obs;
   final _searchQuery = ''.obs;
   final _selectedCategory = ''.obs;
@@ -63,6 +64,7 @@ class ExploreController extends GetxController {
   List<ReviewModel> get userReviews => _userReviews;
   
   PlaceModel? get selectedPlace => _selectedPlace.value;
+  List<String>? get selectedImageUrls => _selectedImageUrls.value;
   ReviewModel? get selectedReview => _selectedReview.value;
   
   String get errorMessage => _errorMessage.value;
@@ -294,8 +296,30 @@ class ExploreController extends GetxController {
     }
   }
 
-  void selectPlace(PlaceModel place) {
+  void selectPlace(PlaceModel? place) {
     _selectedPlace.value = place;
+    _selectedImageUrls.value = place?.imageUrls;
+  }
+
+  Future<void> loadPlaceById(int placeId) async {
+    _setLoading(true);
+    _clearError();
+    
+    try {
+      // Load place by ID from repository
+      final place = await placeRepository.getPlaceById(placeId);
+      selectPlace(place);
+      
+      // Also load reviews for this place
+      await loadPlaceReviews(placeId);
+      
+      print('🎯 Place loaded by ID: ${place.name}');
+    } catch (e) {
+      _setError('Failed to load place: $e');
+      print('❌ Error loading place by ID: $e');
+    }
+    
+    _setLoading(false);
   }
 
   Future<void> refreshData() async {

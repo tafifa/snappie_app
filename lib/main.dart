@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:snappie_app/app/core/dependencies/core_dependencies.dart';
 import 'package:snappie_app/app/core/dependencies/data_dependencies.dart';
 import 'firebase_options.dart';
@@ -32,6 +33,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Load .env file for development environment
+  await dotenv.load(fileName: ".env");
 
   // Initialize core dependencies (network, auth services, etc)
   await CoreDependencies.init();

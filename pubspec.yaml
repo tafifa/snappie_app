@@ -52,6 +52,8 @@ dependencies:
   google_fonts: ^6.3.0
   flutter_svg: ^2.0.7
   url_launcher: ^6.3.0
+  http: ^1.5.0
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -83,6 +85,7 @@ flutter:
     - assets/avatar/
     - assets/icon/
     - assets/logo/
+    - .env
 
   # To add custom fonts to your application, add a fonts section here.
   fonts:

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:snappie_app/app/modules/explore/views/place_view.dart';
 import 'package:snappie_app/app/modules/profile/views/profile_view.dart';
 import 'package:snappie_app/app/modules/profile/views/user_profile_view.dart';
 import 'package:snappie_app/app/modules/shared/components/tnc_view.dart';
@@ -8,18 +9,14 @@ import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/shared/layout/views/main_layout.dart';
 import '../modules/shared/layout/bindings/main_binding.dart';
 import '../modules/explore/views/place_detail_view.dart';
-import '../modules/explore/views/places_view.dart';
 import '../modules/explore/views/reviews_view.dart';
 import '../modules/explore/bindings/explore_binding.dart';
-import '../modules/testing/views/login_view.dart';
-import '../modules/testing/views/register_view.dart';
-import '../modules/testing/bindings/testing_bindings.dart';
 import '../modules/shared/components/splash_view.dart';
 
 class AppPages {
   AppPages._();
 
-  static const INITIAL = '/loginTest';
+  static const INITIAL = '/login';
 
   // Splash and Auth
   static const LOGIN = '/login';
@@ -46,10 +43,6 @@ class AppPages {
   static const USER_PROFILE = '/user-profile'; // Read-only profile untuk navigasi dari widget lain
   static const SETTINGS = '/settings';
   static const EDIT_PROFILE = '/edit-profile';
-
-  // Testing
-  static const LOGIN_TEST = '/loginTest';
-  static const REGISTER_TEST = '/registerTest';
 
   static final routes = <GetPage>[
     // Splash (no binding needed)
@@ -88,13 +81,8 @@ class AppPages {
 
     // Explore detail pages - full screen navigation dari tab explore
     GetPage(
-      name: PLACES,
-      page: () => const PlacesView(),
-      binding: ExploreBinding(),
-    ),
-    GetPage(
       name: PLACE_DETAIL,
-      page: () => const PlaceDetailView(),
+      page: () => const PlaceView(),
       binding: ExploreBinding(),
     ),
     GetPage(
@@ -125,18 +113,6 @@ class AppPages {
       name: EDIT_PROFILE,
       page: () => const ProfileView(), // TODO: Buat EditProfileView terpisah
       // Tidak perlu binding karena sudah di MainBinding
-    ),
-
-    // Testing module - dengan TestingBindings
-    GetPage(
-      name: LOGIN_TEST,
-      page: () => TestingLoginView(),
-      binding: TestingAuthBinding(),
-    ),
-    GetPage(
-      name: REGISTER_TEST,
-      page: () => const TestingRegisterView(),
-      binding: TestingRegisterBinding(),
     ),
   ];
 }

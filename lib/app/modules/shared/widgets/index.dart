@@ -27,7 +27,6 @@ export '_card_widgets/promotional_banner.dart';
 export '_card_widgets/article_card_widget.dart';
 export '_card_widgets/article_horizontal_card.dart';
 export '_card_widgets/place_card_widget.dart';
-export '_card_widgets/place_card.dart';
 export '_card_widgets/post_card.dart';
 export '_card_widgets/post_creation_widget.dart';
 export '_card_widgets/review_card_widget.dart';

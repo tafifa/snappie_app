@@ -137,6 +137,7 @@ class ApiResponse<T> {
     final rawData = json['data'];
     List<T>? parsedList;
     Map<String, dynamic>? paginationData;
+    print("rawData: $rawData");
 
     if (rawData != null) {
       // Check if it's Laravel pagination format (data is a Map with nested 'data')

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/explore_controller.dart';
-import '../../../data/models/place_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../shared/layout/views/scaffold_frame.dart';
 import '../../shared/widgets/index.dart';
@@ -521,12 +520,13 @@ class ExploreView extends GetView<ExploreController> {
       children: [
         // Results header
         Container(
-          decoration: BoxDecoration(
-              border: Border.all(
-                color: AppColors.success,
-                width: 1,
-              ),
-            ),
+          // decoration: BoxDecoration(
+          //     border: Border.all(
+          //       color: AppColors.success,
+          //       width: 1,
+          //     ),
+          //   ),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
             children: [
               Obx(() => Text(
@@ -641,6 +641,7 @@ class ExploreView extends GetView<ExploreController> {
       //     width: 1,
       //   ),
       // ),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: ListView.builder(
         padding: EdgeInsets.zero,
         shrinkWrap: true,
@@ -652,7 +653,6 @@ class ExploreView extends GetView<ExploreController> {
           return PlaceCardWidget(
             place: displayPlaces[index],
             cardSize: CardSize.fullWidth,
-            onTap: () => _onPlaceCardTapped(displayPlaces[index]),
           );
         },
       ),
@@ -678,15 +678,9 @@ class ExploreView extends GetView<ExploreController> {
           return PlaceCardWidget(
             place: displayPlaces[index],
             cardSize: CardSize.large,
-            onTap: () => _onPlaceCardTapped(displayPlaces[index]),
           );
         },
       ),
     );
-  }
-
-  void _onPlaceCardTapped(PlaceModel place) {
-    controller.selectPlace(place);
-    Get.toNamed('/place-detail', arguments: place);
   }
 }

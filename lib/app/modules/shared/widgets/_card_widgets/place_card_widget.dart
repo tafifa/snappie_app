@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../../data/models/place_model.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../routes/app_pages.dart';
 
 enum CardSize {
   small,
@@ -42,7 +44,6 @@ class CardConfig {
 
 class PlaceCardWidget extends StatelessWidget {
   final PlaceModel place;
-  final VoidCallback? onTap;
   final CardSize cardSize;
   final bool showOverlayIcon;
   final IconData? overlayIcon;
@@ -54,7 +55,6 @@ class PlaceCardWidget extends StatelessWidget {
   const PlaceCardWidget({
     super.key,
     required this.place,
-    this.onTap,
     this.cardSize = CardSize.large,
     this.showOverlayIcon = false,
     this.overlayIcon = Icons.store,
@@ -132,7 +132,7 @@ class PlaceCardWidget extends StatelessWidget {
       height: cardConfig.height,
       margin: cardConfig.margin,
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () => Get.toNamed(AppPages.PLACE_DETAIL, arguments: place),
         child: Container(
           padding: padding ?? EdgeInsets.all(cardConfig.contentPadding),
           decoration: BoxDecoration(

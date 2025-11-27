@@ -104,9 +104,9 @@ class ArticleCardWidget extends StatelessWidget {
         const SizedBox(height: 4),
 
         // Excerpt/Description (2 lines)
-        if (article.content != null)
+        if (article.description != null)
           Text(
-            article.content!,
+            article.description ?? 'No Description',
             style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -135,7 +135,7 @@ class ArticleCardWidget extends StatelessWidget {
           children: [
             // Author
             Text(
-              'oleh ${article.user!.name}',
+              'oleh ${article.author ?? 'Unknown'}',
               style: TextStyle(
                 fontSize: 10,
                 color: AppColors.textTertiary,
@@ -181,7 +181,7 @@ class ArticleCardWidget extends StatelessWidget {
   }
 
   Future<void> _handleTap() async {
-    final url = article.url;
+    final url = article.link;
     if (url != null && url.isNotEmpty) {
       try {
         final uri = Uri.parse(url);

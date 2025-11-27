@@ -101,7 +101,7 @@ class ArticleHorizontalCard extends StatelessWidget {
                           radius: 8,
                           backgroundColor: AppColors.surfaceContainer,
                           child: Text(
-                            (article.user?.name ?? 'U')[0].toUpperCase(),
+                            (article.author ?? 'U')[0].toUpperCase(),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -114,7 +114,7 @@ class ArticleHorizontalCard extends StatelessWidget {
                         // Author Name
                         Expanded(
                           child: Text(
-                            'by ${article.user?.name ?? 'Unknown'}',
+                            'by ${article.author ?? 'Unknown'}',
                             style: TextStyle(
                               fontSize: 10,
                               color: AppColors.textSecondary,

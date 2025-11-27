@@ -103,6 +103,13 @@ class PromotionalBanner extends StatelessWidget {
             borderRadius: config.borderRadius != null
                 ? BorderRadius.circular(config.borderRadius!)
                 : null,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowDark,
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [

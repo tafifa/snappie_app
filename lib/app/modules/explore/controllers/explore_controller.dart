@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
@@ -34,22 +36,25 @@ class ExploreController extends GetxController {
   final _hasMoreData = true.obs;
   final _currentPage = 1.obs;
   final _isLoadingCategories = false.obs;
-  
+
   // Review-related reactive variables
   final _reviews = <ReviewModel>[].obs;
   final _userReviews = <ReviewModel>[].obs;
   final _isCreatingReview = false.obs;
   final _isLoadingReviews = false.obs;
   final _selectedReview = Rxn<ReviewModel>();
-  
+
   // Check-in related
   final _isCreatingCheckin = false.obs;
-  
+
   // Initialization flag
   final _isInitialized = false.obs;
-  
+
   // Banner visibility state
   final _showBanner = true.obs;
+  final _showMissionCta = true.obs;
+
+  Timer? _searchDebounce;
 
   // Getters
   bool get isLoading => _isLoading.value;
@@ -57,40 +62,43 @@ class ExploreController extends GetxController {
   bool get isLoadingReviews => _isLoadingReviews.value;
   bool get isCreatingReview => _isCreatingReview.value;
   bool get isCreatingCheckin => _isCreatingCheckin.value;
-  
+
   List<PlaceModel> get places => _places;
   List<String> get categories => _categories;
   List<ReviewModel> get reviews => _reviews;
   List<ReviewModel> get userReviews => _userReviews;
-  
+
   PlaceModel? get selectedPlace => _selectedPlace.value;
   List<String>? get selectedImageUrls => _selectedImageUrls.value;
   ReviewModel? get selectedReview => _selectedReview.value;
-  
+
   String get errorMessage => _errorMessage.value;
   String get searchQuery => _searchQuery.value;
   String get selectedCategory => _selectedCategory.value;
   int? get selectedRating => _selectedRating.value;
   String? get selectedPriceRange => _selectedPriceRange.value;
   String get selectedFilter => _selectedFilter.value;
-  
+
   // Check if any filter is active
-  bool get isFiltered => 
+  bool get isFiltered =>
       _searchQuery.value.isNotEmpty ||
       _selectedCategory.value.isNotEmpty ||
       _selectedRating.value != null ||
       _selectedPriceRange.value != null ||
       _selectedFilter.value.isNotEmpty;
-  
+
   // Setters untuk widget access
   set searchQuery(String value) => _searchQuery.value = value;
   set selectedCategory(String value) => _selectedCategory.value = value;
-  
+
   bool get hasMoreData => _hasMoreData.value;
   int get currentPage => _currentPage.value;
   bool get showBanner => _showBanner.value;
-  
+  bool get showMissionCta => _showMissionCta.value;
+
   void hideBanner() => _showBanner.value = false;
+  void hideMissionCta() => _showMissionCta.value = false;
+  void showMissionCtaPrompt() => _showMissionCta.value = true;
 
   @override
   void onInit() {
@@ -99,7 +107,13 @@ class ExploreController extends GetxController {
     _selectedCategory.value = '';
     print('🔍 ExploreController created (not initialized yet)');
   }
-  
+
+  @override
+  void onClose() {
+    _searchDebounce?.cancel();
+    super.onClose();
+  }
+
   /// Initialize data hanya saat tab pertama kali dibuka
   void initializeIfNeeded() {
     if (!_isInitialized.value) {
@@ -115,7 +129,7 @@ class ExploreController extends GetxController {
     print('Auth Status: ${authService.isLoggedIn}');
     print('Token: ${authService.token}');
     print('User Email: ${authService.userEmail}');
-    
+
     if (authService.isLoggedIn) {
       print('✅ User authenticated, loading explore data...');
       await loadExploreData();
@@ -152,25 +166,30 @@ class ExploreController extends GetxController {
       _hasMoreData.value = true;
       _places.clear();
     }
-    
+
     if (!_hasMoreData.value && !refresh) return;
-    
+
     _setLoading(true);
     _clearError();
-    
+
     try {
       // Load places from repository
       final placesList = await placeRepository.getPlaces(
         perPage: 20,
         search: _searchQuery.value.isNotEmpty ? _searchQuery.value : null,
         minRating: _selectedRating.value?.toDouble(),
+        partner: _selectedFilter.value == 'partner' ? true : null,
+        popular: _selectedFilter.value == 'popular' ? true : null,
         // Add more filters as needed
       );
-      
+
       print('🎯 PLACES LOADED SUCCESSFULLY:');
       print('Places Count: ${placesList.length}');
-      print('First Place: ${placesList.isNotEmpty ? placesList.first.name : "None"}');
-      
+      print(
+          'First Place: ${placesList.isNotEmpty ? placesList.first.name : "None"}');
+      print(
+          'Firs Place Additional Info: ${placesList.isNotEmpty ? placesList.first.placeAttributes : "None"}');
+
       if (refresh || _currentPage.value == 1) {
         print('🔄 Assigning all places to _places');
         _places.assignAll(placesList);
@@ -178,23 +197,23 @@ class ExploreController extends GetxController {
         print('➕ Adding places to existing _places');
         _places.addAll(placesList);
       }
-      
+
       print('📱 _places length after update: ${_places.length}');
       print('📱 _places.isEmpty: ${_places.isEmpty}');
-      
+
       if (placesList.isEmpty) {
         _hasMoreData.value = false;
       } else {
         _currentPage.value++;
       }
-      
+
       // Force UI update
       _places.refresh();
     } catch (e) {
       _setError('Failed to load places: $e');
       print('❌ Error loading places: $e');
     }
-    
+
     _setLoading(false);
   }
 
@@ -206,17 +225,18 @@ class ExploreController extends GetxController {
     }
 
     _isLoadingCategories.value = true;
-    
+
     try {
       // TODO: Implement categories API endpoint
       // For now, use hardcoded categories
-      _categories.assignAll(['Semua', 'Restoran', 'Kafe', 'Street Food', 'Fast Food']);
+      _categories
+          .assignAll(['Semua', 'Restoran', 'Kafe', 'Street Food', 'Fast Food']);
       print('📋 Categories loaded');
     } catch (e) {
       // Handle error silently for categories
       print('Error loading categories: $e');
     }
-    
+
     _isLoadingCategories.value = false;
   }
 
@@ -230,6 +250,18 @@ class ExploreController extends GetxController {
   void searchPlaces(String query) {
     _searchQuery.value = query;
     loadPlaces(refresh: true);
+  }
+
+  void handleSearchInput(String query, {Duration delay = const Duration(milliseconds: 900)}) {
+    _searchQuery.value = query;
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(delay, () {
+      if (_searchQuery.value.isEmpty) {
+        loadPlaces(refresh: true);
+      } else {
+        searchPlaces(_searchQuery.value);
+      }
+    });
   }
 
   void filterByCategory(String category) {
@@ -270,14 +302,17 @@ class ExploreController extends GetxController {
     // This would typically use location services to sort by distance
     loadPlaces(refresh: true);
   }
+  /*
+
+  */
 
   void setFavoritFilter() {
-    _selectedFilter.value = 'favorit';
+    _selectedFilter.value = 'partner';
     loadPlaces(refresh: true);
   }
 
   void setTerlarisFilter() {
-    _selectedFilter.value = 'terlaris';
+    _selectedFilter.value = 'popular';
     loadPlaces(refresh: true);
   }
 
@@ -304,21 +339,21 @@ class ExploreController extends GetxController {
   Future<void> loadPlaceById(int placeId) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       // Load place by ID from repository
       final place = await placeRepository.getPlaceById(placeId);
       selectPlace(place);
-      
+
       // Also load reviews for this place
       await loadPlaceReviews(placeId);
-      
+
       print('🎯 Place loaded by ID: ${place.name}');
     } catch (e) {
       _setError('Failed to load place: $e');
       print('❌ Error loading place by ID: $e');
     }
-    
+
     _setLoading(false);
   }
 
@@ -334,7 +369,7 @@ class ExploreController extends GetxController {
   Future<void> loadPlaceReviews(int placeId) async {
     _isLoadingReviews.value = true;
     _clearError();
-    
+
     try {
       // Load reviews from repository
       final reviewsList = await reviewRepository.getPlaceReviews(placeId);
@@ -344,7 +379,7 @@ class ExploreController extends GetxController {
       _setError('Failed to load reviews: $e');
       print('❌ Error loading reviews: $e');
     }
-    
+
     _isLoadingReviews.value = false;
   }
 
@@ -386,10 +421,11 @@ class ExploreController extends GetxController {
     required int vote,
     required String content,
     List<String>? imageUrls,
+    Map<String, dynamic> additionalInfo = const {},
   }) async {
     _isCreatingReview.value = true;
     _clearError();
-    
+
     try {
       // Create review via repository
       await reviewRepository.createReview(
@@ -397,14 +433,15 @@ class ExploreController extends GetxController {
         content: content,
         rating: vote,
         imageUrls: imageUrls,
+        additionalInfo: additionalInfo,
       );
-      
+
       Get.snackbar(
         'Success',
         'Review submitted successfully!',
         snackPosition: SnackPosition.BOTTOM,
       );
-      
+
       await loadPlaceReviews(placeId);
     } catch (e) {
       _setError('Failed to create review: $e');
@@ -414,7 +451,7 @@ class ExploreController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     }
-    
+
     _isCreatingReview.value = false;
   }
 
@@ -424,20 +461,20 @@ class ExploreController extends GetxController {
     required int placeId,
     required double latitude,
     required double longitude,
-    String? imageUrl,
+    Map<String, dynamic> additionalInfo = const {},
   }) async {
     _isCreatingCheckin.value = true;
     _clearError();
-    
+
     try {
       // Create checkin via repository
       await checkinRepository.createCheckin(
         placeId: placeId,
         latitude: latitude,
         longitude: longitude,
-        imageUrl: imageUrl,
+        additionalInfo: additionalInfo,
       );
-      
+
       Get.snackbar(
         'Success',
         'Check-in created successfully! (API Mode)',
@@ -451,7 +488,7 @@ class ExploreController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     }
-    
+
     _isCreatingCheckin.value = false;
   }
 

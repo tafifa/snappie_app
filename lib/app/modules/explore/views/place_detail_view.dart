@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/utils/utils.dart';
 import '../controllers/explore_controller.dart';
 import '../../shared/widgets/index.dart';
 import '../../../data/models/place_model.dart';
@@ -13,17 +14,18 @@ class PlaceDetailView extends GetView<ExploreController> {
   Widget build(BuildContext context) {
     // Get place from arguments if passed
     final PlaceModel? place = Get.arguments as PlaceModel?;
-    
+
     // Load place reviews when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (place != null) {
+        controller.showMissionCtaPrompt();
         controller.selectPlace(place);
         controller.loadPlaceReviews(place.id!);
       }
     });
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       body: Builder(
         builder: (context) {
           if (place == null) {
@@ -31,534 +33,1170 @@ class PlaceDetailView extends GetView<ExploreController> {
               child: Text('Place not found'),
             );
           }
-          
-          return CustomScrollView(
-            slivers: [
-              // Custom App Bar with Image
-              SliverAppBar(
-                expandedHeight: 250,
-                pinned: true,
-                backgroundColor: AppColors.background,
-                elevation: 0,
-                leading: Container(
-                  margin: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Get.back(),
-                  ),
-                ),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      shape: BoxShape.circle,
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CustomScrollView(
+                slivers: [
+                  // Custom App Bar with Image
+                  SliverAppBar(
+                    pinned: true,
+                    backgroundColor: AppColors.background,
+                    elevation: 0,
+                    leading: Container(
+                      margin: const EdgeInsets.all(8),
+                      child: IconButton(
+                        icon: Icon(Icons.arrow_back, color: AppColors.primary),
+                        onPressed: () => Get.back(),
+                      ),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.share, color: Colors.white),
-                      onPressed: () => _showShareDialog(place),
-                    ),
+                    // title: Text(
+                    //   place.name ?? 'Place Name not available',
+                    //   style: TextStyle(
+                    //     fontWeight: FontWeight.w600,
+                    //   ),
+                    // ),
+                    actions: [
+                      IconButton(
+                        icon: Icon(Icons.bookmark_outline,
+                            color: AppColors.primary),
+                        onPressed: () => _toggleFavorite(place),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.share, color: AppColors.primary),
+                        onPressed: () => _showShareDialog(place),
+                      ),
+                      SizedBox(width: 8),
+                    ],
                   ),
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.favorite_border, color: Colors.white),
-                      onPressed: () => _toggleFavorite(place),
+
+                  // Content
+                  SliverToBoxAdapter(
+                    child: Container(
+                      color: AppColors.background,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          _buildImageSection(context, place),
+                          _buildPlaceHeaderCard(place),
+                          if ((place.placeValue?.isNotEmpty ?? false))
+                            _buildChipSection(
+                              title: 'Cocok Untuk',
+                              chips: place.placeValue!,
+                            ),
+                          if ((place.foodType?.isNotEmpty ?? false))
+                            _buildChipSection(
+                              title: 'Tipe Kuliner',
+                              chips: place.foodType!,
+                            ),
+                          _buildInfoCard(place),
+                          if ((place.menu?.isNotEmpty ?? false))
+                            _buildMenuSection(place.menu!),
+                          if (_getFacilityChips(place).isNotEmpty)
+                            _buildFacilitySection(_getFacilityChips(place)),
+                          _buildGallerySection(context, place),
+                          _buildReviewPreviewSection(place),
+                          _buildSimilarPlacesSection(place),
+                          const SizedBox(height: 160),
+                        ],
+                      ),
                     ),
                   ),
                 ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Place Image
-                      place.imageUrls!.isNotEmpty
-                          ? Image.network(
-                              place.imageUrls!.first,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: AppColors.surfaceContainer,
-                                  child: Icon(
-                                    Icons.image,
-                                    size: 80,
-                                    color: AppColors.textTertiary,
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: AppColors.surfaceContainer,
-                              child: Icon(
-                                Icons.image,
-                                size: 80,
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                      
-                      // Gradient Overlay
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.3),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
-              
-              // Content
-              SliverToBoxAdapter(
-                child: Container(
-                  color: AppColors.background,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Place Info Card
-                      Container(
-                        margin: const EdgeInsets.all(16),
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.shadowLight,
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Name and Category
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    place.name!,
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryContainer,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    place.foodType?.isNotEmpty == true 
-                                        ? place.foodType!.first 
-                                        : 'Restaurant',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Rating and Reviews
-                            Row(
-                              children: [
-                                Row(
-                                  children: List.generate(5, (index) {
-                                    return Icon(
-                                      index < (place.avgRating ?? 0).floor()
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      color: AppColors.warning,
-                                      size: 20,
-                                    );
-                                  }),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${(place.avgRating ?? 0).toStringAsFixed(1)} (${place.totalReview ?? 0} reviews)',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Address
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on,
-                                  size: 16,
-                                  color: AppColors.textSecondary,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    place.placeDetail?.address ?? 'No address available',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 16),
-                            
-                            // Partnership Info
-                            if (place.partnershipStatus == true) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: AppColors.success,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.verified,
-                                          color: AppColors.success,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Partner Location',
-                                          style: TextStyle(
-                                            color: AppColors.success,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Check-in here to earn rewards!',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    if (place.expReward! > 0 || place.coinReward! > 0) ...[
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          if (place.expReward! > 0) ...[
-                                            Icon(
-                                              Icons.star,
-                                              color: AppColors.warning,
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${place.expReward} XP',
-                                              style: TextStyle(
-                                                color: AppColors.textPrimary,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                          if (place.expReward! > 0 && place.coinReward! > 0)
-                                            const SizedBox(width: 16),
-                                          if (place.coinReward! > 0) ...[
-                                            Icon(
-                                              Icons.monetization_on,
-                                              color: AppColors.warning,
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${place.coinReward} Coins',
-                                              style: TextStyle(
-                                                color: AppColors.textPrimary,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                            
-                            // Action Buttons
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: () => _showCheckinDialog(place),
-                                    icon: Icon(Icons.check_circle),
-                                    label: Text('Check In'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
-                                      foregroundColor: AppColors.textOnPrimary,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => _showDirections(place),
-                                    icon: Icon(Icons.directions),
-                                    label: Text('Directions'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.primary,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      side: BorderSide(color: AppColors.primary),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Description
-                      if (place.description != null) ...[
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.shadowLight,
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Description',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                place.description!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  height: 1.5,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Tabs
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.shadowLight,
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: DefaultTabController(
-                          length: 2,
-                          child: Column(
-                            children: [
-                              TabBar(
-                                labelColor: AppColors.primary,
-                                unselectedLabelColor: AppColors.textSecondary,
-                                indicatorColor: AppColors.primary,
-                                indicatorWeight: 3,
-                                tabs: [
-                                  Tab(text: 'Reviews'),
-                                  Tab(text: 'Photos'),
-                                ],
-                              ),
-                              SizedBox(
-                                height: 400,
-                                child: TabBarView(
-                                  children: [
-                                    // Reviews Tab
-                                    _buildReviewsTab(place),
-                                    
-                                    // Photos Tab
-                                    _buildPhotosTab(place),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 100), // Space for FAB
-                    ],
-                  ),
-                ),
-              ),
+              Obx(() {
+                if (!controller.showMissionCta) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _buildMissionCtaCard(place),
+                );
+              }),
             ],
           );
         },
       ),
-      
-      // Floating Action Button for Review
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateReviewDialog(),
-        icon: const Icon(Icons.rate_review),
-        label: const Text('Write Review'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
+    );
+  }
+
+  Widget _buildImageSection(BuildContext context, PlaceModel? place) {
+    double imageHeight = 300;
+    final imageUrls = place?.imageUrls ?? [];
+    print("imageUrls: $imageUrls");
+    
+    // If no images, show placeholder
+    if (imageUrls.isEmpty) {
+      return Container(
+        height: imageHeight,
+        width: double.infinity,
+        color: AppColors.background,
+        child: Center(
+          child: Icon(
+            Icons.restaurant,
+            color: AppColors.textTertiary,
+            size: imageHeight * 0.3,
+          ),
+        ),
+      );
+    }
+
+    // If only one image, show it without carousel
+    if (imageUrls.length == 1) {
+      return Container(
+        height: imageHeight,
+        width: double.infinity,
+        child: ClipRRect(
+          child: Image.network(
+            imageUrls.first,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: AppColors.background,
+                child: Center(
+                  child: Icon(
+                    Icons.restaurant,
+                    color: AppColors.textTertiary,
+                    size: imageHeight * 0.3,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    // Multiple images - show carousel
+    final PageController pageController = PageController();
+    final RxInt currentImageIndex = 0.obs;
+    
+    return Container(
+      height: imageHeight,
+      child: PageView.builder(
+        controller: pageController,
+        itemCount: imageUrls.length,
+        onPageChanged: (index) => currentImageIndex.value = index,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () {
+               final exploreController = Get.find<ExploreController>();
+               // Set selectedImageUrls to current place images
+               exploreController.selectPlace(place);
+               FullscreenImageViewer.show(
+                 context: context,
+                 controller: exploreController,
+                 imageIndex: index,
+               );
+             },
+            child: Container(
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    child: Image.network(
+                      imageUrls[index],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: imageHeight,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.background,
+                          child: Center(
+                            child: Icon(
+                              Icons.restaurant,
+                              color: AppColors.textTertiary,
+                              size: imageHeight * 0.3,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Image counter overlay
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${index + 1}/${imageUrls.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            );
+          },
+        ),
+      );
+  }
+
+  Widget _buildPlaceHeaderCard(PlaceModel place) {
+    final shortDescription =
+        place.placeDetail?.shortDescription ?? place.description ?? '';
+    final priceRange = _formatPriceRange(place);
+
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            place.name ?? '-',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (shortDescription.isNotEmpty)
+            Text(
+              shortDescription,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          const SizedBox(height: 12),
+          if (priceRange != null) ...[
+            Text(
+              priceRange,
+              style: TextStyle(color: AppColors.success),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ...List.generate(5, (index) {
+                return Icon(
+                  index < (place.avgRating ?? 0).round()
+                      ? Icons.star
+                      : Icons.star_border,
+                  color: AppColors.warning,
+                  size: 20,
+                );
+              }),
+              const SizedBox(width: 8),
+              Text(
+                '${(place.avgRating ?? 0).toStringAsFixed(1)} (${(place.totalReview ?? 0)} ulasan)',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildReviewsTab(PlaceModel place) {
-    return Obx(() {
-      if (controller.isLoading) {
-        return const Center(
-          child: LoadingStateWidget(),
-        );
-      }
-      
-      if (controller.errorMessage.isNotEmpty) {
-        return ErrorStateWidget(
-          message: controller.errorMessage,
-          onRetry: () => controller.loadPlaceReviews(place.id!),
-        );
-      }
-      
-      final reviews = controller.reviews;
-      
-      if (reviews.isEmpty) {
-        return const NoDataEmptyState(
-          title: 'No reviews yet',
-          subtitle: 'Be the first to write a review!',
-        );
-      }
-      
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: reviews.length,
-        itemBuilder: (context, index) {
-          final review = reviews[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ReviewCard(
-              review: review,
-              onTap: () => _showReviewDetail(review),
+  Widget _buildChipSection({
+    required String title,
+    required List<String> chips,
+  }) {
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: AppColors.textPrimary,
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 12),
+          _buildChipGrid(chips),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChipGrid(List<String> chips) {
+    if (chips.isEmpty) return const SizedBox.shrink();
+    final rows = _chunkList(chips, 2);
+
+    return Column(
+      children: [
+        for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) ...[
+          Row(
+            children: List.generate(2, (colIndex) {
+              final currentRow = rows[rowIndex];
+              final chipIndex = rowIndex * 2 + colIndex;
+              if (colIndex >= currentRow.length) {
+                return const Expanded(child: SizedBox.shrink());
+              }
+
+              final chip = currentRow[colIndex];
+              final style = _chipStyleFor(chip, chipIndex);
+              final textColor = style.textColor ?? AppColors.textPrimary;
+
+              return Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: colIndex == 0 ? 8 : 0),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: style.backgroundColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (style.icon != null) ...[
+                        Icon(style.icon, size: 16, color: textColor),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          chip,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+          if (rowIndex != rows.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+
+  List<List<String>> _chunkList(List<String> items, int chunkSize) {
+    final chunks = <List<String>>[];
+    for (var i = 0; i < items.length; i += chunkSize) {
+      chunks.add(items.sublist(
+          i, i + chunkSize > items.length ? items.length : i + chunkSize));
+    }
+    return chunks;
+  }
+
+  _ChipStyle _chipStyleFor(String label, int index) {
+    final colors = _randomChipColors(label, index);
+    final backgroundColor = colors.background;
+    final textColor = colors.text;
+    final icon = _chipIconPresets[label.toLowerCase()];
+    return _ChipStyle(
+      backgroundColor: backgroundColor,
+      icon: icon,
+      textColor: textColor,
+    );
+  }
+
+  static const List<_ChipColorPair> _chipColorPairs = [
+    _ChipColorPair(background: Color(0xFFFFF3E0), text: Color(0xFFD84315)),
+    _ChipColorPair(background: Color(0xFFE3F2FD), text: Color(0xFF0D47A1)),
+    _ChipColorPair(background: Color(0xFFF3E5F5), text: Color(0xFF6A1B9A)),
+    _ChipColorPair(background: Color(0xFFE8F5E9), text: Color(0xFF1B5E20)),
+    _ChipColorPair(background: Color(0xFFFFEBEE), text: Color(0xFFB71C1C)),
+    _ChipColorPair(background: Color(0xFFFFF8E1), text: Color(0xFFF57F17)),
+  ];
+
+  _ChipColorPair _randomChipColors(String label, int seed) {
+    final palette = _chipColorPairs;
+    final safeSeed = (label.hashCode + seed * 17).abs();
+    return palette[safeSeed % palette.length];
+  }
+
+  static const Map<String, IconData> _chipIconPresets = {
+    'harga terjangkau': Icons.attach_money,
+    'rasa autentik': Icons.restaurant,
+    'menu bervariasi': Icons.menu_book,
+    'buka 24 jam': Icons.nights_stay,
+    'jaringan lancar': Icons.wifi,
+    'estetika': Icons.brush,
+    'suasana tenang': Icons.spa,
+    'suasana tradisional': Icons.temple_hindu,
+    'suasana homey': Icons.home_filled,
+    'pet friendly': Icons.pets,
+    'ramah keluarga': Icons.family_restroom,
+    'pelayanan ramah': Icons.emoji_people,
+    'cocok untuk nongkrong': Icons.groups_2_outlined,
+    'cocok untuk work from cafe': Icons.laptop_mac,
+    'wfc (work from cafe)': Icons.laptop_mac,
+    'wfc': Icons.laptop_mac,
+    'nongkrong/diskusi': Icons.forum_outlined,
+    'keluarga/pasangan': Icons.favorite_outline,
+    'me time': Icons.sentiment_satisfied_alt,
+    'tempat bersejarah': Icons.museum_outlined,
+  };
+
+  Widget _buildInfoCard(PlaceModel place) {
+    final detail = place.placeDetail;
+    final openingText = _formatOperatingHours(detail);
+
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoRow(
+            title: 'Alamat',
+            value: detail?.address ?? 'Alamat belum tersedia',
+            icon: Icons.place_outlined,
+            trailing: TextButton(
+              onPressed: () => _openMap(place),
+              child: Text('Lihat di peta',
+                  style: TextStyle(
+                      color: AppColors.accent, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            title: 'Jam Buka',
+            value: detail?.openingDays?.join(', ') ?? '',
+            // value: openingText ?? 'Jam operasional belum tersedia',
+            icon: Icons.access_time,
+            trailing: Text(
+              openingText ?? 'Jam operasional belum tersedia',
+              style: TextStyle(
+                  color: AppColors.success, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            title: 'Reservasi',
+            icon: Icons.headset_mic_outlined,
+            trailing: ElevatedButton(
+              onPressed: () => _openReservation(detail?.contactNumber),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: AppColors.textOnPrimary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(99)),
+              ),
+              child: const Text('WhatsApp'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuSection(List<MenuItem> menu) {
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('Favorit Kami!'),
+          const SizedBox(height: 12),
+          ...menu.take(3).map((item) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: item.imageUrl != null
+                        ? NetworkImageWidget(
+                            imageUrl: item.imageUrl!,
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 70,
+                            height: 70,
+                            color: AppColors.surfaceContainer,
+                            child: Icon(Icons.fastfood,
+                                color: AppColors.textSecondary),
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name ?? '-',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (item.description != null)
+                          Text(
+                            item.description!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 12),
+                          ),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.price != null
+                              ? 'Rp${item.price!.toStringAsFixed(0)}'
+                              : '-',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          // if (menu.length > 3)
+          ElevatedButton(
+            onPressed: () => _showMenuDialog(menu),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(99)),
+            ),
+            child: const Text('Lihat Menu Lengkap'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFacilitySection(List<String> facilities) {
+    if (facilities.isEmpty) return const SizedBox.shrink();
+    final visibleFacilities = facilities.take(6).toList();
+
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('Fasilitas',
+              onSeeAll: () => _showFacilitiesDialog(facilities)),
+          const SizedBox(height: 12),
+          _buildChipGrid(visibleFacilities),
+        ],
+      ),
+    );
+  }
+
+  List<String> _getFacilityChips(PlaceModel place) {
+    final attributes = place.placeAttributes;
+    final facilities = <String>[];
+    void addAll(List<dynamic>? list) {
+      if (list == null) return;
+      for (final item in list) {
+        final name = (item as dynamic).name as String?;
+        if (name != null) facilities.add(name);
+      }
+    }
+
+    addAll(attributes?.facility);
+    addAll(attributes?.service);
+    addAll(attributes?.parking);
+    addAll(attributes?.capacity);
+    addAll(attributes?.accessibility);
+    addAll(attributes?.payment);
+
+    return facilities;
+  }
+
+  Widget _buildGallerySection(BuildContext context, PlaceModel place) {
+    return Obx(() {
+      final photos = <String>[];
+      if (place.imageUrls != null) photos.addAll(place.imageUrls!);
+      for (final review in controller.reviews) {
+        if (review.imageUrls != null) {
+          photos.addAll(review.imageUrls!);
+        }
+      }
+
+      const double imageSize = 120;
+
+      if (photos.isEmpty) {
+        return _buildSectionCard(
+          child: _buildSectionHeader('Galeri Bersama',
+              child: const Text('Belum ada foto')),
+        );
+      }
+
+      return _buildSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader('Galeri Bersama',
+                onSeeAll: () => _showPhotoViewer(photos, 0)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: imageSize,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: photos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: NetworkImageWidget(
+                        imageUrl: photos[index],
+                        width: imageSize,
+                        height: imageSize,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    onTap: () {
+                      final exploreController = Get.find<ExploreController>();
+                      // Set selectedImageUrls to current place images
+                      exploreController.selectPlace(place);
+                      FullscreenImageViewer.show(
+                        context: context,
+                        controller: exploreController,
+                        imageIndex: index,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       );
     });
   }
 
-  Widget _buildPhotosTab(PlaceModel place) {
-    // Get photos from reviews
-    final photos = <String>[];
-    
-    // Add place main image
-    if (place.imageUrls != null && place.imageUrls!.isNotEmpty) {
-      photos.addAll(place.imageUrls!);
-    }
-    
-    // Add photos from reviews
-    for (final review in controller.reviews) {
-      if (review.imageUrls != null && review.imageUrls!.isNotEmpty) {
-        photos.addAll(review.imageUrls!);
-      }
-    }
-    
-    if (photos.isEmpty) {
-      return const NoDataEmptyState(
-        title: 'No photos yet',
-        subtitle: 'Share photos in your reviews!',
+  Widget _buildReviewPreviewSection(PlaceModel place) {
+    return Obx(() {
+      final reviews = controller.reviews;
+      final isLoading = controller.isLoadingReviews;
+
+      return _buildSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader('Ulasan',
+                onSeeAll: () => _showAllReviewsSheet(place)),
+            const SizedBox(height: 12),
+            if (isLoading)
+              const Center(child: LoadingStateWidget())
+            else if (reviews.isEmpty)
+              const NoDataEmptyState(
+                title: 'Belum ada ulasan',
+                subtitle: 'Jadilah yang pertama menulis ulasan',
+              )
+            else
+              ...reviews.take(3).map(_buildReviewTile),
+          ],
+        ),
       );
-    }
-    
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1,
-      ),
-      itemCount: photos.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => _showPhotoViewer(photos, index),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: NetworkImageWidget(
-              imageUrl: photos[index],
-              fit: BoxFit.cover,
-              borderRadius: BorderRadius.circular(12),
+    });
+  }
+
+  Widget _buildReviewTile(ReviewModel review) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AvatarWidget(
+                  imageUrl: review.user?.imageUrl,
+                  size: AvatarSize.medium,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 4,
+                    children: [
+                      Text(
+                        review.user?.name ?? 'Anonim',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary),
+                      ),
+                      Row(
+                        children: List.generate(5, (index) {
+                          return Icon(
+                            index < (review.rating ?? 0)
+                                ? Icons.star
+                                : Icons.star_border,
+                            color: AppColors.warning,
+                            size: 20,
+                          );
+                        }),
+                    ),
+                    ],
+                  ),
+                ),
+                Text(
+                  _formatDate(review.createdAt ?? DateTime.now()),
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
             ),
           ),
-        );
-      },
+          if (review.content != null) ...[
+            Text(
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              review.content!,
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
+  String? _formatPriceRange(PlaceModel place) {
+    final min = place.minPrice;
+    final max = place.maxPrice;
+    if (min == null && max == null) return null;
+    if (min != null && max != null) {
+      return 'Rp${min.toStringAsFixed(0)} - Rp${max.toStringAsFixed(0)}/orang';
+    }
+    final value = min ?? max;
+    return value != null ? 'Mulai Rp${value.toStringAsFixed(0)}' : null;
+  }
+
+  String? _formatOperatingHours(PlaceDetail? detail) {
+    if (detail == null) return null;
+    if (detail.openingHours == null || detail.closingHours == null) return null;
+    return 'Buka ${detail.openingHours} - ${detail.closingHours} WIB';
+  }
+
+  void _openMap(PlaceModel place) {
+    Get.snackbar(
+      'Petunjuk Arah',
+      'Membuka peta untuk ${place.name ?? "Lokasi"}',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void _openReservation(String? contactNumber) {
+    if (contactNumber == null) {
+      Get.snackbar(
+        'Reservasi',
+        'Kontak reservasi belum tersedia',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+    Get.snackbar(
+      'Reservasi',
+      'Menghubungi $contactNumber via WhatsApp',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void _startMission(PlaceModel place) {
+    Get.snackbar(
+      'Mulai Misi',
+      'Menyiapkan misi untuk ${place.name ?? "lokasi ini"}',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppColors.primary,
+      colorText: AppColors.textOnPrimary,
+    );
+  }
+
+  void _showMenuDialog(List<MenuItem> menu) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Menu Lengkap'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: menu.length,
+            itemBuilder: (context, index) {
+              final item = menu[index];
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.name ?? '-'),
+                subtitle: Text(item.description ?? ''),
+                trailing: Text(item.price != null
+                    ? 'Rp${item.price!.toStringAsFixed(0)}'
+                    : '-'),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFacilitiesDialog(List<String> facilities) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Fasilitas Lengkap'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: facilities
+                .map((name) => Chip(
+                      label: Text(name),
+                      backgroundColor: AppColors.surfaceContainer,
+                    ))
+                .toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllReviewsSheet(PlaceModel place) {
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.8,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Semua Ulasan',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoadingReviews) {
+                  return const Center(child: LoadingStateWidget());
+                }
+                if (controller.reviews.isEmpty) {
+                  return const NoDataEmptyState(
+                    title: 'Belum ada ulasan',
+                    subtitle: 'Jadilah yang pertama menulis ulasan',
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemBuilder: (context, index) =>
+                      _buildReviewTile(controller.reviews[index]),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemCount: controller.reviews.length,
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildSimilarPlacesSection(PlaceModel currentPlace) {
+    final similarPlaces = controller.places
+        .where((item) => item.id != currentPlace.id)
+        .take(3)
+        .toList();
+
+    if (similarPlaces.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _buildSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('Tempat Serupa Lainnya'),
+          const SizedBox(height: 12),
+          ...similarPlaces.map((place) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: place.imageUrls?.isNotEmpty == true
+                        ? NetworkImageWidget(
+                            imageUrl: place.imageUrls!.first,
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 70,
+                            height: 70,
+                            color: AppColors.surfaceContainer,
+                            child: Icon(Icons.image,
+                                color: AppColors.textSecondary),
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 4,
+                      children: [
+                        Text(
+                          place.name ?? '-',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          place.description ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                        Row(
+                        children: [
+                          Icon(Icons.star, color: AppColors.warning, size: 16),
+                          const SizedBox(width: 4),
+                          Text((place.avgRating ?? 0).toStringAsFixed(1)),
+                        ],
+                      ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({required Widget child, EdgeInsets? margin}) {
+    return Container(
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowDark,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildMissionCtaCard(PlaceModel place) {
+    return Material(
+      color: Colors.transparent,
+      elevation: 12,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadowDark,
+              blurRadius: 16,
+              offset: const Offset(-4, 0),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selesaikan Misi!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Dapatkan hadiah dengan menyelesaikan misi!',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: controller.hideMissionCta,
+                  icon: Icon(Icons.close,
+                      color: AppColors.textSecondary, size: 20),
+                  splashRadius: 18,
+                  tooltip: 'Tutup',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _startMission(place),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.textOnPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text('Mulai Misi'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required String title,
+    String? value,
+    required IconData icon,
+    Widget? trailing,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.textSecondary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (value != null)
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              else
+                SizedBox.shrink(),
+              const SizedBox(height: 4),
+              if (trailing != null) trailing,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title,
+      {VoidCallback? onSeeAll, Widget? child}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        if (child != null) child,
+        if (child == null && onSeeAll != null)
+          TextButton(
+            onPressed: onSeeAll,
+            child: Text(
+              'Lihat Selengkapnya',
+              style: TextStyle(color: AppColors.accent),
+            ),
+          ),
+      ],
+    );
+  }
 
   void _showShareDialog(PlaceModel place) {
     Get.dialog(
@@ -614,6 +1252,7 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
+  // ignore: unused_element
   void _showCheckinDialog(PlaceModel place) {
     Get.dialog(
       AlertDialog(
@@ -699,16 +1338,17 @@ class PlaceDetailView extends GetView<ExploreController> {
     // Get current location (mock coordinates for now)
     const latitude = -6.2088;
     const longitude = 106.8456;
-    
+
     await controller.createCheckin(
       placeId: place.id!,
       latitude: latitude,
       longitude: longitude,
     );
-    
+
     Get.back();
   }
 
+  // ignore: unused_element
   void _showDirections(PlaceModel place) {
     Get.snackbar(
       'Directions',
@@ -719,13 +1359,14 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
+  // ignore: unused_element
   void _showCreateReviewDialog() {
     final place = controller.selectedPlace;
     if (place == null) return;
-    
+
     final contentController = TextEditingController();
     final voteNotifier = ValueNotifier<int>(5);
-    
+
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.surface,
@@ -743,7 +1384,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                 style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
-              
+
               // Rating
               Text(
                 'Rating',
@@ -770,9 +1411,9 @@ class PlaceDetailView extends GetView<ExploreController> {
                   );
                 },
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Content
               Text(
                 'Review',
@@ -850,13 +1491,13 @@ class PlaceDetailView extends GetView<ExploreController> {
       );
       return;
     }
-    
+
     await controller.createReview(
       placeId: int.parse(placeId),
       vote: vote,
       content: content.trim(),
     );
-    
+
     Get.back();
   }
 
@@ -877,20 +1518,22 @@ class PlaceDetailView extends GetView<ExploreController> {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < (review.totalLike ?? 0) ? Icons.star : Icons.star_border,
+                    index < (review.totalLike ?? 0)
+                        ? Icons.star
+                        : Icons.star_border,
                     color: AppColors.warning,
                     size: 20,
                   );
                 }),
               ),
               const SizedBox(height: 12),
-              
+
               // Content
               Text(
                 review.content ?? 'No content',
                 style: TextStyle(color: AppColors.textPrimary),
               ),
-              
+
               // Images
               if (review.imageUrls != null && review.imageUrls!.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -916,9 +1559,9 @@ class PlaceDetailView extends GetView<ExploreController> {
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 12),
-              
+
               // Date and Status
               Row(
                 children: [
@@ -930,8 +1573,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                     ),
                   ),
                   const Spacer(),
-                  if (review.status != null)
-                    _buildStatusChip(review.status!),
+                  if (review.status != null) _buildStatusChip(review.status!),
                 ],
               ),
             ],
@@ -951,7 +1593,8 @@ class PlaceDetailView extends GetView<ExploreController> {
   }
 
   Widget _buildStatusChip(bool status) {
-    final backgroundColor = status ? AppColors.successContainer : AppColors.warningContainer;
+    final backgroundColor =
+        status ? AppColors.successContainer : AppColors.warningContainer;
     final textColor = status ? AppColors.success : AppColors.warning;
     final text = status ? 'Approved' : 'Pending';
 
@@ -1027,4 +1670,24 @@ class PlaceDetailView extends GetView<ExploreController> {
       return 'Just now';
     }
   }
+}
+
+class _ChipStyle {
+  final Color backgroundColor;
+  final IconData? icon;
+  final Color? textColor;
+  const _ChipStyle({
+    required this.backgroundColor,
+    this.icon,
+    this.textColor,
+  });
+}
+
+class _ChipColorPair {
+  final Color background;
+  final Color text;
+  const _ChipColorPair({
+    required this.background,
+    required this.text,
+  });
 }

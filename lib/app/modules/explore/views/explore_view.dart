@@ -22,12 +22,7 @@ class ExploreView extends GetView<ExploreController> {
         hintText: 'Mau makan di mana hari ini?',
         enableGlassmorphism: true,
         margin: const EdgeInsets.only(top: 16),
-        onChanged: (value) {
-          controller.searchQuery = value;
-          if (value.isNotEmpty) {
-            controller.searchPlaces(value);
-          }
-        },
+        onChanged: controller.handleSearchInput,
       ),
       slivers: [
         // Content
@@ -457,7 +452,7 @@ class ExploreView extends GetView<ExploreController> {
                 ),
             
                 // Places Grid
-                _buildPlacesGrid(),
+                _buildPlacesGrid(true),
               ],
             ),
           ),
@@ -496,7 +491,7 @@ class ExploreView extends GetView<ExploreController> {
               ),
           
               // Places Grid
-              _buildPlacesGrid(),
+              _buildPlacesGrid(false),
             ],
           ),
         ],
@@ -659,9 +654,14 @@ class ExploreView extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildPlacesGrid() {
+  Widget _buildPlacesGrid(bool isPartnership) {
     // Show maximum 4 places in horizontal scrollable list
-    final displayPlaces = controller.places.take(4).toList();
+    final displayPlaces = controller.places
+        .where((p) => (p.partnershipStatus ?? false) == isPartnership)
+        .take(4)
+        .toList();
+
+    print("displayPlaces bro: $displayPlaces");
 
     return Container(
       // decoration: BoxDecoration(

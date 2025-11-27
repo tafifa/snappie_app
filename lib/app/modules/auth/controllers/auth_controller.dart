@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:snappie_app/app/core/constants/food_type.dart';
+import 'package:snappie_app/app/core/constants/place_value.dart';
 import 'package:snappie_app/app/core/services/google_auth_service.dart';
 import 'package:snappie_app/app/routes/app_pages.dart';
 import '../../../core/services/auth_service.dart';
@@ -34,37 +36,8 @@ class AuthController extends GetxController {
   final _selectedFoodTypes = <String>[].obs;
   final _selectedPlaceValues = <String>[].obs;
 
-  // Food type options
-  final List<String> foodTypes = [
-    'Nusantara',
-    'Internasional',
-    'Seafood',
-    'Kafein',
-    'Non-Kafein',
-    'Vegetarian',
-    'Dessert',
-    'Makanan Ringan',
-    'Pastry',
-  ];
-
-  // Place value options
-  final List<String> placeValues = [
-    'Harga Terjangkau',
-    'Rasa Autentik',
-    'Menu Bervariasi',
-    'Buka 24 Jam',
-    'Jaringan Lancar',
-    'Estetika',
-    'Suasana Tenang',
-    'Suasana Tradisional',
-    'Suasana Homey',
-    'Pet Friendly',
-    'Ramah Keluarga',
-    'Pelayanan Ramah',
-    'Cocok untuk Nongkrong',
-    'Cocok untuk Work From Cafe',
-    'Tempat Bersejarah',
-  ];
+  List<String> get foodTypes => FoodTypeExtension.allLabels;
+  List<String> get placeValues => PlaceValueExtension.allLabels;
 
   bool get isLoading => _isLoading.value;
   bool get isLoggedIn => _isLoggedIn.value;

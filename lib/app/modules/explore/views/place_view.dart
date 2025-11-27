@@ -449,13 +449,10 @@ class PlaceView extends GetView<ExploreController> {
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () {
-               final exploreController = Get.find<ExploreController>();
-               // Set selectedImageUrls to current place images
-               exploreController.selectPlace(place);
                FullscreenImageViewer.show(
                  context: context,
-                 controller: exploreController,
-                 imageIndex: index,
+                 imageUrls: imageUrls,
+                 initialIndex: index,
                );
              },
             child: Container(

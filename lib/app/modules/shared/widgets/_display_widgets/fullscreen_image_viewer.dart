@@ -2,30 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/modules/shared/widgets/_display_widgets/avatar_widget.dart';
-import 'package:snappie_app/app/modules/home/controllers/home_controller.dart';
-import 'package:snappie_app/app/modules/explore/controllers/explore_controller.dart';
+import 'package:snappie_app/app/data/models/post_model.dart';
 
 class FullscreenImageViewer {
-  static String _getImageUrl(dynamic controller, int imageIndex) {
-    if (controller is HomeController) {
-      final urls = controller.selectedImageUrls;
-      if (urls != null && imageIndex < urls.length) {
-        return urls[imageIndex];
-      }
-    } else if (controller is ExploreController) {
-      final urls = controller.selectedImageUrls;
-      if (urls != null && imageIndex < urls.length) {
-        return urls[imageIndex];
-      }
-    }
-    return '';
-  }
-
+  /// Show fullscreen image viewer with a list of image URLs.
+  /// 
+  /// [imageUrls] - List of image URLs to display
+  /// [initialIndex] - Starting index in the image list (default: 0)
+  /// [postOverlay] - Optional PostModel to show user info overlay (for social posts)
   static void show({
     required BuildContext context,
-    final controller,
-    int imageIndex = 0,
+    required List<String> imageUrls,
+    int initialIndex = 0,
+    PostModel? postOverlay,
   }) {
+    if (imageUrls.isEmpty) return;
+    
+    final safeIndex = initialIndex.clamp(0, imageUrls.length - 1);
     // Hide system UI for true fullscreen
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
@@ -51,7 +44,7 @@ class FullscreenImageViewer {
                 maxScale: 4.0,
                 child: Center(
                   child: Image.network(
-                    _getImageUrl(controller, imageIndex),
+                    imageUrls[safeIndex],
                     fit: BoxFit.contain,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -102,8 +95,8 @@ class FullscreenImageViewer {
               ),
             ),
 
-            // User info overlay, display only if controller has selectedPost (HomeController)
-            if (controller is HomeController && controller.selectedPost != null)
+            // User info overlay for social posts
+            if (postOverlay != null)
               Positioned(
                 bottom: MediaQuery.of(context).padding.bottom + 20,
                 left: 20,
@@ -117,8 +110,7 @@ class FullscreenImageViewer {
                   child: Row(
                     children: [
                       AvatarWidget(
-                        imageUrl:
-                            (controller as HomeController).selectedPost?.user?.imageUrl ?? '',
+                        imageUrl: postOverlay.user?.imageUrl ?? '',
                         size: AvatarSize.small,
                       ),
                       const SizedBox(width: 12),
@@ -129,7 +121,7 @@ class FullscreenImageViewer {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              (controller as HomeController).selectedPost?.user?.name ?? '',
+                              postOverlay.user?.name ?? '',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -138,7 +130,7 @@ class FullscreenImageViewer {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              (controller as HomeController).selectedPost?.place?.name ?? '',
+                              postOverlay.place?.name ?? '',
                               style: TextStyle(
                                 color: Colors.grey[300],
                                 fontSize: 12,
@@ -151,64 +143,52 @@ class FullscreenImageViewer {
                       Row(
                         children: [
                           // Like button
-                          Obx(() {
-                            final homeController = controller as HomeController;
-                            final postData = homeController.posts.firstWhere(
-                                (p) => p.id == homeController.selectedPost?.id);
-                            return GestureDetector(
-                              onTap: () {}, // Remove onLikeTap as it doesn't exist
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    // post.isLiked ? Icons.favorite : Icons.favorite_border,
-                                    // color: post.isLiked ? Colors.red : Colors.white,
-                                    Icons.favorite,
-                                    color: Colors.red,
-                                    size: 20,
+                          GestureDetector(
+                            onTap: () {},
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.favorite,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${postOverlay.likesCount ?? 0}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${postData.likesCount}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(width: 20),
                           // Comment button
-                          Obx(() {
-                            final homeController = controller as HomeController;
-                            final postData = homeController.posts.firstWhere(
-                                (p) => p.id == homeController.selectedPost?.id);
-                            return GestureDetector(
-                              onTap: () {}, // Remove onCommentTap as it doesn't exist
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.chat_bubble_outline,
+                          GestureDetector(
+                            onTap: () {},
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.chat_bubble_outline,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${postOverlay.commentsCount ?? 0}',
+                                  style: const TextStyle(
                                     color: Colors.white,
-                                    size: 20,
+                                    fontSize: 14,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${postData.commentsCount}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(width: 20),
                           // Share button
                           GestureDetector(
-                            onTap: () {}, // Remove onShareTap as it doesn't exist
+                            onTap: () {},
                             child: const Icon(
                               Icons.share_outlined,
                               color: Colors.white,

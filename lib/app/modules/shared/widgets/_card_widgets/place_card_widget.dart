@@ -12,7 +12,7 @@ enum CardSize {
 
 class CardConfig {
   final double imageHeight;
-  final double contentPadding;
+  final EdgeInsets contentPadding;
   final double titleFontSize;
   final int titleMaxLines;
   final double descriptionFontSize;
@@ -69,7 +69,7 @@ class PlaceCardWidget extends StatelessWidget {
       case CardSize.small:
         return CardConfig(
           imageHeight: 80,
-          contentPadding: 8,
+          contentPadding: const EdgeInsets.all(8),
           titleFontSize: 14,
           titleMaxLines: 1,
           descriptionFontSize: 10,
@@ -85,7 +85,7 @@ class PlaceCardWidget extends StatelessWidget {
       case CardSize.large:
         return CardConfig(
           imageHeight: 100,
-          contentPadding: 8,
+          contentPadding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
           titleFontSize: 16,
           titleMaxLines: 1,
           descriptionFontSize: 12,
@@ -101,7 +101,7 @@ class PlaceCardWidget extends StatelessWidget {
       case CardSize.fullWidth:
         return CardConfig(
           imageHeight: 100,
-          contentPadding: 8,
+          contentPadding: const EdgeInsets.all(8),
           titleFontSize: 16,
           titleMaxLines: 1,
           descriptionFontSize: 12,
@@ -134,7 +134,7 @@ class PlaceCardWidget extends StatelessWidget {
       child: GestureDetector(
         onTap: () => Get.toNamed(AppPages.PLACE_DETAIL, arguments: place),
         child: Container(
-          padding: padding ?? EdgeInsets.all(cardConfig.contentPadding),
+          padding: padding ?? cardConfig.contentPadding,
           decoration: BoxDecoration(
             color: backgroundColor ?? AppColors.background,
             borderRadius: BorderRadius.circular(cardConfig.borderRadius),
@@ -216,7 +216,7 @@ class PlaceCardWidget extends StatelessWidget {
 
   Widget _buildContentSection(CardConfig config) {
     return Padding(
-      padding: EdgeInsets.all(config.contentPadding),
+      padding: config.contentPadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

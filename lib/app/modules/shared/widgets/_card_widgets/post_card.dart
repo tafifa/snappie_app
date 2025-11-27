@@ -118,69 +118,67 @@ class PostCard extends StatelessWidget {
 
   Widget _buildPostImage(BuildContext context) {
     // Use first image from imageUrls array
-    // final imageUrl = (post.imageUrls != null && post.imageUrls!.isNotEmpty) ? post.imageUrls!.first : null;
-    final imageUrl = 'https://statik.tempo.co/data/2023/12/19/id_1264597/1264597_720.jpg';
-    
-    if (imageUrl == null) return const SizedBox.shrink();
+    // final imageUrl = (post.imageUrls != null && post.imageUrls!.isNotEmpty) ? post.imageUrls!.first : 'https://statik.tempo.co/data/2023/12/19/id_1264597/1264597_720.jpg';
+    //  final imageUrls = post.imageUrls ?? [];
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
-          onTap: () {
-            final homeController = Get.find<HomeController>();
-            homeController.selectPost(post);
-            FullscreenImageViewer.show(
-              context: context,
-              controller: homeController,
-              imageIndex: 0, // Single image, so index is 0
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(
-              maxHeight: 400, // Limit maximum height to prevent overflow
-            ),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-            ),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.cover, // Changed from fill to cover for better aspect ratio
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  height: 300,
-                  color: Colors.grey[200],
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                      strokeWidth: 2,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 200,
-                  padding: const EdgeInsets.all(20),
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.grey,
-                      size: 40,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+        // GestureDetector(
+        //   onTap: () {
+        //     FullscreenImageViewer.show(
+        //       context: context,
+        //       imageUrls: post.imageUrls ?? [imageUrl],
+        //       initialIndex: 0,
+        //       postOverlay: post,
+        //     );
+        //   },
+        //   child: Container(
+        //     width: double.infinity,
+        //     constraints: const BoxConstraints(
+        //       maxHeight: 400, // Limit maximum height to prevent overflow
+        //     ),
+        //     decoration: BoxDecoration(
+        //       color: Colors.grey[200],
+        //     ),
+        //     child: Image.network(
+        //       imageUrl,
+        //       fit: BoxFit.cover, // Changed from fill to cover for better aspect ratio
+        //       loadingBuilder: (context, child, loadingProgress) {
+        //         if (loadingProgress == null) return child;
+        //         return Container(
+        //           height: 300,
+        //           color: Colors.grey[200],
+        //           child: Center(
+        //             child: CircularProgressIndicator(
+        //               value: loadingProgress.expectedTotalBytes != null
+        //                   ? loadingProgress.cumulativeBytesLoaded /
+        //                       loadingProgress.expectedTotalBytes!
+        //                   : null,
+        //               strokeWidth: 2,
+        //               color: Colors.grey[400],
+        //             ),
+        //           ),
+        //         );
+        //       },
+        //       errorBuilder: (context, error, stackTrace) {
+        //         return Container(
+        //           height: 200,
+        //           padding: const EdgeInsets.all(20),
+        //           color: Colors.grey[200],
+        //           child: const Center(
+        //             child: Icon(
+        //               Icons.image_not_supported_outlined,
+        //               color: Colors.grey,
+        //               size: 40,
+        //             ),
+        //           ),
+        //         );
+        //       },
+        //     ),
+        //   ),
+        // ),
+        _buildImageSection(context, post),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -210,6 +208,126 @@ class PostCard extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildImageSection(BuildContext context, PostModel? post) {
+    double imageHeight = 300;
+    final imageUrls = post?.imageUrls ?? [];
+    print("imageUrls: $imageUrls");
+    
+    // If no images, show placeholder
+    if (imageUrls.isEmpty) {
+      return Container(
+        height: imageHeight,
+        width: double.infinity,
+        color: AppColors.background,
+        child: Center(
+          child: Icon(
+            Icons.restaurant,
+            color: AppColors.textTertiary,
+            size: imageHeight * 0.3,
+          ),
+        ),
+      );
+    }
+
+    // If only one image, show it without carousel
+    if (imageUrls.length == 1) {
+      return Container(
+        height: imageHeight,
+        width: double.infinity,
+        child: ClipRRect(
+          child: Image.network(
+            imageUrls.first,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: AppColors.background,
+                child: Center(
+                  child: Icon(
+                    Icons.restaurant,
+                    color: AppColors.textTertiary,
+                    size: imageHeight * 0.3,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    // Multiple images - show carousel
+    final PageController pageController = PageController();
+    final RxInt currentImageIndex = 0.obs;
+    
+    return Container(
+      height: imageHeight,
+      child: PageView.builder(
+        controller: pageController,
+        itemCount: imageUrls.length,
+        onPageChanged: (index) => currentImageIndex.value = index,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () {
+               FullscreenImageViewer.show(
+                 context: context,
+                 imageUrls: imageUrls,
+                 initialIndex: index,
+               );
+             },
+            child: Container(
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    child: Image.network(
+                      imageUrls[index],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: imageHeight,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.background,
+                          child: Center(
+                            child: Icon(
+                              Icons.restaurant,
+                              color: AppColors.textTertiary,
+                              size: imageHeight * 0.3,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Image counter overlay
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${index + 1}/${imageUrls.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            );
+          },
+        ),
+      );
+  }
+
 
   Widget _buildPostActions() {
     return Padding(

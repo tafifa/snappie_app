@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get/get_connect/http/src/utils/utils.dart';
 import '../controllers/explore_controller.dart';
 import '../../shared/widgets/index.dart';
 import '../../../data/models/place_model.dart';
@@ -93,7 +92,7 @@ class PlaceDetailView extends GetView<ExploreController> {
                             ),
                           _buildInfoCard(place),
                           if ((place.menu?.isNotEmpty ?? false))
-                            _buildMenuSection(place.menu!),
+                            _buildMenuSection(context, place.menu!),
                           if (_getFacilityChips(place).isNotEmpty)
                             _buildFacilitySection(_getFacilityChips(place)),
                           _buildGallerySection(context, place),
@@ -184,13 +183,10 @@ class PlaceDetailView extends GetView<ExploreController> {
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () {
-               final exploreController = Get.find<ExploreController>();
-               // Set selectedImageUrls to current place images
-               exploreController.selectPlace(place);
                FullscreenImageViewer.show(
                  context: context,
-                 controller: exploreController,
-                 imageIndex: index,
+                 imageUrls: imageUrls,
+                 initialIndex: index,
                );
              },
             child: Container(
@@ -502,7 +498,7 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildMenuSection(List<MenuItem> menu) {
+  Widget _buildMenuSection(BuildContext context, List<MenuItem> menu) {
     return _buildSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,13 +663,10 @@ class PlaceDetailView extends GetView<ExploreController> {
                       ),
                     ),
                     onTap: () {
-                      final exploreController = Get.find<ExploreController>();
-                      // Set selectedImageUrls to current place images
-                      exploreController.selectPlace(place);
                       FullscreenImageViewer.show(
                         context: context,
-                        controller: exploreController,
-                        imageIndex: index,
+                        imageUrls: photos,
+                        initialIndex: index,
                       );
                     },
                   );

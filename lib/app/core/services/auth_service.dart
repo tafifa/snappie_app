@@ -100,6 +100,7 @@ class AuthService extends GetxService {
       final requestUrl = ApiEndpoints.getFullUrl(endpoint);
 
       try {
+        print('🔄 Attempting refresh with token: ${_refreshToken?.substring(0, 10)}...');
         final response = await dioClient.dio.post(
           requestUrl,
           data: {'refresh_token': _refreshToken},
@@ -177,10 +178,14 @@ class AuthService extends GetxService {
       final prefs = await SharedPreferences.getInstance();
       _token = prefs.getString(_tokenKey);
       _userEmail = prefs.getString(_userEmailKey);
-        _refreshToken = prefs.getString(_refreshTokenKey);
-        _tokenExpiry = _parseStoredDate(prefs.getString(_tokenExpiryKey));
-        _refreshTokenExpiry =
+      _refreshToken = prefs.getString(_refreshTokenKey);
+      _tokenExpiry = _parseStoredDate(prefs.getString(_tokenExpiryKey));
+      _refreshTokenExpiry =
           _parseStoredDate(prefs.getString(_refreshTokenExpiryKey));
+      
+      print('🔑 Loaded refresh token: ${_refreshToken != null ? "${_refreshToken!.substring(0, 10)}..." : "null"}');
+      print('⏰ Token expiry: $_tokenExpiry');
+      print('⏰ Refresh token expiry: $_refreshTokenExpiry');
       final userDataString = prefs.getString(_userDataKey);
 
       if (userDataString != null && userDataString.isNotEmpty) {
@@ -246,20 +251,26 @@ class AuthService extends GetxService {
         final data = extractApiResponseData(response,
             (json) => Map<String, dynamic>.from(json as Map<String, dynamic>));
 
+        print('🔐 LOGIN RESPONSE DATA KEYS: ${data.keys.toList()}');
+        print('🔐 refresh_token in response: ${data['refresh_token'] != null}');
+        
         final Map<String, dynamic>? userData = data['user'] == null
             ? null
             : Map<String, dynamic>.from(data['user'] as Map<String, dynamic>);
         final token = data['token'] as String?;
+        final refreshTokenFromResponse = data['refresh_token'] as String?;
 
         if (token == null || token.isEmpty) {
           return false;
         }
 
+        print('🔐 Token received: ${token.substring(0, 10)}...');
+        print('🔐 Refresh token received: ${refreshTokenFromResponse != null ? "${refreshTokenFromResponse.substring(0, 10)}..." : "NULL"}');
+
         await _saveAuthSession(
           token: token,
           userPayload: userData,
-          refreshToken:
-              (data['refresh_token'] as String?) ?? _refreshToken,
+          refreshToken: refreshTokenFromResponse,
           tokenExpiry: _parseStoredDate(data['expires_at'] as String?),
           refreshTokenExpiry:
               _parseStoredDate(data['refresh_token_expires_at'] as String?),
@@ -486,8 +497,10 @@ class AuthService extends GetxService {
 
     if (refreshToken != null && refreshToken.isNotEmpty) {
       await prefs.setString(_refreshTokenKey, refreshToken);
+      print('🔑 Saved refresh token: ${refreshToken.substring(0, 10)}...');
     } else {
       await prefs.remove(_refreshTokenKey);
+      print('⚠️ No refresh token to save');
     }
 
     await _persistDateTime(prefs, _tokenExpiryKey, tokenExpiry);

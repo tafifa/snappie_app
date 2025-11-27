@@ -64,7 +64,7 @@ class ScaffoldFrame extends StatelessWidget {
     );
 
     return Scaffold(
-        backgroundColor: AppColors.surfaceContainer,
+        backgroundColor: AppColors.background,
         body: RefreshIndicator(
         onRefresh: () async {
           await controller.refreshData();

@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:snappie_app/app/modules/explore/views/place_view.dart';
 import 'package:snappie_app/app/modules/profile/views/profile_view.dart';
 import 'package:snappie_app/app/modules/profile/views/user_profile_view.dart';
 import 'package:snappie_app/app/modules/shared/components/tnc_view.dart';
@@ -82,7 +81,7 @@ class AppPages {
     // Explore detail pages - full screen navigation dari tab explore
     GetPage(
       name: PLACE_DETAIL,
-      page: () => const PlaceView(),
+      page: () => const PlaceDetailView(),
       binding: ExploreBinding(),
     ),
     GetPage(

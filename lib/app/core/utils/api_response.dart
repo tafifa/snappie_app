@@ -137,7 +137,6 @@ class ApiResponse<T> {
     final rawData = json['data'];
     List<T>? parsedList;
     Map<String, dynamic>? paginationData;
-    print("rawData: $rawData");
 
     if (rawData != null) {
       // Check if it's Laravel pagination format (data is a Map with nested 'data')
@@ -163,6 +162,28 @@ class ApiResponse<T> {
 
         // Extract pagination info from rawData (excluding 'data' key)
         paginationData = Map<String, dynamic>.from(rawData)..remove('data');
+      } 
+      // Support format where list is under 'items'
+      else if (rawData is Map<String, dynamic> && rawData.containsKey('items')) {
+        final nestedItems = rawData['items'];
+
+        if (nestedItems is! List) {
+          throw ApiResponseParseException(
+            'Expected nested items to be a List, got ${nestedItems.runtimeType}',
+            json,
+          );
+        }
+
+        try {
+          parsedList = nestedItems.map((item) => itemParser(item)).toList() as List<T>?;
+        } catch (e) {
+          throw ApiResponseParseException(
+            'Failed to parse list items: $e',
+            json,
+          );
+        }
+
+        paginationData = Map<String, dynamic>.from(rawData)..remove('items');
       } 
       // Simple list format
       else if (rawData is List) {

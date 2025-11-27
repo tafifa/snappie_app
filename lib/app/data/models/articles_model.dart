@@ -12,19 +12,12 @@ class ArticlesModel {
   @Index(unique: true, replace: true)
   int? id;
 
-  @Index() @JsonKey(name: 'user_id')  int? userId;
-  @Index() @JsonKey(name: 'place_id') int? placeId;
-
+  String? author;
   String? title;
-  String? content;
   String? category;
+  String? description;
   @JsonKey(name: 'image_url') String? imageUrl;
-  String? url; // External URL to the article website
-  @JsonKey(name: 'likes_count') int? likesCount;
-  @JsonKey(name: 'comments_count') int? commentsCount;
-
-  @JsonKey(name: 'user') 
-  UserArticle? user;
+  String? link; 
 
   @JsonKey(name: 'created_at') DateTime? createdAt;
   @JsonKey(name: 'updated_at') DateTime? updatedAt;
@@ -34,19 +27,4 @@ class ArticlesModel {
   factory ArticlesModel.fromJson(Map<String, dynamic> json) => _$ArticlesModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$ArticlesModelToJson(this);
-}
-
-@JsonSerializable(explicitToJson: true)
-@embedded
-class UserArticle {
-  int? id;
-  String? name;
-  String? email;
-  @JsonKey(name: 'image_url') String? imageUrl;
-
-  UserArticle();
-
-  factory UserArticle.fromJson(Map<String, dynamic> json) => _$UserArticleFromJson(json);
-
-  Map<String, dynamic> toJson() => _$UserArticleToJson(this);
 }

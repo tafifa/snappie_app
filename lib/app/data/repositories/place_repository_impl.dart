@@ -9,12 +9,12 @@ import '../models/place_model.dart';
 class PlaceRepository {
   final PlaceRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
-  
+
   PlaceRepository({
     required this.remoteDataSource,
     required this.networkInfo,
   });
-  
+
   /// Get places with pagination and optional filters
   /// Returns cached data if available and not expired (< 15 minutes)
   /// Throws: [ServerException], [NetworkException], [CacheException]
@@ -22,10 +22,9 @@ class PlaceRepository {
     List<String>? foodTypes,
     List<String>? placeValues,
     int perPage = 20,
+    int page = 1,
     String? search,
     double? minRating,
-    int? minPrice,
-    int? maxPrice,
     double? latitude,
     double? longitude,
     double? radius,
@@ -41,10 +40,9 @@ class PlaceRepository {
       foodTypes: foodTypes,
       placeValues: placeValues,
       perPage: perPage,
+      page: page,
       search: search,
       minRating: minRating,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
       latitude: latitude,
       longitude: longitude,
       radius: radius,

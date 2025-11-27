@@ -7,13 +7,12 @@ import 'package:snappie_app/app/core/helpers/json_mapping_helper.dart';
 import '../../models/post_model.dart';
 
 abstract class PostRemoteDataSource {
-  Future<List<PostModel>> getPosts({int perPage});
+  Future<List<PostModel>> getPosts({
+    int? page,
+    bool? trending,
+    bool? following,
+  });
   Future<PostModel> getPostById(int id);
-  // Future<List<PostModel>> getFeedPosts({int perPage});
-  // Future<List<PostModel>> getTrendingPosts({int perPage});
-  // Future<PostModel> createPost(PostModel post);
-  // Future<PostModel> updatePost(PostModel post);
-  // Future<void> deletePost(int id);
 }
 
 class PostRemoteDataSourceImpl implements PostRemoteDataSource {
@@ -21,10 +20,18 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   PostRemoteDataSourceImpl(this.dioClient);
 
   @override
-  Future<List<PostModel>> getPosts({int perPage = 10}) async {
+  Future<List<PostModel>> getPosts({
+    int? perPage = 10,
+    int? page = 1,
+    bool? trending = false,
+    bool? following = false,
+  }) async {
     try {
       final queryParams = <String, dynamic>{
         'per_page': perPage,
+        'page': page,
+        'trending': trending,
+        'following': following,
       };
 
       final response = await dioClient.dio.get(
@@ -32,13 +39,12 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
         queryParameters: queryParams,
       );
 
-      print("postResponse: $response");
-
       return extractApiResponseListData<PostModel>(
         response,
         (json) {
           final raw = Map<String, dynamic>.from(json as Map<String, dynamic>);
-          final postJson = flattenAdditionalInfoForPost(raw, removeContainer: false);
+          final postJson =
+              flattenAdditionalInfoForPost(raw, removeContainer: false);
           return PostModel.fromJson(postJson);
         },
       );
@@ -60,7 +66,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
   Future<PostModel> getPostById(int id) async {
     try {
       final response = await dioClient.dio.get(
-        ApiEndpoints.replaceId(ApiEndpoints.articleDetail, '$id'),
+        ApiEndpoints.replaceId(ApiEndpoints.postDetail, '$id'),
       );
 
       return extractApiResponseData<PostModel>(

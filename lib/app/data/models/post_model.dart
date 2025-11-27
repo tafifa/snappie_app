@@ -14,29 +14,47 @@ class PostModel {
   @Index(unique: true, replace: true)
   int? id;
 
-  @Index() @JsonKey(name: 'user_id')  int? userId;
-  @Index() @JsonKey(name: 'place_id') int? placeId;
+  @Index()
+  @JsonKey(name: 'user_id')
+  int? userId;
+  @Index()
+  @JsonKey(name: 'place_id')
+  int? placeId;
 
-  @JsonKey(name: 'image_urls')        List<String>? imageUrls;
+  @JsonKey(name: 'image_urls')
+  List<String>? imageUrls;
+
   String? content;
+
+  @JsonKey(name: 'total_like')
+  int? likesCount;
+
+  @JsonKey(name: 'total_comment')
+  int? commentsCount;
+
+  @JsonKey(name: 'created_at')
+  DateTime? createdAt;
+
+  @JsonKey(name: 'updated_at')
+  DateTime? updatedAt;
+
   bool? status;
 
-  @JsonKey(name: 'likes_count')       int? likesCount;
-  @JsonKey(name: 'comments_count')    int? commentsCount;
-
-  @JsonKey(name: 'created_at')        DateTime? createdAt;
-  @JsonKey(name: 'updated_at')        DateTime? updatedAt;
-
-  @JsonKey(name: 'user')              UserPost? user;
-  @JsonKey(name: 'place')             PlacePost? place;
+  @JsonKey(name: 'user')
+  UserPost? user;
+  @JsonKey(name: 'place')
+  PlacePost? place;
   @ignore
-  @JsonKey(name: 'likes')             List<LikeModel>? likes;
+  @JsonKey(name: 'likes')
+  List<LikeModel>? likes;
   @ignore
-  @JsonKey(name: 'comments')          List<CommentModel>? comments;
+  @JsonKey(name: 'comments')
+  List<CommentModel>? comments;
 
   PostModel();
 
-  factory PostModel.fromJson(Map<String, dynamic> json) => _$PostModelFromJson(json);
+  factory PostModel.fromJson(Map<String, dynamic> json) =>
+      _$PostModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$PostModelToJson(this);
 }
@@ -46,7 +64,8 @@ class PostModel {
 class UserPost {
   int? id;
   String? name;
-  @JsonKey(name: 'image_url') String? imageUrl;
+  @JsonKey(name: 'image_url')
+  String? imageUrl;
 
   UserPost();
 

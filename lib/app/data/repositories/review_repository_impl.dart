@@ -6,7 +6,7 @@ import '../datasources/remote/review_remote_datasource.dart';
 
 /// Review Repository - No domain layer, direct Model return
 /// Throws exceptions instead of returning Either<Failure, T>
-/// 
+///
 /// Note: ReviewModel needs to be created if it doesn't exist
 class ReviewRepository {
   final ReviewRemoteDataSource remoteDataSource;
@@ -23,6 +23,7 @@ class ReviewRepository {
     required int placeId,
     required String content,
     required int rating,
+    required Map<String, dynamic> additionalInfo,
     List<String>? imageUrls,
   }) async {
     if (!await networkInfo.isConnected) {
@@ -33,6 +34,7 @@ class ReviewRepository {
       placeId: placeId,
       content: content,
       rating: rating,
+      additionalInfo: additionalInfo,
       imageUrls: imageUrls,
     );
   }

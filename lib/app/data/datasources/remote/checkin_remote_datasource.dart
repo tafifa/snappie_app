@@ -10,7 +10,7 @@ abstract class CheckinRemoteDataSource {
     required int placeId,
     required double latitude,
     required double longitude,
-    String? imageUrl,
+    required Map<String, dynamic> additionalInfo,
   });
 }
 
@@ -24,15 +24,14 @@ class CheckinRemoteDataSourceImpl implements CheckinRemoteDataSource {
     required int placeId,
     required double latitude,
     required double longitude,
-    String? imageUrl,
-    Map<String, dynamic>? additionalInfo,
+    required Map<String, dynamic> additionalInfo,
   }) async {
     try {
       final payload = {
         'place_id': placeId,
         'latitude': latitude,
         'longitude': longitude,
-        if (imageUrl != null) 'image_url': imageUrl,
+        'additional_info': additionalInfo,
       };
 
       final response = await dioClient.dio.post(

@@ -20,19 +20,19 @@ class CheckinRepository {
     required int placeId,
     required double latitude,
     required double longitude,
-    String? imageUrl,
+    required Map<String, dynamic> additionalInfo,
   }) async {
     if (!(await networkInfo.isConnected)) {
       throw NetworkException('No internet connection');
     }
-    
+
     final checkin = await remoteDataSource.createCheckin(
       placeId: placeId,
       latitude: latitude,
       longitude: longitude,
-      imageUrl: imageUrl,
+      additionalInfo: additionalInfo,
     );
-    
+
     return checkin;
   }
 }

@@ -57,6 +57,8 @@ class UserRepository {
   ///
   /// Throws: [NetworkException], [ValidationException], [AuthenticationException], [ServerException]
   Future<UserModel> updateUserProfile({
+    String? username,
+    String? email,
     String? name,
     String? gender,
     String? imageUrl,
@@ -65,7 +67,9 @@ class UserRepository {
     String? phone,
     DateTime? dateOfBirth,
     String? bio,
-    Map<String, dynamic>? userSettings,     // { language, theme }
+    Map<String, dynamic>? privacySettings,
+    Map<String, dynamic>? notificationPreferences,
+    Map<String, dynamic>? userSettings, // { language, theme }
     Map<String, dynamic>? userNotification, // { push_notification }
   }) async {
     if (!await networkInfo.isConnected) {
@@ -73,6 +77,8 @@ class UserRepository {
     }
 
     final updated = await remoteDataSource.updateUserProfile(
+      username: username,
+      email: email,
       name: name,
       gender: gender,
       imageUrl: imageUrl,
@@ -81,6 +87,8 @@ class UserRepository {
       phone: phone,
       dateOfBirth: dateOfBirth,
       bio: bio,
+      privacySettings: privacySettings,
+      notificationPreferences: notificationPreferences,
       userSettings: userSettings,
       userNotification: userNotification,
     );

@@ -14,15 +14,22 @@ class PostRepository {
     required this.networkInfo,
   });
 
-
   /// Get all posts
   /// Throws: [NetworkException], [ServerException]
-  Future<List<PostModel>> getPosts() async {
+  Future<List<PostModel>> getPosts({
+    int page = 1,
+    bool trending = false,
+    bool following = false,
+  }) async {
     if (!(await networkInfo.isConnected)) {
       throw NetworkException('No internet connection');
     }
 
-    final posts = await remoteDataSource.getPosts();
+    final posts = await remoteDataSource.getPosts(
+      page: page,
+      trending: trending,
+      following: following,
+    );
     return posts;
   }
 

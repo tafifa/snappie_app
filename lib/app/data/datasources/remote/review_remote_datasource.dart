@@ -10,6 +10,7 @@ abstract class ReviewRemoteDataSource {
     required int placeId,
     required String content,
     required int rating,
+    required Map<String, dynamic> additionalInfo,
     List<String>? imageUrls,
   });
 
@@ -26,6 +27,7 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
     required int placeId,
     required String content,
     required int rating,
+    required Map<String, dynamic> additionalInfo,
     List<String>? imageUrls,
   }) async {
     try {
@@ -33,6 +35,7 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
         'place_id': placeId,
         'content': content,
         'rating': rating,
+        'additional_info': additionalInfo,
       };
 
       if (imageUrls != null && imageUrls.isNotEmpty) {
@@ -71,8 +74,7 @@ class ReviewRemoteDataSourceImpl implements ReviewRemoteDataSource {
   @override
   Future<List<ReviewModel>> getPlaceReviews(int placeId) async {
     try {
-      final response = await dioClient.dio
-          .get(ApiEndpoints.replaceId(ApiEndpoints.placeReviews, '$placeId'));
+      final response = await dioClient.dio.get(ApiEndpoints.replaceId(ApiEndpoints.placeReviews, '$placeId'));
 
       return extractApiResponseListData<ReviewModel>(
         response,

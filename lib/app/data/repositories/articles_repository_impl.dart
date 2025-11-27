@@ -14,15 +14,14 @@ class ArticlesRepository {
     required this.networkInfo,
   });
 
-  
   /// Get all articles
   /// Throws: [NetworkException], [ServerException]
-  Future<List<ArticlesModel>> getArticles() async {
+  Future<List<ArticlesModel>> getArticles({int page = 1}) async {
     if (!(await networkInfo.isConnected)) {
       throw NetworkException('No internet connection');
     }
-    
-    final articles = await remoteDataSource.getArticles();
+
+    final articles = await remoteDataSource.getArticles(page: page);
     return articles;
   }
 
@@ -32,7 +31,7 @@ class ArticlesRepository {
     if (!(await networkInfo.isConnected)) {
       throw NetworkException('No internet connection');
     }
-    
+
     final article = await remoteDataSource.getArticleById(id);
     return article;
   }

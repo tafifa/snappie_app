@@ -9,10 +9,10 @@ abstract class ArticlesRemoteDataSource {
   Future<List<ArticlesModel>> getArticles({
     String? search,
     String? category,
-    int? authorId,
-    int perPage,
+    int? perPage,
+    int? page,
   });
-  
+
   Future<ArticlesModel> getArticleById(int id);
 }
 
@@ -25,24 +25,22 @@ class ArticlesRemoteDataSourceImpl implements ArticlesRemoteDataSource {
   Future<List<ArticlesModel>> getArticles({
     String? search,
     String? category,
-    int? authorId,
-    int perPage = 20,
+    int? perPage = 20,
+    int? page = 1,
   }) async {
     try {
       final queryParams = <String, dynamic>{
         'per_page': perPage,
+        'page': page,
       };
-      
+
       if (category != null) queryParams['category'] = category;
       if (search != null) queryParams['search'] = search;
-      if (authorId != null) queryParams['author'] = authorId;
 
       final response = await dioClient.dio.get(
         ApiEndpoints.articles,
         queryParameters: queryParams,
       );
-
-      print(response.data);
 
       return extractApiResponseListData<ArticlesModel>(
         response,

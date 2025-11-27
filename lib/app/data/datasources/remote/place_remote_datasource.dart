@@ -10,11 +10,10 @@ abstract class PlaceRemoteDataSource {
   Future<List<PlaceModel>> getPlaces({
     List<String>? foodTypes,
     List<String>? placeValues,
-    int perPage,
+    int? perPage,
+    int? page,
     String? search,
     double? minRating,
-    int? minPrice,
-    int? maxPrice,
     double? latitude,
     double? longitude,
     double? radius,
@@ -35,11 +34,10 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
   Future<List<PlaceModel>> getPlaces({
     List<String>? foodTypes,
     List<String>? placeValues,
-    int perPage = 20,
+    int? perPage = 20,
+    int? page = 1,
     String? search,
     double? minRating,
-    int? minPrice,
-    int? maxPrice,
     double? latitude,
     double? longitude,
     double? radius,
@@ -50,6 +48,7 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
     try {
       final queryParams = <String, dynamic>{
         'per_page': perPage,
+        'page': page,
       };
       if (foodTypes != null && foodTypes.isNotEmpty) {
         queryParams['food_type'] = foodTypes;
@@ -59,8 +58,6 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
       }
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
       if (minRating != null) queryParams['min_rating'] = minRating;
-      if (minPrice != null) queryParams['min_price'] = minPrice;
-      if (maxPrice != null) queryParams['max_price'] = maxPrice;
       if (latitude != null && longitude != null) {
         queryParams['latitude'] = latitude;
         queryParams['longitude'] = longitude;
@@ -74,8 +71,6 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
         ApiEndpoints.places,
         queryParameters: queryParams,
       );
-
-      print("placeResponse: $response");
 
       return extractApiResponseListData<PlaceModel>(
         response,
@@ -112,7 +107,8 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
         response,
         (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
       );
-      final placeJson = flattenAdditionalInfoForPlace(raw, removeContainer: false);
+      final placeJson =
+          flattenAdditionalInfoForPlace(raw, removeContainer: false);
       return PlaceModel.fromJson(placeJson);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {

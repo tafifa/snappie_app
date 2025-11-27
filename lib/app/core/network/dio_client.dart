@@ -4,6 +4,9 @@ import '../services/auth_service.dart';
 import '../constants/app_constants.dart';
 
 class DioClient {
+  static const String skipAuthRefreshKey = 'skip_auth_refresh';
+  static const String retryAttemptedKey = 'token_retry_attempted';
+
   late Dio _dio;
   
   DioClient() {
@@ -27,7 +30,7 @@ class DioClient {
     _dio.interceptors.addAll([
       _AuthInterceptor(),
       _LoggingInterceptor(),
-      _ErrorInterceptor(),
+      _ErrorInterceptor(_dio),
     ]);
   }
   
@@ -38,6 +41,11 @@ class DioClient {
 class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    if (options.extra[DioClient.skipAuthRefreshKey] == true) {
+      handler.next(options);
+      return;
+    }
+
     try {
       final authService = getx.Get.find<AuthService>();
       final authHeaders = authService.getAuthHeaders();
@@ -77,8 +85,41 @@ class _LoggingInterceptor extends Interceptor {
 
 // Error handling interceptor
 class _ErrorInterceptor extends Interceptor {
+  _ErrorInterceptor(this._dio);
+
+  final Dio _dio;
+
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  Future<void> onError(
+      DioException err, ErrorInterceptorHandler handler) async {
+    final requestOptions = err.requestOptions;
+    final shouldSkipRefresh =
+        requestOptions.extra[DioClient.skipAuthRefreshKey] == true;
+    final hasRetried =
+        requestOptions.extra[DioClient.retryAttemptedKey] == true;
+
+    if (_isUnauthorized(err) && !shouldSkipRefresh && !hasRetried) {
+      final authService = _tryGetAuthService();
+      if (authService != null) {
+        final refreshed = await authService.refreshToken();
+        if (refreshed && authService.token != null) {
+          requestOptions.extra[DioClient.retryAttemptedKey] = true;
+          requestOptions.headers['Authorization'] =
+              authService.getAuthHeaders()['Authorization'];
+          try {
+            final response = await _dio.fetch(requestOptions);
+            handler.resolve(response);
+            return;
+          } on DioException catch (retryError) {
+            handler.next(retryError);
+            return;
+          }
+        } else {
+          await authService.logout();
+        }
+      }
+    }
+
     switch (err.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -96,5 +137,15 @@ class _ErrorInterceptor extends Interceptor {
     }
     
     handler.next(err);
+  }
+
+  bool _isUnauthorized(DioException err) =>
+      err.response?.statusCode == 401 || err.response?.statusCode == 403;
+
+  AuthService? _tryGetAuthService() {
+    if (getx.Get.isRegistered<AuthService>()) {
+      return getx.Get.find<AuthService>();
+    }
+    return null;
   }
 }

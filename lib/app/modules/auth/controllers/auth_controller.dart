@@ -10,18 +10,18 @@ enum Gender { male, female, others }
 class AuthController extends GetxController {
   final AuthService authService;
   final GoogleAuthService googleAuthService;
-  
+
   AuthController({required this.authService, required this.googleAuthService});
-  
+
   // Login form controllers
   final TextEditingController emailController = TextEditingController();
-  
+
   // Register form controllers
   final TextEditingController firstnameController = TextEditingController();
   final TextEditingController lastnameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController registerEmailController = TextEditingController();
-  
+
   final _isLoading = false.obs;
   final _selectedPageIndex = 0.obs;
   final _isLoggedIn = false.obs;
@@ -33,7 +33,7 @@ class AuthController extends GetxController {
   final _showAvatarPicker = false.obs;
   final _selectedFoodTypes = <String>[].obs;
   final _selectedPlaceValues = <String>[].obs;
-  
+
   // Food type options
   final List<String> foodTypes = [
     'Nusantara',
@@ -46,7 +46,7 @@ class AuthController extends GetxController {
     'Makanan Ringan',
     'Pastry',
   ];
-  
+
   // Place value options
   final List<String> placeValues = [
     'Harga Terjangkau',
@@ -65,7 +65,7 @@ class AuthController extends GetxController {
     'Cocok untuk Work From Cafe',
     'Tempat Bersejarah',
   ];
-  
+
   bool get isLoading => _isLoading.value;
   bool get isLoggedIn => _isLoggedIn.value;
   String get googleUserName => _googleUserName.value;
@@ -80,16 +80,17 @@ class AuthController extends GetxController {
     }
     return Gender.others;
   }
+
   RxString get selectedAvatar => _selectedAvatar;
   RxBool get showAvatarPicker => _showAvatarPicker;
   int get selectedPageIndex => _selectedPageIndex.value;
   RxList<String> get selectedFoodTypes => _selectedFoodTypes;
   RxList<String> get selectedPlaceValues => _selectedPlaceValues;
-  
+
   // Keep controller alive during auth flow
   @override
   bool get isClosed => false;
-  
+
   @override
   void onInit() {
     super.onInit();
@@ -97,7 +98,7 @@ class AuthController extends GetxController {
     _isLoggedIn.value = authService.isLoggedIn;
     _loadGoogleUserData();
   }
-  
+
   @override
   void onClose() {
     // Clear content but don't dispose - controller is reused in auth flow
@@ -108,39 +109,39 @@ class AuthController extends GetxController {
     registerEmailController.clear();
     super.onClose();
   }
-  
+
   void _loadGoogleUserData() {
     try {
       // Get user data from Google Auth Service
       final user = googleAuthService.currentUser;
       if (user != null) {
-        print('📱 Loading Google user data:');
-        print('Email: ${user.email}');
-
         _googleUserEmail.value = user.email ?? '';
-        
+
         if (user.email != null && user.email!.isNotEmpty) {
           registerEmailController.text = user.email!;
         }
-        
-        print('✅ Google user data loaded successfully');
-      } else {
-        print('⚠️ No Google user found');
       }
     } catch (e) {
       print('❌ Error loading Google user data: $e');
+      Get.snackbar(
+        'Error',
+        'Google Sign In failed. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
-  
+
   Future<void> loginWithGoogle() async {
     _setLoading(true);
-    
+
     try {
       final success = await authService.login();
-      
+
       if (success) {
         _isLoggedIn.value = true;
-        
+
         Get.snackbar(
           'Success',
           'Google Sign In successful. wait a minute sir',
@@ -169,7 +170,7 @@ class AuthController extends GetxController {
         Get.toNamed(AppPages.REGISTER);
         return;
       }
-      
+
       Get.snackbar(
         'Error',
         'Network error: Please check your connection and try again.',
@@ -178,18 +179,19 @@ class AuthController extends GetxController {
         colorText: Colors.white,
       );
     }
-    
+
     _setLoading(false);
   }
 
   Future<void> signUpWithGoogle() async {
     _setLoading(true);
-    
+
     try {
       final success = await authService.login();
-      print('✅ Google Sign Up attempt completed: $success');
-      
+
       if (success) {
+        _isLoggedIn.value = true;
+
         Get.snackbar(
           'Success',
           'User already created.',
@@ -198,25 +200,14 @@ class AuthController extends GetxController {
           colorText: Colors.white,
         );
 
-        _isLoggedIn.value = true;
-        
-        Get.snackbar(
-          'Success',
-          'Google Sign In successful. wait a minute sir',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
-        
         // Navigate to main app
         Get.offAllNamed(AppPages.MAIN);
-        
       } else {
         _loadGoogleUserData();
 
         Get.toNamed(AppPages.REGISTER);
       }
-    } catch (e) {      
+    } catch (e) {
       Get.snackbar(
         'Error',
         'Network error: Please check your connection and try again.',
@@ -225,19 +216,19 @@ class AuthController extends GetxController {
         colorText: Colors.white,
       );
     }
-    
+
     _setLoading(false);
   }
-  
+
   // ========== REGISTRATION METHODS ==========
-  
+
   Future<void> register() async {
     if (!_validateForm()) {
       return;
     }
-    
+
     _setLoading(true);
-    
+
     // Show info snackbar
     Get.snackbar(
       'Processing',
@@ -247,24 +238,22 @@ class AuthController extends GetxController {
       colorText: Colors.white,
       duration: const Duration(seconds: 3),
     );
-    
+
     try {
       final success = await authService.registerUser(
         name: '${firstnameController.text.trim()} ${lastnameController.text.trim()}',
         username: usernameController.text.trim(),
         email: registerEmailController.text.trim(),
         gender: _selectedGender.value,
-        imageUrl: _selectedAvatar.value, // Use selected avatar from remote assets
+        imageUrl: _selectedAvatar.value,
         foodTypes: _selectedFoodTypes.toList(),
         placeValues: _selectedPlaceValues.toList(),
       );
-      
-      print('✅ Registration attempt completed: $success');
 
       if (success) {
         // Set loading false before navigation
         _setLoading(false);
-        
+
         Get.snackbar(
           'Berhasil',
           'Registrasi berhasil! Selamat datang di Snappie',
@@ -273,14 +262,13 @@ class AuthController extends GetxController {
           colorText: Colors.white,
           duration: const Duration(seconds: 2),
         );
-        
+
         // Small delay before navigation to ensure everything is ready
         await Future.delayed(const Duration(milliseconds: 500));
-        
+
         // Navigate to home (main app layout)
         Get.offAllNamed(AppPages.MAIN);
-        print('✅ Navigation to home successful');
-        
+
         return; // Exit early to avoid setting loading again
       } else {
         Get.snackbar(
@@ -304,12 +292,13 @@ class AuthController extends GetxController {
         duration: const Duration(seconds: 4),
       );
     }
-    
+
     _setLoading(false);
   }
-  
+
   bool _validateForm() {
-    if (firstnameController.text.trim().isEmpty || lastnameController.text.trim().isEmpty) {
+    if (firstnameController.text.trim().isEmpty ||
+        lastnameController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
         'Please enter your full name',
@@ -319,7 +308,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     if (usernameController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
@@ -330,7 +319,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     if (registerEmailController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
@@ -341,7 +330,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     // Basic username validation
     final username = usernameController.text.trim();
     if (username.length < 3) {
@@ -354,7 +343,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     // Check for valid username characters
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(username)) {
       Get.snackbar(
@@ -366,7 +355,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     // Validate gender
     if (_selectedGender.value.isEmpty) {
       Get.snackbar(
@@ -378,7 +367,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     // Validate avatar
     if (_selectedAvatar.value.isEmpty) {
       Get.snackbar(
@@ -390,7 +379,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     // Validate food types (minimum 3)
     if (_selectedFoodTypes.length < 3) {
       Get.snackbar(
@@ -402,7 +391,7 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     // Validate place values (minimum 3)
     if (_selectedPlaceValues.length < 3) {
       Get.snackbar(
@@ -414,15 +403,15 @@ class AuthController extends GetxController {
       );
       return false;
     }
-    
+
     return true;
   }
-  
+
   void cancelRegistration() {
     // Sign out from Google and return to login
     googleAuthService.signOut();
     Get.toNamed(AppPages.LOGIN);
-    
+
     Get.snackbar(
       'Cancelled',
       'Registration cancelled',
@@ -431,9 +420,9 @@ class AuthController extends GetxController {
       colorText: Colors.white,
     );
   }
-  
+
   // ========== SHARED METHODS ==========
-  
+
   void skipLogin() {
     // For development - skip authentication
     _isLoggedIn.value = true;
@@ -444,16 +433,16 @@ class AuthController extends GetxController {
       backgroundColor: Colors.orange,
       colorText: Colors.white,
     );
-    
+
     // Navigate to main app
     Get.offAllNamed(AppPages.MAIN);
   }
-  
+
   void logout() {
     authService.logout();
     _isLoggedIn.value = false;
     emailController.clear();
-    
+
     Get.snackbar(
       'Logged Out',
       'You have been logged out',
@@ -461,11 +450,11 @@ class AuthController extends GetxController {
       backgroundColor: Colors.blue,
       colorText: Colors.white,
     );
-    
+
     // Navigate back to login
     Get.toNamed(AppPages.LOGIN);
   }
-  
+
   void _setLoading(bool loading) {
     _isLoading.value = loading;
   }
@@ -514,7 +503,8 @@ class AuthController extends GetxController {
       _selectedFoodTypes.add(foodType);
       print('✅ Food type selected: $foodType');
     }
-    print('📋 Total selected: ${_selectedFoodTypes.length} - ${_selectedFoodTypes.join(", ")}');
+    print(
+        '📋 Total selected: ${_selectedFoodTypes.length} - ${_selectedFoodTypes.join(", ")}');
   }
 
   void togglePlaceValueSelection(String placeValue) {
@@ -525,7 +515,8 @@ class AuthController extends GetxController {
       _selectedPlaceValues.add(placeValue);
       print('✅ Place value selected: $placeValue');
     }
-    print('📍 Total selected: ${_selectedPlaceValues.length} - ${_selectedPlaceValues.join(", ")}');
+    print(
+        '📍 Total selected: ${_selectedPlaceValues.length} - ${_selectedPlaceValues.join(", ")}');
   }
 
   List<Map<String, dynamic>> getAvatarOptions(String gender) {

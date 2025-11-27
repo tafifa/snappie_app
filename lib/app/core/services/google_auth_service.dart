@@ -27,9 +27,6 @@ class GoogleAuthService extends GetxService {
     // Listen to auth state changes
     _firebaseAuth.authStateChanges().listen((User? user) {
       _currentUser.value = user;
-      if (kDebugMode) {
-        print('🔐 Auth state changed: ${user?.email ?? "No user"}');
-      }
     });
   }
 
@@ -38,15 +35,9 @@ class GoogleAuthService extends GetxService {
     try {
       _isSigningIn.value = true;
       
-      if (kDebugMode) {
-        print('🔐 Starting Google Sign In process...');
-      }
-
-      // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
-        // User canceled the sign-in
         if (kDebugMode) {
           print('🔐 Google Sign In canceled by user');
         }
@@ -57,20 +48,17 @@ class GoogleAuthService extends GetxService {
         print('🔐 Google user selected: ${googleUser.email}');
       }
 
-      // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       if (kDebugMode) {
         print('🔐 Google authentication tokens obtained');
       }
 
-      // Create a new credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Sign in to Firebase with the Google credential
       final UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
       
       if (kDebugMode) {
@@ -93,14 +81,7 @@ class GoogleAuthService extends GetxService {
   /// Sign out dari Google dan Firebase
   Future<void> signOut() async {
     try {
-      if (kDebugMode) {
-        print('🔐 Starting sign out process...');
-      }
-
-      // Sign out from Google
       await _googleSignIn.signOut();
-      
-      // Sign out from Firebase
       await _firebaseAuth.signOut();
       
       if (kDebugMode) {
@@ -117,20 +98,9 @@ class GoogleAuthService extends GetxService {
   /// Disconnect Google account (revoke access)
   Future<void> disconnect() async {
     try {
-      if (kDebugMode) {
-        print('🔐 Disconnecting Google account...');
-      }
-
       await _googleSignIn.disconnect();
       await _firebaseAuth.signOut();
-      
-      if (kDebugMode) {
-        print('🔐 Google account disconnected');
-      }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Disconnect error: $e');
-      }
       rethrow;
     }
   }
@@ -149,10 +119,7 @@ class GoogleAuthService extends GetxService {
       }
       return null;
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error getting ID token: $e');
-      }
-      return null;
+      rethrow;
     }
   }
 

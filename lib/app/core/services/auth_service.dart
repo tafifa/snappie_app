@@ -17,10 +17,17 @@ class AuthService extends GetxService {
   static const String _tokenKey = 'auth_token';
   static const String _userEmailKey = 'user_email';
   static const String _userDataKey = 'user_data';
+  static const String _refreshTokenKey = 'refresh_token';
+  static const String _tokenExpiryKey = 'token_expires_at';
+  static const String _refreshTokenExpiryKey = 'refresh_token_expires_at';
 
   String? _token;
   String? _userEmail;
   UserModel? _userData;
+  String? _refreshToken;
+  DateTime? _tokenExpiry;
+  DateTime? _refreshTokenExpiry;
+  Future<bool>? _refreshFuture;
 
   // Observable for login status
   final _isLoggedIn = false.obs;
@@ -41,6 +48,128 @@ class AuthService extends GetxService {
   String? get token => _token;
   String? get userEmail => _userEmail;
   UserModel? get userData => _userData;
+  bool get hasValidAccessToken {
+    if (_token == null || _token!.isEmpty) {
+      return false;
+    }
+    if (_tokenExpiry == null) {
+      return true;
+    }
+    return DateTime.now().isBefore(_tokenExpiry!);
+  }
+
+  bool get hasValidRefreshToken {
+    if (_refreshToken == null || _refreshToken!.isEmpty) {
+      return false;
+    }
+    if (_refreshTokenExpiry == null) {
+      return true;
+    }
+    return DateTime.now().isBefore(_refreshTokenExpiry!);
+  }
+
+  Future<bool> refreshToken() async {
+    if (!hasValidRefreshToken) {
+      print('⚠️ Cannot refresh token: refresh token missing or expired');
+      return false;
+    }
+
+    if (_refreshFuture != null) {
+      return _refreshFuture!;
+    }
+
+    final future = _performRefreshToken();
+    _refreshFuture = future;
+
+    try {
+      return await future;
+    } finally {
+      if (identical(_refreshFuture, future)) {
+        _refreshFuture = null;
+      }
+    }
+  }
+
+  Future<bool> _performRefreshToken() async {
+    final dioClient = DioClient();
+    final candidates = ApiEndpoints.refreshTokenCandidates;
+
+    for (var i = 0; i < candidates.length; i++) {
+      final endpoint = candidates[i];
+      final isLast = i == candidates.length - 1;
+      final requestUrl = ApiEndpoints.getFullUrl(endpoint);
+
+      try {
+        final response = await dioClient.dio.post(
+          requestUrl,
+          data: {'refresh_token': _refreshToken},
+          options: dio_lib.Options(
+            extra: {
+              DioClient.skipAuthRefreshKey: true,
+            },
+            headers: getAuthHeaders(useRegistrationKey: true),
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          final data = extractApiResponseData(
+            response,
+            (json) => Map<String, dynamic>.from(
+              json as Map<String, dynamic>,
+            ),
+          );
+
+          final token = data['token'] as String?;
+          if (token == null || token.isEmpty) {
+            return false;
+          }
+
+          final Map<String, dynamic>? userPayload = data['user'] == null
+              ? null
+              : Map<String, dynamic>.from(
+                  data['user'] as Map<String, dynamic>,
+                );
+
+          await _saveAuthSession(
+            token: token,
+            userPayload: userPayload,
+            refreshToken: (data['refresh_token'] as String?) ?? _refreshToken,
+            tokenExpiry: _parseStoredDate(data['expires_at'] as String?),
+            refreshTokenExpiry: _parseStoredDate(
+              data['refresh_token_expires_at'] as String?,
+            ),
+          );
+
+          _isLoggedIn.value = true;
+          return true;
+        }
+      } on dio_lib.DioException catch (e) {
+        if (e.response?.statusCode == 404 && !isLast) {
+          print(
+            '⚠️ Refresh endpoint $requestUrl not found. Trying fallback...',
+          );
+          continue;
+        }
+        _logRefreshError(e);
+        return false;
+      } catch (e) {
+        _logRefreshError(e);
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  void _logRefreshError(Object error) {
+    print('❌ REFRESH TOKEN ERROR: $error');
+    if (error is dio_lib.DioException) {
+      print('DioError Type: ${error.type}');
+      print('DioError Message: ${error.message}');
+      print('DioError Response: ${error.response?.data}');
+      print('DioError Status: ${error.response?.statusCode}');
+    }
+  }
 
   Future<void> _loadAuthData() async {
     try {
@@ -48,23 +177,18 @@ class AuthService extends GetxService {
       final prefs = await SharedPreferences.getInstance();
       _token = prefs.getString(_tokenKey);
       _userEmail = prefs.getString(_userEmailKey);
+        _refreshToken = prefs.getString(_refreshTokenKey);
+        _tokenExpiry = _parseStoredDate(prefs.getString(_tokenExpiryKey));
+        _refreshTokenExpiry =
+          _parseStoredDate(prefs.getString(_refreshTokenExpiryKey));
       final userDataString = prefs.getString(_userDataKey);
-
-      print('📱 LOADED AUTH DATA:');
-      print('Token: $_token');
-      print('Email: $_userEmail');
-      print('User Data String: $userDataString');
 
       if (userDataString != null && userDataString.isNotEmpty) {
         // Parse user data from JSON string
         _userData = UserModel.fromJson(
             Map<String, dynamic>.from(jsonDecode(userDataString)));
-        print('User Data Parsed: ${_userData?.name}');
       }
 
-      print('📱 AUTH STATUS AFTER LOAD: $isLoggedIn');
-
-      // Update observable
       _isLoggedIn.value = _token != null && _token!.isNotEmpty;
     } catch (e) {
       print('❌ Error loading auth data: $e');
@@ -75,12 +199,8 @@ class AuthService extends GetxService {
   Future<bool> login() async {
     try {
       try {
-        print('🔐 Starting Google Sign In with backend integration...');
-
-        // Get GoogleAuthService instance
         final googleAuthService = Get.find<GoogleAuthService>();
 
-        // Sign in with Google
         final userCredential = await googleAuthService.signInWithGoogle();
 
         if (userCredential == null) {
@@ -92,19 +212,14 @@ class AuthService extends GetxService {
           print('❌ No user data from Google Sign In');
         }
 
-        print('🔐 Google Sign In successful, now authenticating with backend...');
-        
-        print('User Email: ${user?.email}');
         _userEmail = user?.email;
       } catch (e) {
         print('❌ GOOGLE LOGIN ERROR: $e');
 
-        // Re-throw if it's USER_NOT_FOUND
         if (e == 'USER_NOT_FOUND') {
           rethrow;
         }
 
-        // Sign out from Google if there's an error
         try {
           final googleAuthService = Get.find<GoogleAuthService>();
           await googleAuthService.signOut();
@@ -115,15 +230,9 @@ class AuthService extends GetxService {
 
       final DioClient dioClient = DioClient();
 
-      // Debug: Print request details
       final requestUrl = '${AppConstants.baseUrl}${AppConstants.apiVersion}/auth/login';
       final requestData = {'email': _userEmail};
       final requestHeaders = getAuthHeaders();
-
-      print('🔐 LOGIN REQUEST:');
-      print('URL: $requestUrl');
-      print('Data: $requestData');
-      print('Headers: $requestHeaders');
 
       final response = await dioClient.dio.post(
         requestUrl,
@@ -133,50 +242,33 @@ class AuthService extends GetxService {
         ),
       );
 
-      // Debug: Print response details
-      print('🔐 LOGIN RESPONSE:');
-      print('Status: ${response.statusCode}');
-      print('Data: ${response.data}');
-      print('Headers: ${response.headers}');
-
       if (response.statusCode == 200) {
         final data = extractApiResponseData(response,
             (json) => Map<String, dynamic>.from(json as Map<String, dynamic>));
 
-        final userData = data['user'];
-        final token = data['token'];
+        final Map<String, dynamic>? userData = data['user'] == null
+            ? null
+            : Map<String, dynamic>.from(data['user'] as Map<String, dynamic>);
+        final token = data['token'] as String?;
 
-        print('✅ LOGIN SUCCESS:');
-        print('User: $userData');
-        print('Token: $token');
+        if (token == null || token.isEmpty) {
+          return false;
+        }
 
-        // Save auth data
-        print('💾 SAVING AUTH DATA TO STORAGE...');
-        print('Email to save: $_userEmail');
-        _token = token;
-        print('Token to save: $token');
+        await _saveAuthSession(
+          token: token,
+          userPayload: userData,
+          refreshToken:
+              (data['refresh_token'] as String?) ?? _refreshToken,
+          tokenExpiry: _parseStoredDate(data['expires_at'] as String?),
+          refreshTokenExpiry:
+              _parseStoredDate(data['refresh_token_expires_at'] as String?),
+        );
 
-        final userJson =
-            flattenAdditionalInfoForUser(userData, removeContainer: false);
-        print('User Data to save: $userJson');
-        _userData = UserModel.fromJson(userJson);
-        print('User Data to save: $userData');
-
-        // Save to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_tokenKey, token);
-        await prefs.setString(_userEmailKey, _userEmail!);
-        await prefs.setString(_userDataKey, jsonEncode(userData));
-
-        print('💾 AUTH DATA SAVED SUCCESSFULLY');
-        print('📱 AUTH STATUS AFTER SAVE: $isLoggedIn');
-
-        // Update observable
         _isLoggedIn.value = true;
 
         return true;
       } else {
-        print('❌ LOGIN FAILED with status: ${response.statusCode}');
         return false;
       }
     } catch (e) {
@@ -203,8 +295,6 @@ class AuthService extends GetxService {
     required List<String> placeValues,
   }) async {
     try {
-      print('📝 Starting user registration...');
-
       final dio = dio_lib.Dio(
         dio_lib.BaseOptions(
           connectTimeout: const Duration(seconds: 60),
@@ -223,12 +313,6 @@ class AuthService extends GetxService {
         'food_type': foodTypes,
         'place_value': placeValues,
       };
-
-      print('📝 REGISTER API REQUEST:');
-      print('URL: $requestUrl');
-      print('Data: $requestData');
-      print('Authorization: Bearer ${EnvironmentConfig.registrationApiKey}');
-      print('⏰ Waiting for response (timeout: 60s)...');
 
       final response = await dio
           .post(
@@ -255,42 +339,21 @@ class AuthService extends GetxService {
         },
       );
 
-      print('📝 REGISTER API RESPONSE:');
-      print('Status: ${response.statusCode}');
-      print('Data: ${response.data}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data;
 
         if (data['success'] == true && data['data'] != null) {
-          final userData = data['data'];
-
-          print('✅ REGISTRATION SUCCESS:');
-          print('User: $userData');
-
-          // Save user email for auto-login
-          final userEmail = userData['email'] as String;
-
-          print('🔄 Performing auto-login with email: $userEmail');
-
-          // Auto-login with the registered email
           final loginSuccess = await login();
 
           if (!loginSuccess) {
-            print('❌ AUTO-LOGIN FAILED after registration');
             return false;
           }
 
-          print('✅ AUTO-LOGIN SUCCESS after registration');
-          print('💾 User is now logged in and ready to use the app');
-
           return true;
         } else {
-          print('❌ REGISTRATION FAILED: ${data['message']}');
           return false;
         }
       } else {
-        print('❌ REGISTRATION FAILED with status: ${response.statusCode}');
         return false;
       }
     } catch (e) {
@@ -329,7 +392,6 @@ class AuthService extends GetxService {
         final googleAuthService = Get.find<GoogleAuthService>();
         if (googleAuthService.isLoggedIn) {
           await googleAuthService.signOut();
-          print('🔐 Signed out from Google');
         }
       } catch (e) {
         print('❌ Error signing out from Google: $e');
@@ -341,6 +403,10 @@ class AuthService extends GetxService {
       _token = null;
       _userEmail = null;
       _userData = null;
+      _refreshToken = null;
+      _tokenExpiry = null;
+      _refreshTokenExpiry = null;
+      _refreshFuture = null;
 
       // Update observable
       _isLoggedIn.value = false;
@@ -350,6 +416,9 @@ class AuthService extends GetxService {
       await prefs.remove(_tokenKey);
       await prefs.remove(_userEmailKey);
       await prefs.remove(_userDataKey);
+      await prefs.remove(_refreshTokenKey);
+      await prefs.remove(_tokenExpiryKey);
+      await prefs.remove(_refreshTokenExpiryKey);
 
       // Clear cached user data from local database
       try {
@@ -364,8 +433,8 @@ class AuthService extends GetxService {
   }
 
   // Get auth headers for API calls
-  Map<String, String> getAuthHeaders() {
-    if (_token != null) {
+  Map<String, String> getAuthHeaders({bool useRegistrationKey = false}) {
+    if (!useRegistrationKey && _token != null && _token!.isNotEmpty) {
       return {
         'Authorization': 'Bearer $_token',
         'Accept': 'application/json',
@@ -373,8 +442,64 @@ class AuthService extends GetxService {
       };
     }
     return {
+      'Authorization': 'Bearer ${EnvironmentConfig.registrationApiKey}',
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     };
+  }
+
+  DateTime? _parseStoredDate(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(value);
+  }
+
+  Future<void> _saveAuthSession({
+    required String token,
+    Map<String, dynamic>? userPayload,
+    String? refreshToken,
+    DateTime? tokenExpiry,
+    DateTime? refreshTokenExpiry,
+  }) async {
+    _token = token;
+    _refreshToken = refreshToken;
+    _tokenExpiry = tokenExpiry;
+    _refreshTokenExpiry = refreshTokenExpiry;
+
+    if (userPayload != null) {
+      final userJson =
+          flattenAdditionalInfoForUser(userPayload, removeContainer: false);
+      _userData = UserModel.fromJson(userJson);
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+
+    if (_userEmail != null && _userEmail!.isNotEmpty) {
+      await prefs.setString(_userEmailKey, _userEmail!);
+    }
+
+    if (userPayload != null) {
+      await prefs.setString(_userDataKey, jsonEncode(userPayload));
+    }
+
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await prefs.setString(_refreshTokenKey, refreshToken);
+    } else {
+      await prefs.remove(_refreshTokenKey);
+    }
+
+    await _persistDateTime(prefs, _tokenExpiryKey, tokenExpiry);
+    await _persistDateTime(prefs, _refreshTokenExpiryKey, refreshTokenExpiry);
+  }
+
+  Future<void> _persistDateTime(
+      SharedPreferences prefs, String key, DateTime? value) async {
+    if (value != null) {
+      await prefs.setString(key, value.toIso8601String());
+    } else {
+      await prefs.remove(key);
+    }
   }
 }

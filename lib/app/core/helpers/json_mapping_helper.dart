@@ -178,7 +178,7 @@ Json flattenAdditionalInfoForPlace(
   return flattenByModelPreset(
     src,
     modelKey: 'place',
-    containerKey: 'additionalInfo',
+    containerKey: 'additional_info',
     removeContainer: removeContainer,
   );
 }
@@ -190,7 +190,7 @@ Json flattenAdditionalInfoForPost(
   return flattenByModelPreset(
     src,
     modelKey: 'post',
-    containerKey: 'additionalInfo',
+    containerKey: 'additional_info',
     removeContainer: removeContainer,
   );
 }

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:snappie_app/app/core/constants/place_value.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 import '../controllers/explore_controller.dart';
 import '../../shared/widgets/index.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../mission/controllers/mission_controller.dart';
+import '../../mission/widgets/mission_confirm_modal.dart';
 
 class PlaceDetailView extends GetView<ExploreController> {
   const PlaceDetailView({super.key});
@@ -92,9 +97,9 @@ class PlaceDetailView extends GetView<ExploreController> {
                             ),
                           _buildInfoCard(place),
                           if ((place.menu?.isNotEmpty ?? false))
-                            _buildMenuSection(context, place.menu!),
+                            _buildMenuSection(context, place),
                           if (_getFacilityChips(place).isNotEmpty)
-                            _buildFacilitySection(_getFacilityChips(place)),
+                            _buildFacilitySection(place, _getFacilityChips(place)),
                           _buildGallerySection(context, place),
                           _buildReviewPreviewSection(place),
                           _buildSimilarPlacesSection(place),
@@ -399,7 +404,7 @@ class PlaceDetailView extends GetView<ExploreController> {
     final colors = _randomChipColors(label, index);
     final backgroundColor = colors.background;
     final textColor = colors.text;
-    final icon = _chipIconPresets[label.toLowerCase()];
+    final icon = _getChipIcon(label);
     return _ChipStyle(
       backgroundColor: backgroundColor,
       icon: icon,
@@ -422,28 +427,13 @@ class PlaceDetailView extends GetView<ExploreController> {
     return palette[safeSeed % palette.length];
   }
 
-  static const Map<String, IconData> _chipIconPresets = {
-    'harga terjangkau': Icons.attach_money,
-    'rasa autentik': Icons.restaurant,
-    'menu bervariasi': Icons.menu_book,
-    'buka 24 jam': Icons.nights_stay,
-    'jaringan lancar': Icons.wifi,
-    'estetika': Icons.brush,
-    'suasana tenang': Icons.spa,
-    'suasana tradisional': Icons.temple_hindu,
-    'suasana homey': Icons.home_filled,
-    'pet friendly': Icons.pets,
-    'ramah keluarga': Icons.family_restroom,
-    'pelayanan ramah': Icons.emoji_people,
-    'cocok untuk nongkrong': Icons.groups_2_outlined,
-    'cocok untuk work from cafe': Icons.laptop_mac,
-    'wfc (work from cafe)': Icons.laptop_mac,
-    'wfc': Icons.laptop_mac,
-    'nongkrong/diskusi': Icons.forum_outlined,
-    'keluarga/pasangan': Icons.favorite_outline,
-    'me time': Icons.sentiment_satisfied_alt,
-    'tempat bersejarah': Icons.museum_outlined,
-  };
+  IconData? _getChipIcon(String label) {
+    // Coba cari di PlaceValue dulu
+    final placeIcon = PlaceValueExtension.getIconByLabel(label);
+    if (placeIcon != null) return placeIcon;
+
+    return null;
+  }
 
   Widget _buildInfoCard(PlaceModel place) {
     final detail = place.placeDetail;
@@ -498,7 +488,8 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildMenuSection(BuildContext context, List<MenuItem> menu) {
+  Widget _buildMenuSection(BuildContext context, PlaceModel place) {
+    List<MenuItem> menu = place.menu ?? [];
     return _buildSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,15 +555,13 @@ class PlaceDetailView extends GetView<ExploreController> {
               ),
             );
           }),
-          // if (menu.length > 3)
           ElevatedButton(
-            onPressed: () => _showMenuDialog(menu),
+            onPressed: () => _showMenuDialog(place.menuImageUrl ?? ''),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textOnPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(99)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
             ),
             child: const Text('Lihat Menu Lengkap'),
           ),
@@ -581,7 +570,7 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildFacilitySection(List<String> facilities) {
+  Widget _buildFacilitySection(PlaceModel place, List<String> facilities) {
     if (facilities.isEmpty) return const SizedBox.shrink();
     final visibleFacilities = facilities.take(6).toList();
 
@@ -589,8 +578,7 @@ class PlaceDetailView extends GetView<ExploreController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Fasilitas',
-              onSeeAll: () => _showFacilitiesDialog(facilities)),
+          _buildSectionHeader('Fasilitas', onSeeAll: () => _showFacilitiesDialog(place, facilities)),
           const SizedBox(height: 12),
           _buildChipGrid(visibleFacilities),
         ],
@@ -643,7 +631,7 @@ class PlaceDetailView extends GetView<ExploreController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionHeader('Galeri Bersama',
-                onSeeAll: () => _showPhotoViewer(photos, 0)),
+                onSeeAll: () => _showGalleryPage(place)),
             const SizedBox(height: 12),
             SizedBox(
               height: imageSize,
@@ -689,7 +677,7 @@ class PlaceDetailView extends GetView<ExploreController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionHeader('Ulasan',
-                onSeeAll: () => _showAllReviewsSheet(place)),
+                onSeeAll: () => _showReviewsPage(place)),
             const SizedBox(height: 12),
             if (isLoading)
               const Center(child: LoadingStateWidget())
@@ -784,98 +772,199 @@ class PlaceDetailView extends GetView<ExploreController> {
     return 'Buka ${detail.openingHours} - ${detail.closingHours} WIB';
   }
 
-  void _openMap(PlaceModel place) {
-    Get.snackbar(
-      'Petunjuk Arah',
-      'Membuka peta untuk ${place.name ?? "Lokasi"}',
-      snackPosition: SnackPosition.BOTTOM,
+  void _openMap(PlaceModel place) async {
+    final lat = place.latitude;
+    final lng = place.longitude;
+    
+    if (lat == null || lng == null) {
+      Get.snackbar(
+        'Petunjuk Arah',
+        'Koordinat lokasi tidak tersedia',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.warning,
+        colorText: AppColors.textOnPrimary,
+      );
+      return;
+    }
+    
+    // Try Google Maps app first, fallback to browser
+    final googleMapsUrl = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
     );
+    
+    try {
+      final launched = await launchUrl(
+        googleMapsUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      
+      if (!launched) {
+        Get.snackbar(
+          'Error',
+          'Tidak dapat membuka aplikasi peta',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.error,
+          colorText: AppColors.textOnPrimary,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal membuka peta: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
+      );
+    }
   }
 
-  void _openReservation(String? contactNumber) {
-    if (contactNumber == null) {
+  void _openReservation(String? contactNumber) async {
+    if (contactNumber == null || contactNumber.isEmpty) {
       Get.snackbar(
         'Reservasi',
         'Kontak reservasi belum tersedia',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.warning,
+        colorText: AppColors.textOnPrimary,
       );
       return;
     }
-    Get.snackbar(
-      'Reservasi',
-      'Menghubungi $contactNumber via WhatsApp',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    
+    // Format phone number: remove non-digit characters
+    String formattedNumber = contactNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    
+    // Handle various formats
+    if (formattedNumber.startsWith('+62')) {
+      formattedNumber = formattedNumber.substring(1); // Remove + for wa.me
+    } else if (formattedNumber.startsWith('62')) {
+      // Already in correct format
+    } else if (formattedNumber.startsWith('0')) {
+      formattedNumber = '62${formattedNumber.substring(1)}';
+    } else {
+      formattedNumber = '62$formattedNumber';
+    }
+    
+    final whatsappUrl = Uri.parse('https://wa.me/$formattedNumber');
+
+    try {
+      final launched = await launchUrl(
+        whatsappUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      
+      if (!launched) {
+        Get.snackbar(
+          'Error',
+          'Tidak dapat membuka WhatsApp',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.error,
+          colorText: AppColors.textOnPrimary,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal membuka WhatsApp: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
+      );
+    }
   }
 
-  void _startMission(PlaceModel place) {
-    Get.snackbar(
-      'Mulai Misi',
-      'Menyiapkan misi untuk ${place.name ?? "lokasi ini"}',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppColors.primary,
-      colorText: AppColors.textOnPrimary,
-    );
+  void _startMission(PlaceModel place) async {
+    // Show confirmation modal
+    final result = await MissionConfirmModal.show(place: place);
+    
+    if (result != null && result.confirmed) {
+      // Initialize mission controller and navigate
+      final missionController = Get.put(MissionController());
+      missionController.initMission(place, hideUsername: result.hideUsername);
+      
+      Get.toNamed(AppPages.MISSION_PHOTO);
+    }
   }
 
-  void _showMenuDialog(List<MenuItem> menu) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Menu Lengkap'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: menu.length,
-            itemBuilder: (context, index) {
-              final item = menu[index];
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(item.name ?? '-'),
-                subtitle: Text(item.description ?? ''),
-                trailing: Text(item.price != null
-                    ? 'Rp${item.price!.toStringAsFixed(0)}'
-                    : '-'),
-              );
-            },
+  void _showMenuDialog(String menuImageUrl) {
+    showModalBottomSheet(
+      context: Get.context!,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Daftar Menu',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              if (menuImageUrl.isNotEmpty)
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: Center(
+                      child: NetworkImageWidget(
+                        imageUrl: menuImageUrl,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Menu belum tersedia',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+              
+              const SizedBox(height: 16),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Tutup'),
-          ),
-        ],
       ),
     );
   }
 
-  void _showFacilitiesDialog(List<String> facilities) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Fasilitas Lengkap'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: facilities
-                .map((name) => Chip(
-                      label: Text(name),
-                      backgroundColor: AppColors.surfaceContainer,
-                    ))
-                .toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
+  void _showFacilitiesDialog(PlaceModel place, List<String> facilities) {
+    Get.toNamed(
+      AppPages.FACILITIES,
+      arguments: {
+        'placeAttributes': place.placeAttributes,
+        'placeName': place.name ?? 'Tempat',
+      },
+    );
+  }
+
+  void _showReviewsPage(PlaceModel place) {
+    Get.toNamed(
+      AppPages.REVIEWS,
+      arguments: place,
     );
   }
 
@@ -1608,6 +1697,13 @@ class PlaceDetailView extends GetView<ExploreController> {
           fontWeight: FontWeight.w500,
         ),
       ),
+    );
+  }
+
+  void _showGalleryPage(PlaceModel place) {
+    Get.toNamed(
+      AppPages.GALLERY,
+      arguments: place,
     );
   }
 

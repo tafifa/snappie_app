@@ -10,7 +10,8 @@ abstract class CheckinRemoteDataSource {
     required int placeId,
     required double latitude,
     required double longitude,
-    required Map<String, dynamic> additionalInfo,
+    String? imageUrl,
+    Map<String, dynamic>? additionalInfo,
   });
 }
 
@@ -24,15 +25,23 @@ class CheckinRemoteDataSourceImpl implements CheckinRemoteDataSource {
     required int placeId,
     required double latitude,
     required double longitude,
-    required Map<String, dynamic> additionalInfo,
+    String? imageUrl,
+    Map<String, dynamic>? additionalInfo,
   }) async {
     try {
-      final payload = {
+      final payload = <String, dynamic>{
         'place_id': placeId,
         'latitude': latitude,
         'longitude': longitude,
-        'additional_info': additionalInfo,
       };
+
+      if (imageUrl != null) {
+        payload['image_url'] = imageUrl;
+      }
+
+      if (additionalInfo != null && additionalInfo.isNotEmpty) {
+        payload['additional_info'] = additionalInfo;
+      }
 
       final response = await dioClient.dio.post(
         ApiEndpoints.createCheckin,

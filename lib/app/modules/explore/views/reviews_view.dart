@@ -1,348 +1,668 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
 import '../controllers/explore_controller.dart';
 import '../../shared/widgets/index.dart';
 
-class ReviewsView extends GetView<ExploreController> {
+class ReviewsView extends StatefulWidget {
   const ReviewsView({super.key});
 
   @override
+  State<ReviewsView> createState() => _ReviewsViewState();
+}
+
+class _ReviewsViewState extends State<ReviewsView> {
+  final ExploreController controller = Get.find<ExploreController>();
+  
+  // Filter state
+  String _selectedFilter = 'all'; // 'all', 'with_media'
+  int? _selectedRating; // null = semua, 1-5 = rating tertentu
+
+  @override
+  void initState() {
+    super.initState();
+    final PlaceModel? place = Get.arguments as PlaceModel?;
+    if (place != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.loadPlaceReviews(place.id!);
+      });
+    }
+  }
+
+  List<ReviewModel> get _filteredReviews {
+    List<ReviewModel> reviews = controller.reviews.toList();
+    
+    // Filter by media
+    if (_selectedFilter == 'with_media') {
+      reviews = reviews.where((r) => r.imageUrls != null && r.imageUrls!.isNotEmpty).toList();
+    }
+    
+    // Filter by rating
+    if (_selectedRating != null) {
+      reviews = reviews.where((r) => r.rating == _selectedRating).toList();
+    }
+    
+    return reviews;
+  }
+
+  int get _reviewsWithMediaCount {
+    return controller.reviews.where((r) => r.imageUrls != null && r.imageUrls!.isNotEmpty).length;
+  }
+
+  Map<int, int> get _ratingCounts {
+    final counts = <int, int>{1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
+    for (final review in controller.reviews) {
+      final rating = review.rating ?? 0;
+      if (rating >= 1 && rating <= 5) {
+        counts[rating] = counts[rating]! + 1;
+      }
+    }
+    return counts;
+  }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   final PlaceModel? place = Get.arguments as PlaceModel?;
+
+  //   return Scaffold(
+  //     backgroundColor: AppColors.background,
+  //     appBar: AppBar(
+  //       backgroundColor: AppColors.background,
+  //       elevation: 0,
+  //       leading: IconButton(
+  //         icon: Icon(Icons.arrow_back, color: AppColors.primary),
+  //         onPressed: () => Get.back(),
+  //       ),
+  //       title: Text(
+  //         'Ulasan',
+  //         style: TextStyle(
+  //           color: AppColors.textPrimary,
+  //           fontWeight: FontWeight.w600,
+  //         ),
+  //       ),
+  //       centerTitle: false,
+  //     ),
+  //     body: place == null
+  //         ? _buildEmptyState('Data tidak ditemukan')
+  //         : _buildContent(context, place),
+  //   );
+  // }
+    @override
   Widget build(BuildContext context) {
+    final PlaceModel? place = Get.arguments as PlaceModel?;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reviews'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sort),
-            onPressed: () => _showSortDialog(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterDialog(context),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Stats card
-          const ReviewStatsCard(),
-          
-          // Reviews list
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading && controller.reviews.isEmpty) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
+      backgroundColor: AppColors.surface,
+      body: Builder(
+        builder: (context) {
+          // if (place == null) {
+          //   return _buildEmptyState('Data tidak ditemukan');
+          // } 
 
-              if (controller.errorMessage.isNotEmpty && controller.reviews.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        controller.errorMessage,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => controller.refreshData(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              if (controller.reviews.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.rate_review,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No reviews yet',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Be the first to write a review!',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return RefreshIndicator(
-                onRefresh: () => controller.refreshData(),
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (ScrollNotification scrollInfo) {
-                    if (scrollInfo.metrics.pixels ==
-                            scrollInfo.metrics.maxScrollExtent &&
-                        !controller.isLoading &&
-                        controller.hasMoreData) {
-                      controller.loadMoreData();
-                    }
-                    return false;
-                  },
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: controller.reviews.length +
-                        (controller.hasMoreData ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == controller.reviews.length) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      final review = controller.reviews[index];
-                      return ReviewCard(
-                        review: review,
-                        onTap: () => _showReviewDetail(review),
-                      );
-                    },
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateReviewDialog(context),
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
-
-  void _showSortDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Sort Reviews',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSortOption('Newest First', 'created_at', 'desc'),
-            _buildSortOption('Oldest First', 'created_at', 'asc'),
-            _buildSortOption('Highest Rating', 'vote', 'desc'),
-            _buildSortOption('Lowest Rating', 'vote', 'asc'),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Get.back(),
-                child: const Text('Apply'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSortOption(String label, String field, String order) {
-    return RadioListTile<String>(
-      title: Text(label),
-      value: '${field}_$order',
-      groupValue: 'created_at_desc', // Default sort option
-      onChanged: (String? value) {
-        if (value != null) {
-          // Handle sort selection if controller method exists
-          // controller.sortReviews(field, order);
-        }
-      },
-    );
-  }
-
-  void _showFilterDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Filter Reviews',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Obx(() => Column(
-              children: [
-                _buildFilterOption('All Status', ''),
-                _buildFilterOption('Approved', 'approved'),
-                _buildFilterOption('Pending', 'pending'),
-                _buildFilterOption('Rejected', 'rejected'),
-                _buildFilterOption('Flagged', 'flagged'),
-              ],
-            )),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Get.back(),
-                child: const Text('Apply'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterOption(String label, String value) {
-    return RadioListTile<String>(
-      title: Text(label),
-      value: value,
-      groupValue: '',
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          if (newValue.isEmpty) {
-            controller.clearFilters();
-          } else {
-            controller.filterByStatus(newValue);
-          }
-        }
-      },
-    );
-  }
-
-  void _showCreateReviewDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => CreateReviewDialog(placeId: 0),
-    );
-  }
-
-  void _showReviewDetail(ReviewModel review) {
-    showDialog(
-      context: Get.context!,
-      builder: (context) => AlertDialog(
-        title: Text('Review Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Rating
-            Row(
-              children: [
-                const Text('Rating: '),
-                ...List.generate(5, (index) {
-                  return Icon(
-                    index < (review.rating ?? 0) ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 20,
-                  );
-                }),
-                Text(' (${(review.rating ?? 0).toStringAsFixed(1)}/5)'),
-              ],
-            ),
-            const SizedBox(height: 8),
-            
-            // Content
-            const Text(
-              'Review:',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 4),
-            Text(review.content ?? 'No content'),
-            const SizedBox(height: 8),
-            
-            // Status
-            if (review.status != null) ...[
-              Row(
-                children: [
-                  const Text('Status: '),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CustomScrollView(
+                slivers: [
+                  // Custom App Bar with Image
+                  SliverAppBar(
+                    pinned: true,
+                    backgroundColor: AppColors.background,
+                    elevation: 0,
+                    leading: IconButton(
+                      icon: Icon(Icons.arrow_back, color: AppColors.primary),
+                      onPressed: () => Get.back(),
                     ),
-                    decoration: BoxDecoration(
-                      color: review.status == true ? Colors.green : Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      review.status == true ? 'Approved' : 'Pending',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                    title: Text(
+                      'Ulasan',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
+                    centerTitle: false,
+                  ),
+
+                  // Content
+                  SliverToBoxAdapter(
+                    child: Container(
+                      color: AppColors.background,
+                      child: place == null
+                          ? _buildEmptyState('Data tidak ditemukan')
+                          : Obx(() => _buildContent(context, place)),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
             ],
-            
-            // Date
-            if (review.createdAt != null)
-              Text(
-                'Posted: ${_formatDate(review.createdAt!)}',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Close'),
+          );
+        },
+      )
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.rate_review_outlined,
+            size: 64,
+            color: AppColors.textTertiary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  Widget _buildContent(BuildContext context, PlaceModel place) {
+    if (controller.isLoadingReviews) {
+      return const Center(child: LoadingStateWidget());
+    }
+
+    return Column(
+      children: [
+        // Filter chips
+        _buildFilterChips(place),
+        
+        // CTA Berikan Ulasan
+        _buildGiveReviewCTA(),
+        
+        // Rating summary
+        _buildRatingSummary(place),
+        
+        // Reviews list
+        if (controller.reviews.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: NoDataEmptyState(
+              title: 'Belum ada ulasan',
+              subtitle: 'Jadilah yang pertama menulis ulasan',
+            ),
+          )
+        else
+          _buildReviewsList(),
+      ],
+    );
+  }
+
+  Widget _buildFilterChips(PlaceModel place) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+          // Semua chip
+          Expanded(
+            child: _buildFilterChip(
+              label: 'Semua',
+              count: controller.reviews.length,
+              isSelected: _selectedFilter == 'all' && _selectedRating == null,
+              onTap: () {
+                setState(() {
+                  _selectedFilter = 'all';
+                  _selectedRating = null;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Dengan Foto/Video chip
+          Expanded(
+            child: _buildFilterChip(
+              label: 'Dengan Foto/Video',
+              count: _reviewsWithMediaCount,
+              isSelected: _selectedFilter == 'with_media',
+              onTap: () {
+                setState(() {
+                  _selectedFilter = 'with_media';
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Bintang dropdown
+          Expanded(
+            child: _buildRatingDropdown(),
+          ),
+        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    int? count,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.background,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppColors.primary,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            count != null ? '$label\n($count)' : label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: isSelected ? Colors.white : AppColors.primary,
+              height: 1.2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRatingDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: _selectedRating != null ? AppColors.primary : AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primary,
+        ),
+      ),
+      child: PopupMenuButton<int?>(
+        offset: const Offset(0, 40),
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Bintang ★\n(${_selectedRating != null ? '$_selectedRating' : 'Semua'})',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: _selectedRating != null ? Colors.white : AppColors.primary,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 16,
+                color: _selectedRating != null ? Colors.white : AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+        itemBuilder: (context) => [
+          PopupMenuItem<int?>(
+            value: null,
+            child: Text('Semua'),
+          ),
+          ...List.generate(5, (index) {
+            final rating = 5 - index;
+            return PopupMenuItem<int?>(
+              value: rating,
+              child: Row(
+                children: [
+                  ...List.generate(rating, (_) => Icon(Icons.star, color: AppColors.warning, size: 16)),
+                  ...List.generate(5 - rating, (_) => Icon(Icons.star_border, color: AppColors.textTertiary, size: 16)),
+                  const SizedBox(width: 8),
+                  Text('(${ _ratingCounts[rating] ?? 0})'),
+                ],
+              ),
+            );
+          }),
+        ],
+        onSelected: (value) {
+          setState(() {
+            _selectedRating = value;
+            if (value != null) {
+              _selectedFilter = 'all'; // Reset media filter when selecting rating
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildGiveReviewCTA() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textPrimary,
+              ),
+              children: [
+                const TextSpan(text: 'Berikan ulasan untuk mendapatkan '),
+                TextSpan(
+                  text: '50 XP',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const TextSpan(text: ' dan '),
+                TextSpan(
+                  text: '25 Koin',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const TextSpan(text: '!'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: () {
+              // TODO: Navigate to give review page
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.surfaceContainer,
+              foregroundColor: AppColors.textPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Berikan Ulasan',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, size: 20),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingSummary(PlaceModel place) {
+    final totalReviews = controller.reviews.length;
+    final avgRating = place.avgRating ?? 0.0;
+    
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Big rating number
+          Text(
+            avgRating.toStringAsFixed(1).replaceAll('.', ','),
+            style: TextStyle(
+              fontSize: 56,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          
+          // Stars
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              final starValue = index + 1;
+              if (avgRating >= starValue) {
+                return Icon(Icons.star, color: AppColors.warning, size: 28);
+              } else if (avgRating >= starValue - 0.5) {
+                return Icon(Icons.star_half, color: AppColors.warning, size: 28);
+              } else {
+                return Icon(Icons.star_border, color: AppColors.warning, size: 28);
+              }
+            }),
+          ),
+          const SizedBox(height: 4),
+          
+          // Total reviews
+          Text(
+            '($totalReviews Ulasan)',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Rating breakdown bars
+          ...List.generate(5, (index) {
+            final rating = 5 - index;
+            final count = _ratingCounts[rating] ?? 0;
+            final percentage = totalReviews > 0 ? count / totalReviews : 0.0;
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Text(
+                    '$rating',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.star, color: AppColors.warning, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: percentage,
+                        minHeight: 8,
+                        backgroundColor: AppColors.surfaceContainer,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '($count)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewsList() {
+    final reviews = _filteredReviews;
+    
+    if (reviews.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Text(
+            'Tidak ada ulasan dengan filter ini',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: reviews.length,
+      itemBuilder: (context, index) {
+        return _buildReviewCard(reviews[index]);
+      },
+    );
+  }
+
+  Widget _buildReviewCard(ReviewModel review) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowDark,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // User info row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AvatarWidget(
+                imageUrl: review.user?.imageUrl,
+                size: AvatarSize.medium,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.user?.name ?? 'Anonim',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < (review.rating ?? 0)
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: AppColors.warning,
+                          size: 16,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _formatDate(review.createdAt ?? DateTime.now()),
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          
+          // Review content
+          if (review.content != null && review.content!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              review.content!,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                height: 1.4,
+              ),
+            ),
+          ],
+          
+          // Review images
+          if (review.imageUrls != null && review.imageUrls!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: review.imageUrls!.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      FullscreenImageViewer.show(
+                        context: context,
+                        imageUrls: review.imageUrls!,
+                        initialIndex: index,
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: NetworkImageWidget(
+                        imageUrl: review.imageUrls![index],
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 7) {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} hari lalu';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} jam lalu';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} menit lalu';
+    } else {
+      return 'Baru saja';
+    }
   }
 }

@@ -9,8 +9,15 @@ import '../modules/shared/layout/views/main_layout.dart';
 import '../modules/shared/layout/bindings/main_binding.dart';
 import '../modules/explore/views/place_detail_view.dart';
 import '../modules/explore/views/reviews_view.dart';
+import '../modules/explore/views/facilities_view.dart';
+import '../modules/explore/views/gallery_view.dart';
 import '../modules/explore/bindings/explore_binding.dart';
 import '../modules/shared/components/splash_view.dart';
+import '../modules/mission/views/mission_photo_view.dart';
+import '../modules/mission/views/mission_photo_preview_view.dart';
+import '../modules/mission/views/mission_review_view.dart';
+import '../modules/mission/views/mission_survey_view.dart';
+import '../modules/mission/bindings/mission_binding.dart';
 
 class AppPages {
   AppPages._();
@@ -32,6 +39,8 @@ class AppPages {
   static const PLACES = '/places';
   static const PLACE_DETAIL = '/place-detail';
   static const REVIEWS = '/reviews';
+  static const FACILITIES = '/facilities';
+  static const GALLERY = '/gallery';
 
   // Articles
   static const ARTICLES = '/articles';
@@ -42,6 +51,12 @@ class AppPages {
   static const USER_PROFILE = '/user-profile'; // Read-only profile untuk navigasi dari widget lain
   static const SETTINGS = '/settings';
   static const EDIT_PROFILE = '/edit-profile';
+
+  // Mission
+  static const MISSION_PHOTO = '/mission-photo';
+  static const MISSION_PHOTO_PREVIEW = '/mission-photo-preview';
+  static const MISSION_REVIEW = '/mission-review';
+  static const MISSION_SURVEY = '/mission-survey';
 
   static final routes = <GetPage>[
     // Splash (no binding needed)
@@ -89,6 +104,15 @@ class AppPages {
       page: () => const ReviewsView(),
       binding: ExploreBinding(),
     ),
+    GetPage(
+      name: FACILITIES,
+      page: () => const FacilitiesView(),
+    ),
+    GetPage(
+      name: GALLERY,
+      page: () => const GalleryView(),
+      binding: ExploreBinding(),
+    ),
 
     // Profile pages - full screen navigation dari tab profile
     // ProfileController sudah di-inject di MainBinding, jadi tidak perlu binding lagi
@@ -112,6 +136,28 @@ class AppPages {
       name: EDIT_PROFILE,
       page: () => const ProfileView(), // TODO: Buat EditProfileView terpisah
       // Tidak perlu binding karena sudah di MainBinding
+    ),
+
+    // Mission module
+    GetPage(
+      name: MISSION_PHOTO,
+      page: () => const MissionPhotoView(),
+      binding: MissionBinding(),
+    ),
+    GetPage(
+      name: MISSION_PHOTO_PREVIEW,
+      page: () => const MissionPhotoPreviewView(),
+      // Uses existing MissionController
+    ),
+    GetPage(
+      name: MISSION_REVIEW,
+      page: () => const MissionReviewView(),
+      // Uses existing MissionController
+    ),
+    GetPage(
+      name: MISSION_SURVEY,
+      page: () => const MissionSurveyView(),
+      // Uses existing MissionController
     ),
   ];
 }

@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:snappie_app/app/core/constants/food_type.dart';
+import 'package:snappie_app/app/core/constants/place_value.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
 import '../../../data/repositories/place_repository_impl.dart';
 import '../../../data/repositories/review_repository_impl.dart';
 import '../../../data/repositories/checkin_repository_impl.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/location_service.dart';
 
 class ExploreController extends GetxController {
   final PlaceRepository placeRepository;
@@ -32,6 +35,7 @@ class ExploreController extends GetxController {
   final _selectedCategory = ''.obs;
   final _selectedRating = Rxn<int>();
   final _selectedPriceRange = Rxn<String>();
+  final _selectedLocation = Rxn<List<double>>();
   final _selectedFilter = ''.obs; // For 'favorit' or 'terlaris'
   final _hasMoreData = true.obs;
   final _currentPage = 1.obs;
@@ -78,6 +82,14 @@ class ExploreController extends GetxController {
   int? get selectedRating => _selectedRating.value;
   String? get selectedPriceRange => _selectedPriceRange.value;
   String get selectedFilter => _selectedFilter.value;
+
+  List<String> get foodTypes => FoodTypeExtension.allLabels;
+  List<String> get placeValues => PlaceValueExtension.allLabels;
+
+    final _selectedFoodTypes = <String>[].obs;
+  final _selectedPlaceValues = <String>[].obs;
+  RxList<String> get selectedFoodTypes => _selectedFoodTypes;
+  RxList<String> get selectedPlaceValues => _selectedPlaceValues;
 
   // Check if any filter is active
   bool get isFiltered =>
@@ -173,6 +185,12 @@ class ExploreController extends GetxController {
     _clearError();
 
     try {
+      print("Load Places with filters: _searchQuery='${_searchQuery.value}', "
+          "selectedCategory='${_selectedCategory.value}', "
+          "selectedRating=${_selectedRating.value}, "
+          "selectedPriceRange='${_selectedPriceRange.value}', "
+          "selectedFilter='${_selectedFilter.value}', "
+          "selectedLocation=${_selectedLocation.value}");
       // Load places from repository
       final placesList = await placeRepository.getPlaces(
         perPage: 20,
@@ -180,7 +198,10 @@ class ExploreController extends GetxController {
         minRating: _selectedRating.value?.toDouble(),
         partner: _selectedFilter.value == 'partner' ? true : null,
         popular: _selectedFilter.value == 'popular' ? true : null,
-        // Add more filters as needed
+        longitude: _selectedFilter.value == 'nearby' ? _selectedLocation.value![1] : null,
+        latitude: _selectedFilter.value == 'nearby' ? _selectedLocation.value![0] :  null,
+        placeValues: _selectedFilter.value == 'placeValues' ? _selectedPlaceValues.toList() : null,
+        foodTypes: _selectedFilter.value == 'foodTypes' ? _selectedFoodTypes.toList() : null,
       );
 
       print('🎯 PLACES LOADED SUCCESSFULLY:');
@@ -240,13 +261,6 @@ class ExploreController extends GetxController {
     _isLoadingCategories.value = false;
   }
 
-  Future<void> loadNearbyPlaces({
-    required double latitude,
-    required double longitude,
-  }) async {
-    await loadPlaces(refresh: true);
-  }
-
   void searchPlaces(String query) {
     _searchQuery.value = query;
     loadPlaces(refresh: true);
@@ -262,6 +276,34 @@ class ExploreController extends GetxController {
         searchPlaces(_searchQuery.value);
       }
     });
+  }
+
+  void applyFilter(String filter) {
+    _selectedFilter.value = filter;
+    loadPlaces(refresh: true);
+  }
+
+  void togglePlaceValueSelection(String placeValue) {
+    if (_selectedPlaceValues.contains(placeValue)) {
+      _selectedPlaceValues.remove(placeValue);
+      print('❌ Place value removed: $placeValue');
+    } else {
+      _selectedPlaceValues.add(placeValue);
+      print('✅ Place value selected: $placeValue');
+    }
+    print('📍 Total selected: ${_selectedPlaceValues.length} - ${_selectedPlaceValues.join(", ")}');
+  }
+
+    void toggleFoodTypeSelection(String foodType) {
+    if (_selectedFoodTypes.contains(foodType)) {
+      _selectedFoodTypes.remove(foodType);
+      print('❌ Food type removed: $foodType');
+    } else {
+      _selectedFoodTypes.add(foodType);
+      print('✅ Food type selected: $foodType');
+    }
+    print(
+        '📋 Total selected: ${_selectedFoodTypes.length} - ${_selectedFoodTypes.join(", ")}');
   }
 
   void filterByCategory(String category) {
@@ -297,23 +339,15 @@ class ExploreController extends GetxController {
     loadPlaces(refresh: true);
   }
 
-  void filterByNearby() {
-    // TODO: Implement nearby filter logic
-    // This would typically use location services to sort by distance
-    loadPlaces(refresh: true);
-  }
-  /*
+  Future<void> filterByNearby() async {
+    final locationService = Get.find<LocationService>();
+    final position = await locationService.getCurrentPosition();
+    if (position == null) return;
 
-  */
-
-  void setFavoritFilter() {
-    _selectedFilter.value = 'partner';
-    loadPlaces(refresh: true);
-  }
-
-  void setTerlarisFilter() {
-    _selectedFilter.value = 'popular';
-    loadPlaces(refresh: true);
+    print('📍 Current Position: Lat ${position.latitude}, Lon ${position.longitude}');
+    _selectedFilter.value = 'nearby';
+    _selectedLocation.value = [position.latitude, position.longitude];
+    await loadPlaces(refresh: true);
   }
 
   void clearFilters() {
@@ -322,6 +356,9 @@ class ExploreController extends GetxController {
     _selectedRating.value = null;
     _selectedPriceRange.value = null;
     _selectedFilter.value = '';
+    _selectedLocation.value = null;
+    _selectedPlaceValues.clear();
+    _selectedFoodTypes.clear();
     loadPlaces(refresh: true);
   }
 

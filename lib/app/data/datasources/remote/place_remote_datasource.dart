@@ -61,7 +61,7 @@ class PlaceRemoteDataSourceImpl implements PlaceRemoteDataSource {
       if (latitude != null && longitude != null) {
         queryParams['latitude'] = latitude;
         queryParams['longitude'] = longitude;
-        if (radius != null) queryParams['radius'] = radius;
+        // if (radius != null) queryParams['radius'] = radius;
       }
       if (popular != null) queryParams['popular'] = popular;
       if (partner != null) queryParams['partner'] = partner;

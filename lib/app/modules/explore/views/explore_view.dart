@@ -37,13 +37,11 @@ class ExploreView extends GetView<ExploreController> {
                     child: Row(
                       children: [
                         const SizedBox(width: 16),
-                        _buildFilterChip('Terdekat', false),
+                        _buildFilterChip('Terdekat', controller.selectedFilter == 'nearby'),
                         const SizedBox(width: 8),
-                        _buildFilterChip('Tipe Tempat',
-                            controller.selectedPriceRange != null),
+                        _buildFilterChip('Tipe Tempat', controller.selectedFilter == 'placeValues'),
                         const SizedBox(width: 8),
-                        _buildFilterChip('Tipe Kuliner',
-                            controller.selectedPriceRange != null),
+                        _buildFilterChip('Tipe Kuliner', controller.selectedFilter == 'foodTypes'),
                         const SizedBox(width: 8),
                         _buildFilterChip(
                             'Penilaian', controller.selectedRating != null),
@@ -75,15 +73,6 @@ class ExploreView extends GetView<ExploreController> {
 
               // Conditional Content based on filter state
               Obx(() {
-                print('🔍 DEBUG: isFiltered = ${controller.isFiltered}');
-                print('🔍 DEBUG: searchQuery = "${controller.searchQuery}"');
-                print(
-                    '🔍 DEBUG: selectedCategory = "${controller.selectedCategory}"');
-                print(
-                    '🔍 DEBUG: selectedRating = ${controller.selectedRating}');
-                print(
-                    '🔍 DEBUG: selectedPriceRange = "${controller.selectedPriceRange}"');
-
                 return controller.isFiltered
                     ? _buildFilteredContent()
                     : _buildDefaultContent();
@@ -137,8 +126,7 @@ class ExploreView extends GetView<ExploreController> {
   void _onFilterChipTapped(String filter) {
     switch (filter) {
       case 'Terdekat':
-        // Handle nearby filter
-        _showNearbyOptions();
+        controller.filterByNearby();
         break;
       case 'Penilaian':
         _showRatingDropdown();
@@ -146,8 +134,254 @@ class ExploreView extends GetView<ExploreController> {
       case 'Harga':
         _showPriceDropdown();
         break;
+      case 'Tipe Tempat':
+        _showPlaceValueDropdown();
+        break;
+      case 'Tipe Kuliner':
+        _showFoodTypeDropdown();
+        break;
     }
   }
+
+  void _showPlaceValueDropdown() {
+    showModalBottomSheet(
+      context: Get.context!,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tipe Tempat',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Place value selection grid
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 2.5,
+              ),
+              itemCount: controller.placeValues.length,
+              itemBuilder: (context, index) {
+                final placeValue = controller.placeValues[index];
+                
+                return Obx(
+                  () {
+                    final isSelected =
+                        controller.selectedPlaceValues.contains(placeValue);
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        controller.togglePlaceValueSelection(placeValue);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary.withAlpha(100)
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color:
+                                isSelected ? AppColors.primary : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Text(
+                          placeValue,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected ? AppColors.primary : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      controller.clearFilters();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Hapus'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      controller.applyFilter('placeValues');
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: const Text('Ok'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFoodTypeDropdown() {
+    showModalBottomSheet(
+      context: Get.context!,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tipe Kuliner',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Place value selection grid
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 2.5,
+              ),
+              itemCount: controller.foodTypes.length,
+              itemBuilder: (context, index) {
+                final foodType = controller.foodTypes[index];
+                
+                return Obx(
+                  () {
+                    final isSelected =
+                        controller.selectedFoodTypes.contains(foodType);
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        controller.toggleFoodTypeSelection(foodType);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary.withAlpha(100)
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color:
+                                isSelected ? AppColors.primary : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        child: Text(
+                          foodType,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected ? AppColors.primary : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          
+            
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      controller.clearFilters();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Hapus'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      controller.applyFilter('foodTypes');
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: const Text('Ok'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   void _showRatingDropdown() {
     showModalBottomSheet(
@@ -342,11 +576,6 @@ class ExploreView extends GetView<ExploreController> {
     );
   }
 
-  void _showNearbyOptions() {
-    // Handle nearby filter logic
-    controller.filterByNearby();
-  }
-
   Widget _buildDefaultContent() {
     return Obx(() {
       print('🎨 BUILDING PLACES GRID:');
@@ -437,7 +666,7 @@ class ExploreView extends GetView<ExploreController> {
                       ),
                       const Spacer(),
                       TextButton(
-                        onPressed: () => controller.setFavoritFilter(),
+                        onPressed: () => controller.applyFilter('partner'),
                         child: Text(
                           'Lihat Selengkapnya',
                           style: TextStyle(
@@ -476,7 +705,7 @@ class ExploreView extends GetView<ExploreController> {
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: () => controller.setTerlarisFilter(),
+                      onPressed: () => controller.applyFilter('popular'),
                       child: Text(
                         'Lihat Selengkapnya',
                         style: TextStyle(

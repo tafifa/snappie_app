@@ -202,48 +202,37 @@ class AuthService extends GetxService {
 
   // TODO: replace /auth/login email-only with Firebase-ID-token check before public release.
   Future<bool> login() async {
+    /* ---------- Step 1: Google Sign-In ---------- */
+    final googleAuthService = Get.find<GoogleAuthService>();
+    final userCredential = await googleAuthService.signInWithGoogle();
+
+    if (userCredential == null) {
+      print('🔐 Google Sign In was cancelled');
+      return false;
+    }
+
+    final user = userCredential.user;
+    if (user == null || user.email == null) {
+      print('❌ No user data from Google Sign In');
+      return false;
+    }
+
+    _userEmail = user.email;
+    print('🔐 Google email: $_userEmail');
+
+    /* ---------- Step 2: Backend Login ---------- */
     try {
-      try {
-        final googleAuthService = Get.find<GoogleAuthService>();
-
-        final userCredential = await googleAuthService.signInWithGoogle();
-
-        if (userCredential == null) {
-          print('🔐 Google Sign In was cancelled');
-        }
-
-        final user = userCredential?.user;
-        if (user == null) {
-          print('❌ No user data from Google Sign In');
-        }
-
-        _userEmail = user?.email;
-      } catch (e) {
-        print('❌ GOOGLE LOGIN ERROR: $e');
-
-        if (e == 'USER_NOT_FOUND') {
-          rethrow;
-        }
-
-        try {
-          final googleAuthService = Get.find<GoogleAuthService>();
-          await googleAuthService.signOut();
-        } catch (signOutError) {
-          print('❌ Error signing out from Google: $signOutError');
-        }
-      }
-
-      final DioClient dioClient = DioClient();
-
-      final requestUrl = '${AppConstants.baseUrl}${AppConstants.apiVersion}/auth/login';
-      final requestData = {'email': _userEmail};
-      final requestHeaders = getAuthHeaders();
+      final dioClient = DioClient();
+      final requestUrl = ApiEndpoints.getFullUrl(ApiEndpoints.login);
 
       final response = await dioClient.dio.post(
         requestUrl,
-        data: requestData,
+        data: {'email': _userEmail},
         options: dio_lib.Options(
-          headers: requestHeaders,
+          headers: getAuthHeaders(useRegistrationKey: true),
+          extra: {
+            DioClient.skipAuthRefreshKey: true, // Skip refresh interceptor for login
+          },
         ),
       );
 
@@ -252,7 +241,6 @@ class AuthService extends GetxService {
             (json) => Map<String, dynamic>.from(json as Map<String, dynamic>));
 
         print('🔐 LOGIN RESPONSE DATA KEYS: ${data.keys.toList()}');
-        print('🔐 refresh_token in response: ${data['refresh_token'] != null}');
         
         final Map<String, dynamic>? userData = data['user'] == null
             ? null
@@ -261,6 +249,7 @@ class AuthService extends GetxService {
         final refreshTokenFromResponse = data['refresh_token'] as String?;
 
         if (token == null || token.isEmpty) {
+          print('❌ No token received from server');
           return false;
         }
 
@@ -277,19 +266,24 @@ class AuthService extends GetxService {
         );
 
         _isLoggedIn.value = true;
-
         return true;
       } else {
+        print('❌ Unexpected status code: ${response.statusCode}');
         return false;
       }
+    } on dio_lib.DioException catch (e) {
+      print('❌ LOGIN DIO ERROR: ${e.response?.statusCode}');
+      print('DioError Response: ${e.response?.data}');
+      
+      // User tidak ditemukan di backend - return false
+      // Controller akan handle navigasi ke halaman registrasi
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 401) {
+        return false;
+      }
+      
+      return false;
     } catch (e) {
       print('❌ LOGIN ERROR: $e');
-      if (e is dio_lib.DioException) {
-        print('DioError Type: ${e.type}');
-        print('DioError Message: ${e.message}');
-        print('DioError Response: ${e.response?.data}');
-        print('DioError Status: ${e.response?.statusCode}');
-      }
       return false;
     }
   }

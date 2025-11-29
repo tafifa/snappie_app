@@ -98,28 +98,49 @@ class _ErrorInterceptor extends Interceptor {
     final hasRetried =
         requestOptions.extra[DioClient.retryAttemptedKey] == true;
 
-    if (_isUnauthorized(err) && !shouldSkipRefresh && !hasRetried) {
+    // Skip refresh logic for login/register requests or already retried requests
+    if (shouldSkipRefresh || hasRetried) {
+      _logError(err);
+      handler.next(err);
+      return;
+    }
+
+    // Only attempt refresh for 401 errors (not 403)
+    if (err.response?.statusCode == 401) {
       final authService = _tryGetAuthService();
-      if (authService != null) {
+      if (authService != null && authService.hasValidRefreshToken) {
+        print('🔄 Token expired, attempting refresh...');
         final refreshed = await authService.refreshToken();
+        
         if (refreshed && authService.token != null) {
+          print('✅ Token refreshed, retrying request...');
           requestOptions.extra[DioClient.retryAttemptedKey] = true;
           requestOptions.headers['Authorization'] =
-              authService.getAuthHeaders()['Authorization'];
+              'Bearer ${authService.token}';
           try {
             final response = await _dio.fetch(requestOptions);
             handler.resolve(response);
             return;
           } on DioException catch (retryError) {
+            print('❌ Retry failed after refresh');
             handler.next(retryError);
             return;
           }
         } else {
+          print('❌ Token refresh failed, logging out user');
           await authService.logout();
         }
+      } else if (authService != null) {
+        print('⚠️ No valid refresh token, logging out user');
+        await authService.logout();
       }
     }
 
+    _logError(err);
+    handler.next(err);
+  }
+
+  void _logError(DioException err) {
     switch (err.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -135,12 +156,7 @@ class _ErrorInterceptor extends Interceptor {
       default:
         print('Network error: ${err.message}');
     }
-    
-    handler.next(err);
   }
-
-  bool _isUnauthorized(DioException err) =>
-      err.response?.statusCode == 401 || err.response?.statusCode == 403;
 
   AuthService? _tryGetAuthService() {
     if (getx.Get.isRegistered<AuthService>()) {

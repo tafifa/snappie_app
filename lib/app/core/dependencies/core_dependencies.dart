@@ -3,6 +3,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../network/dio_client.dart';
 import '../network/network_info.dart';
 import '../services/auth_service.dart';
+import '../services/cloudinary_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/location_service.dart';
 
@@ -21,5 +22,9 @@ class CoreDependencies {
     
     // Location Service - Permanent untuk akses lokasi di seluruh app
     Get.put<LocationService>(LocationService(), permanent: true);
+    
+    // Cloudinary Service - For image uploads
+    Get.put<CloudinaryService>(CloudinaryService(), permanent: true);
   }
 }
+

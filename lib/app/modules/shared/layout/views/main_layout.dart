@@ -4,6 +4,7 @@ import '../../../home/views/home_view.dart';
 import '../../../explore/views/explore_view.dart';
 import '../../../articles/views/articles_view.dart';
 import '../../../profile/views/profile_view.dart';
+import '../../../mission/widgets/mission_feedback_modal.dart';
 import '../controllers/main_controller.dart';
 import '../widgets/nav_item.dart';
 import '../../widgets/lazy_indexed_child.dart';
@@ -76,5 +77,4 @@ class MainLayout extends GetView<MainController> {
       ),
     );
   }
-
 }

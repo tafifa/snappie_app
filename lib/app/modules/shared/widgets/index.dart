@@ -8,7 +8,6 @@ export '_state_widgets/loading_state_widget.dart';
 export '_form_widgets/rectangle_button_widget.dart';
 
 // Dialog Widgets
-export '_dialog_widgets/create_review_dialog.dart';
 
 // Display Widgets
 export '_display_widgets/avatar_widget.dart';

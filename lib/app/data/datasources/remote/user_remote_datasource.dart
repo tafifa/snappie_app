@@ -10,6 +10,8 @@ import '../../../data/models/user_model.dart';
 abstract class UserRemoteDataSource {
   Future<UserModel> getUserProfile();
   Future<UserModel> getUserById(int id);
+  Future<UserSaved> getUserSaved();
+  Future<UserSaved> toggleSavedPlace(List<int> placeIds);
   Future<UserModel> updateUserProfile({
     String? username,
     String? email,
@@ -165,6 +167,47 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       throw _handleDioException(e);
     } catch (e) {
       throw ServerException('Failed to update profile: $e', 500);
+    }
+  }
+
+  @override
+  Future<UserSaved> getUserSaved() async {
+    try {
+      final resp = await dioClient.dio.get(ApiEndpoints.userSaved);
+      print('⭐ getUserSaved response: $resp');
+      final raw = extractApiResponseData<Map<String, dynamic>>(
+        resp,
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
+      );
+      return UserSaved.fromJson(raw);
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to get user saved: $e', 500);
+    }
+  }
+
+  @override
+  Future<UserSaved> toggleSavedPlace(List<int> placeIds) async {
+    try {
+      final resp = await dioClient.dio.post(
+        ApiEndpoints.userSaved,
+        data: {'saved_places': placeIds},
+      );
+      print('⭐ toggleSavedPlace response: $resp');
+      final raw = extractApiResponseData<Map<String, dynamic>>(
+        resp,
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
+      );
+      return UserSaved.fromJson(raw);
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to toggle saved place: $e', 500);
     }
   }
 

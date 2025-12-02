@@ -21,15 +21,19 @@ class ApiEndpoints {
   static const String updateProfile = '/users/profile';
   static const String users = '/users';
   static const String userById = '/users/id/{id}';
+  static const String userSaved = '/users/saved';
 
   // Place endpoints
   static const String places = '/places';
   static const String placeDetail = '/places/id/{id}';
   static const String placeReviews = '/places/id/{id}/reviews';
+  static const String placeCheckins = '/places/id/{id}/checkins';
+  static const String placePosts = '/places/id/{id}/posts';
 
   // Checkin endpoints
   static const String createCheckin = '/gamification/checkin';
   static const String reviewPlace = '/gamification/review';
+  static const String updateReview = '/gamification/review/{id}';
   static const String coinTransactions = '/gamification/coins/transactions';
   static const String expTransactions = '/gamification/exp/transactions';
 

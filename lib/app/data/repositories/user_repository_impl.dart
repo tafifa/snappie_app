@@ -96,4 +96,23 @@ class UserRepository {
     await localDataSource.cacheUser(updated);
     return updated;
   }
+
+  /// Get user's saved places, posts, and articles
+  /// Throws: [NetworkException], [ServerException]
+  Future<UserSaved> getUserSaved() async {
+    if (!await networkInfo.isConnected) {
+      throw NetworkException('No internet connection');
+    }
+    return await remoteDataSource.getUserSaved();
+  }
+
+  /// Toggle saved place (add if not saved, remove if already saved)
+  /// Returns updated UserSaved with current saved lists
+  /// Throws: [NetworkException], [ServerException]
+  Future<UserSaved> toggleSavedPlace(List<int> placeIds) async {
+    if (!await networkInfo.isConnected) {
+      throw NetworkException('No internet connection');
+    }
+    return await remoteDataSource.toggleSavedPlace(placeIds);
+  }
 }

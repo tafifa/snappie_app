@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:snappie_app/app/core/constants/app_colors.dart';
+import 'package:snappie_app/app/core/services/cloudinary_service.dart';
+import 'package:snappie_app/app/core/services/location_service.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/checkin_model.dart';
 import '../../../data/models/review_model.dart';
@@ -9,13 +14,12 @@ import '../../../data/repositories/review_repository_impl.dart';
 import '../../../core/errors/exceptions.dart';
 import '../../../core/constants/food_type.dart';
 import '../../../core/constants/place_value.dart';
-import '../../../core/services/location_service.dart';
 
 /// Mission Step Enum
 enum MissionStep {
   photo, // Step 1: Ambil foto (Check-in)
   review, // Step 2: Tulis ulasan
-  survey, // Step 3: Isi kuesioner
+  feedback, // Step 3: Isi feedback (renamed from survey)
 }
 
 /// Mission Controller
@@ -44,6 +48,10 @@ class MissionController extends GetxController {
   // Survey state
   final RxMap<String, dynamic> surveyAnswers = <String, dynamic>{}.obs;
 
+  // Feedback state (new multi-step feedback)
+  final RxInt feedbackStep = 0.obs; // 0-3 for 4 feedback steps
+  final RxMap<String, dynamic> feedbackAnswers = <String, dynamic>{}.obs;
+
   // Settings from confirm modal
   final RxBool hideUsername = false.obs;
 
@@ -51,8 +59,9 @@ class MissionController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isSubmitting = false.obs;
 
-  // Error message
+  // Error state
   final Rx<String?> errorMessage = Rx<String?>(null);
+  final RxBool isConflictError = false.obs; // 409 Conflict - already reviewed/checked-in
 
   // Results
   final Rx<CheckinModel?> checkinResult = Rx<CheckinModel?>(null);
@@ -87,8 +96,11 @@ class MissionController extends GetxController {
     selectedFoodTypes.clear();
     selectedPlaceValues.clear();
     surveyAnswers.clear();
+    feedbackStep.value = 0;
+    feedbackAnswers.clear();
     this.hideUsername.value = hideUsername;
     errorMessage.value = null;
+    isConflictError.value = false;
     checkinResult.value = null;
     reviewResult.value = null;
   }
@@ -171,13 +183,24 @@ class MissionController extends GetxController {
         return false;
       }
 
-      // TODO: Upload image to Cloudinary first, then get URL
-      // For now, use placeholder URL
-      final imageUrl = 'https://placeholder.com/mission_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      // Upload image to Cloudinary
+      final cloudinaryService = Get.find<CloudinaryService>();
+      final file = File(capturedImagePath.value!);
+      
+      print('[MissionController] Uploading to Cloudinary...');
+      final uploadResult = await cloudinaryService.uploadCheckinImage(file);
+      
+      if (!uploadResult.success || uploadResult.secureUrl == null) {
+        errorMessage.value = uploadResult.error ?? 'Failed to upload image';
+        isSubmitting.value = false;
+        return false;
+      }
+      
+      final imageUrl = uploadResult.secureUrl!;
       uploadedImageUrl.value = imageUrl;
 
-      print('position: ${position.latitude}, ${position.longitude}');
-      print('Uploaded image URL: $imageUrl');
+      print('[MissionController] Position: ${position.latitude}, ${position.longitude}');
+      print('[MissionController] Uploaded image URL: $imageUrl');
 
       // Create checkin
       final checkin = await _checkinRepository.createCheckin(
@@ -191,23 +214,86 @@ class MissionController extends GetxController {
       );
 
       checkinResult.value = checkin;
+      isConflictError.value = false;
       return true;
     } on NetworkException catch (e) {
       errorMessage.value = e.message;
+      isConflictError.value = false;
       return false;
     } on ServerException catch (e) {
       errorMessage.value = e.message;
+      // Check for 409 Conflict - already checked-in
+      isConflictError.value = e.statusCode == 409;
       return false;
     } on ValidationException catch (e) {
       errorMessage.value = e.message;
+      isConflictError.value = false;
       return false;
     } catch (e) {
       errorMessage.value = 'Unexpected error: $e';
+      isConflictError.value = false;
       return false;
     } finally {
       isSubmitting.value = false;
     }
   }
+
+  /// Create review for a place (standalone, used by MissionReviewView)
+  Future<void> createReview({
+    required PlaceModel place,
+    required int vote,
+    required String content,
+    List<String>? imageUrls,
+    Map<String, dynamic> additionalInfo = const {},
+  }) async {
+    isSubmitting.value = true;
+    errorMessage.value = null;
+
+    try {
+      // Create review via repository
+      await _reviewRepository.createReview(
+        placeId: place.id!,
+        content: content,
+        rating: vote,
+        imageUrls: imageUrls,
+        additionalInfo: additionalInfo,
+      );
+
+      // Show success and go back
+      Get.snackbar(
+        'Berhasil',
+        'Ulasan berhasil dikirim! Kamu mendapatkan ${place.expReward ?? 50} XP dan ${place.coinReward ?? 25} Koin',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.success,
+        colorText: AppColors.textOnPrimary,
+        duration: const Duration(seconds: 3),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 100));
+      Get.back(closeOverlays: true);
+    } on ServerException catch (e) {
+      errorMessage.value = e.message;
+      Get.snackbar(
+        'Error',
+        e.message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
+      );
+    } catch (e) {
+      errorMessage.value = 'Gagal mengirim ulasan: $e';
+      Get.snackbar(
+        'Error',
+        'Gagal mengirim ulasan: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
 
   /// Submit review mission (includes survey in additional_info)
   Future<bool> submitReview() async {
@@ -260,18 +346,24 @@ class MissionController extends GetxController {
       );
 
       reviewResult.value = review;
+      isConflictError.value = false;
       return true;
     } on NetworkException catch (e) {
       errorMessage.value = e.message;
+      isConflictError.value = false;
       return false;
     } on ServerException catch (e) {
       errorMessage.value = e.message;
+      // Check for 409 Conflict - already reviewed
+      isConflictError.value = e.statusCode == 409;
       return false;
     } on ValidationException catch (e) {
       errorMessage.value = e.message;
+      isConflictError.value = false;
       return false;
     } catch (e) {
       errorMessage.value = 'Unexpected error: $e';
+      isConflictError.value = false;
       return false;
     } finally {
       isSubmitting.value = false;
@@ -307,6 +399,58 @@ class MissionController extends GetxController {
     }
   }
 
+  /// Submit feedback mission (update review with feedback data)
+  Future<bool> submitFeedback() async {
+    isSubmitting.value = true;
+    errorMessage.value = null;
+
+    try {
+      // Check if we have a review result to update
+      if (reviewResult.value == null || reviewResult.value!.id == null) {
+        errorMessage.value = 'No review to update';
+        return false;
+      }
+
+      // Prepare feedback data for additional_info
+      final feedbackData = <String, dynamic>{
+        'info_accurate': feedbackAnswers['info_accurate'],
+        'best_photo_index': feedbackAnswers['best_photo_index'],
+        'best_photo_url': feedbackAnswers['best_photo_url'],
+        'is_hidden_gem': feedbackAnswers['is_hidden_gem'],
+        'recommend_rating': feedbackAnswers['recommend_rating'],
+        'liked_features': feedbackAnswers['liked_features'],
+        'feedback_text': feedbackAnswers['feedback_text'],
+      };
+
+      // Merge with existing additional_info
+      final existingInfo = reviewResult.value!.additionalInfo ?? {};
+      final updatedInfo = <String, dynamic>{
+        ...existingInfo,
+        'feedback': feedbackData,
+      };
+
+      // Update review with feedback data
+      final updatedReview = await _reviewRepository.updateReview(
+        reviewId: reviewResult.value!.id!,
+        additionalInfo: updatedInfo,
+      );
+
+      reviewResult.value = updatedReview;
+      return true;
+    } on NetworkException catch (e) {
+      errorMessage.value = e.message;
+      return false;
+    } on ServerException catch (e) {
+      errorMessage.value = e.message;
+      return false;
+    } catch (e) {
+      errorMessage.value = 'Unexpected error: $e';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
   /// Move to next step
   void nextStep() {
     switch (currentStep.value) {
@@ -314,9 +458,9 @@ class MissionController extends GetxController {
         currentStep.value = MissionStep.review;
         break;
       case MissionStep.review:
-        currentStep.value = MissionStep.survey;
+        currentStep.value = MissionStep.feedback;
         break;
-      case MissionStep.survey:
+      case MissionStep.feedback:
         // Mission complete
         break;
     }
@@ -334,8 +478,11 @@ class MissionController extends GetxController {
     selectedFoodTypes.clear();
     selectedPlaceValues.clear();
     surveyAnswers.clear();
+    feedbackStep.value = 0;
+    feedbackAnswers.clear();
     hideUsername.value = false;
     errorMessage.value = null;
+    isConflictError.value = false;
     checkinResult.value = null;
     reviewResult.value = null;
   }

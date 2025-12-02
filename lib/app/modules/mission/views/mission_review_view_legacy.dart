@@ -3,20 +3,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:snappie_app/app/modules/mission/controllers/mission_controller.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/food_type.dart';
 import '../../../core/constants/place_value.dart';
 import '../../../core/services/cloudinary_service.dart';
-import '../../../data/models/place_model.dart';
 import '../../../routes/app_pages.dart';
+import '../controllers/mission_controller.dart';
 import '../widgets/mission_loading_modal.dart';
 import '../widgets/mission_success_modal.dart';
 import '../widgets/mission_failed_modal.dart';
 import '../widgets/mission_next_modal.dart';
 import '../widgets/mission_feedback_modal.dart';
 
-/// Halaman untuk menulis ulasan dari reviews_view
+/// Halaman untuk menulis ulasan misi
 class MissionReviewView extends StatefulWidget {
   const MissionReviewView({super.key});
 
@@ -26,57 +25,19 @@ class MissionReviewView extends StatefulWidget {
 
 class _MissionReviewViewState extends State<MissionReviewView> {
   final MissionController controller = Get.find<MissionController>();
-  final TextEditingController _reviewController = TextEditingController();
-  
-  // Local state
-  int _rating = 0;
-  final List<FoodType> _selectedFoodTypes = [];
-  final List<PlaceValue> _selectedPlaceValues = [];
-  bool _hideUsername = false;
-  final List<File> _selectedImages = [];
   final ImagePicker _imagePicker = ImagePicker();
+  final List<File> _selectedImages = [];
   static const int _maxImages = 5;
-  
-  // Use place from controller (set during mission flow) or from arguments (standalone)
-  PlaceModel? get place => controller.currentPlace ?? (Get.arguments as PlaceModel?);
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _reviewController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (place == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-            onPressed: () => Get.back(),
-          ),
-        ),
-        body: const Center(
-          child: Text('Data tidak ditemukan'),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => _showExitConfirmation(),
         ),
         title: Text(
@@ -99,45 +60,27 @@ class _MissionReviewViewState extends State<MissionReviewView> {
                 children: [
                   // Green banner with reward info
                   _buildRewardBanner(),
-          
+
                   // Place info card
-                  Container(
-                    margin: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowDark.withAlpha(20),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        _buildPlaceInfoCard(),
-                                  
-                        // Rating section
-                        _buildRatingSection(),
-                                  
-                        // Photo/Video section
-                        _buildPhotoVideoSection(),
-                                  
-                        // Food catalog section
-                        _buildFoodCatalogSection(),
-                                  
-                        // Place value section
-                        _buildPlaceValueSection(),
-                                  
-                        // Review text section
-                        _buildReviewTextSection(),
-                                  
-                        // Hide username checkbox
-                        _buildHideUsernameSection(),
-                      ],
-                    ),
-                  ),
+                  _buildPlaceInfoCard(),
+
+                  // Rating section
+                  _buildRatingSection(),
+
+                  // Photo/Video section
+                  _buildPhotoVideoSection(),
+
+                  // Food catalog section
+                  _buildFoodCatalogSection(),
+
+                  // Place value section
+                  _buildPlaceValueSection(),
+
+                  // Review text section
+                  _buildReviewTextSection(),
+
+                  // Hide username checkbox
+                  _buildHideUsernameSection(),
                 ],
               ),
             ),
@@ -154,32 +97,34 @@ class _MissionReviewViewState extends State<MissionReviewView> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppColors.accent.withAlpha(30),
+      color: AppColors.primary,
       child: RichText(
         text: TextSpan(
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: Colors.white,
             fontSize: 14,
             height: 1.4,
           ),
           children: [
             const TextSpan(text: 'Tuliskan ulasanmu untuk mendapatkan '),
             TextSpan(
-              text: '${place?.expReward ?? 50} XP',
-              style: TextStyle(
+              text: '${controller.expReward} XP',
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: AppColors.accent,
+                color: Colors.amber,
               ),
             ),
             const TextSpan(text: ' dan '),
             TextSpan(
-              text: '${place?.coinReward ?? 25} Koin',
-              style: TextStyle(
+              text: '${controller.coinReward} Koin',
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: AppColors.accent,
+                color: Colors.amber,
               ),
             ),
-            const TextSpan(text: '! Dapatkan hadiah lebih banyak dengan menambahkan foto dan video'),
+            const TextSpan(
+                text:
+                    '!\nDapatkan hadiah lebih banyak dengan menambahkan foto dan video'),
           ],
         ),
       ),
@@ -187,8 +132,15 @@ class _MissionReviewViewState extends State<MissionReviewView> {
   }
 
   Widget _buildPlaceInfoCard() {
+    final place = controller.currentPlace;
     return Container(
       margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Row(
         children: [
           // Place image
@@ -196,7 +148,7 @@ class _MissionReviewViewState extends State<MissionReviewView> {
             borderRadius: BorderRadius.circular(8),
             child: place?.imageUrls != null && place!.imageUrls!.isNotEmpty
                 ? Image.network(
-                    place!.imageUrls!.first,
+                    place.imageUrls!.first,
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
@@ -270,34 +222,30 @@ class _MissionReviewViewState extends State<MissionReviewView> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.border,
-                width: 1,
-              ),
+              border: Border.all(color: AppColors.border),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _rating = index + 1;
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(
-                      index < _rating ? Icons.star : Icons.star_border,
-                      color: index < _rating
-                          ? AppColors.warning
-                          : AppColors.textTertiary,
-                      size: 40,
-                    ),
-                  ),
-                );
-              }),
-            ),
+            child: Obx(() => Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () => controller.rating.value = index + 1,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Icon(
+                          index < controller.rating.value
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: index < controller.rating.value
+                              ? AppColors.warning
+                              : AppColors.textTertiary,
+                          size: 40,
+                        ),
+                      ),
+                    );
+                  }),
+                )),
           ),
         ],
       ),
@@ -332,14 +280,15 @@ class _MissionReviewViewState extends State<MissionReviewView> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Selected images preview
           if (_selectedImages.isNotEmpty) ...[
             SizedBox(
               height: 100,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: _selectedImages.length + (_selectedImages.length < _maxImages ? 1 : 0),
+                itemCount: _selectedImages.length +
+                    (_selectedImages.length < _maxImages ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == _selectedImages.length) {
                     // Add more button
@@ -509,34 +458,27 @@ class _MissionReviewViewState extends State<MissionReviewView> {
             ),
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 2.0,
-            ),
-            itemCount: FoodType.values.length,
-            itemBuilder: (context, index) {
-              final foodType = FoodType.values[index];
-              final isSelected = _selectedFoodTypes.contains(foodType);
-              return _buildSelectableChip(
-                label: foodType.label,
-                isSelected: isSelected,
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedFoodTypes.remove(foodType);
-                    } else {
-                      _selectedFoodTypes.add(foodType);
-                    }
-                  });
+          Obx(() => GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 2.0,
+                ),
+                itemCount: FoodType.values.length,
+                itemBuilder: (context, index) {
+                  final foodType = FoodType.values[index];
+                  final isSelected =
+                      controller.selectedFoodTypes.contains(foodType);
+                  return _buildSelectableChip(
+                    label: foodType.label,
+                    isSelected: isSelected,
+                    onTap: () => controller.toggleFoodType(foodType),
+                  );
                 },
-              );
-            },
-          ),
+              )),
         ],
       ),
     );
@@ -557,34 +499,27 @@ class _MissionReviewViewState extends State<MissionReviewView> {
             ),
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 2.0,
-            ),
-            itemCount: PlaceValue.values.length,
-            itemBuilder: (context, index) {
-              final placeValue = PlaceValue.values[index];
-              final isSelected = _selectedPlaceValues.contains(placeValue);
-              return _buildSelectableChip(
-                label: placeValue.label,
-                isSelected: isSelected,
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedPlaceValues.remove(placeValue);
-                    } else {
-                      _selectedPlaceValues.add(placeValue);
-                    }
-                  });
+          Obx(() => GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 2.0,
+                ),
+                itemCount: PlaceValue.values.length,
+                itemBuilder: (context, index) {
+                  final placeValue = PlaceValue.values[index];
+                  final isSelected =
+                      controller.selectedPlaceValues.contains(placeValue);
+                  return _buildSelectableChip(
+                    label: placeValue.label,
+                    isSelected: isSelected,
+                    onTap: () => controller.togglePlaceValue(placeValue),
+                  );
                 },
-              );
-            },
-          ),
+              )),
           const SizedBox(height: 16),
         ],
       ),
@@ -602,11 +537,15 @@ class _MissionReviewViewState extends State<MissionReviewView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(4),
-          border: isSelected ? Border.all(
-            color: AppColors.primary,
-          ) : null,
+          border: isSelected
+              ? Border.all(
+                  color: AppColors.primary,
+                )
+              : null,
         ),
         child: Center(
           child: Text(
@@ -641,11 +580,12 @@ class _MissionReviewViewState extends State<MissionReviewView> {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: _reviewController,
+            controller: controller.reviewController,
             maxLines: 4,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Bagikan pengalamanmu untuk membantu pengguna lain membuat pilihan sesuai preferensi mereka',
+              hintText:
+                  'Bagikan pengalamanmu untuk membantu pengguna lain membuat pilihan sesuai preferensi mereka',
               hintStyle: TextStyle(
                 color: AppColors.textTertiary,
                 fontSize: 14,
@@ -674,44 +614,44 @@ class _MissionReviewViewState extends State<MissionReviewView> {
   Widget _buildHideUsernameSection() {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _hideUsername = !_hideUsername;
-          });
-        },
-        child: Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: _hideUsername ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: _hideUsername ? AppColors.primary : AppColors.border,
-                  width: 2,
+      child: Obx(() => InkWell(
+            onTap: () => controller.hideUsername.toggle(),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: controller.hideUsername.value
+                        ? AppColors.primary
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: controller.hideUsername.value
+                          ? AppColors.primary
+                          : AppColors.border,
+                      width: 2,
+                    ),
+                  ),
+                  child: controller.hideUsername.value
+                      ? const Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Colors.white,
+                        )
+                      : null,
                 ),
-              ),
-              child: _hideUsername
-                  ? const Icon(
-                      Icons.check,
-                      size: 16,
-                      color: Colors.white,
-                    )
-                  : null,
+                const SizedBox(width: 12),
+                Text(
+                  'Sembunyikan username',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Text(
-              'Sembunyikan username',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
+          )),
     );
   }
 
@@ -722,7 +662,7 @@ class _MissionReviewViewState extends State<MissionReviewView> {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -732,33 +672,35 @@ class _MissionReviewViewState extends State<MissionReviewView> {
         child: SizedBox(
           width: double.infinity,
           child: Obx(() => ElevatedButton(
-            onPressed: controller.isSubmitting.value ? null : () => _submitReview(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: AppColors.textOnPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.6),
-            ),
-            child: controller.isSubmitting.value
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Kirim Ulasan',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                onPressed: controller.isSubmitting.value
+                    ? null
+                    : () => _submitReview(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-          )),
+                  disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
+                ),
+                child: controller.isSubmitting.value
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Kirim Ulasan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              )),
         ),
       ),
     );
@@ -911,7 +853,7 @@ class _MissionReviewViewState extends State<MissionReviewView> {
   Future<void> _pickImageFromGallery() async {
     try {
       final int remaining = _maxImages - _selectedImages.length;
-      
+
       if (remaining <= 0) {
         Get.snackbar(
           'Info',
@@ -930,9 +872,10 @@ class _MissionReviewViewState extends State<MissionReviewView> {
       if (images.isNotEmpty) {
         setState(() {
           // Only add up to remaining slots
-          final imagesToAdd = images.take(remaining).map((x) => File(x.path)).toList();
+          final imagesToAdd =
+              images.take(remaining).map((x) => File(x.path)).toList();
           _selectedImages.addAll(imagesToAdd);
-          
+
           if (images.length > remaining) {
             Get.snackbar(
               'Info',
@@ -954,7 +897,7 @@ class _MissionReviewViewState extends State<MissionReviewView> {
   }
 
   Future<void> _submitReview() async {
-    if (_rating == 0) {
+    if (controller.rating.value == 0) {
       Get.snackbar(
         'Error',
         'Silakan berikan penilaian terlebih dahulu',
@@ -965,7 +908,7 @@ class _MissionReviewViewState extends State<MissionReviewView> {
       return;
     }
 
-    if (_reviewController.text.trim().isEmpty) {
+    if (controller.reviewController.text.trim().isEmpty) {
       Get.snackbar(
         'Error',
         'Silakan tulis ulasan terlebih dahulu',
@@ -976,31 +919,19 @@ class _MissionReviewViewState extends State<MissionReviewView> {
       return;
     }
 
-    // Show loading modal for uploading
+    // Show loading modal
     MissionLoadingModal.show(message: 'Mengunggah foto...');
 
-    // Upload images to Cloudinary if any
-    List<String> imageUrls = [];
+    // Upload selected images to Cloudinary
     if (_selectedImages.isNotEmpty) {
       try {
         final cloudinaryService = Get.find<CloudinaryService>();
-        
-        for (int i = 0; i < _selectedImages.length; i++) {
-          final file = _selectedImages[i];
-          print('[MissionReviewView] Uploading image ${i + 1}/${_selectedImages.length}...');
-          
-          final result = await cloudinaryService.uploadReviewImage(file);
-          
+        for (final imageFile in _selectedImages) {
+          final result = await cloudinaryService.uploadReviewImage(imageFile);
           if (result.success && result.secureUrl != null) {
-            imageUrls.add(result.secureUrl!);
             controller.addReviewMedia(result.secureUrl!);
-            print('[MissionReviewView] Image ${i + 1} uploaded: ${result.secureUrl}');
-          } else {
-            print('[MissionReviewView] Failed to upload image ${i + 1}: ${result.error}');
           }
         }
-        
-        print('[MissionReviewView] Successfully uploaded ${imageUrls.length}/${_selectedImages.length} images');
       } catch (e) {
         MissionLoadingModal.hide();
         Get.snackbar(
@@ -1017,19 +948,6 @@ class _MissionReviewViewState extends State<MissionReviewView> {
     // Update loading message
     MissionLoadingModal.hide();
     MissionLoadingModal.show(message: 'Mengirim ulasan...');
-
-    // Set controller values for submission
-    controller.rating.value = _rating;
-    controller.reviewController.text = _reviewController.text.trim();
-    controller.hideUsername.value = _hideUsername;
-    
-    // Set selected food types
-    controller.selectedFoodTypes.clear();
-    controller.selectedFoodTypes.addAll(_selectedFoodTypes);
-    
-    // Set selected place values  
-    controller.selectedPlaceValues.clear();
-    controller.selectedPlaceValues.addAll(_selectedPlaceValues);
 
     final success = await controller.submitReview();
 
@@ -1111,36 +1029,27 @@ class _MissionReviewViewState extends State<MissionReviewView> {
   }
 
   void _showExitConfirmation() {
-    // If form is empty, just go back
-    if (_rating == 0 && 
-        _reviewController.text.isEmpty && 
-        _selectedFoodTypes.isEmpty && 
-        _selectedPlaceValues.isEmpty &&
-        _selectedImages.isEmpty) {
-      Get.back();
-      return;
-    }
-
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(
-          'Batalkan Ulasan?',
+          'Batalkan Misi?',
           style: TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          'Ulasan yang sudah ditulis akan hilang jika kamu keluar sekarang.',
+          'Progress misi akan hilang jika kamu keluar sekarang.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('Lanjutkan Menulis'),
+            child: const Text('Lanjutkan Misi'),
           ),
           TextButton(
             onPressed: () {
-              Get.back(); // Close dialog
-              Get.back(); // Go back from review page
+              Get.back();
+              Get.until(
+                  (route) => route.settings.name == AppPages.PLACE_DETAIL);
             },
             child: Text(
               'Keluar',

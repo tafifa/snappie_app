@@ -39,6 +39,28 @@ class ReviewRepository {
     );
   }
 
+  /// Update an existing review
+  /// Throws: [ServerException], [NetworkException], [AuthenticationException]
+  Future<ReviewModel> updateReview({
+    required int reviewId,
+    int? rating,
+    String? content,
+    List<String>? imageUrls,
+    Map<String, dynamic>? additionalInfo,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      throw NetworkException('No internet connection');
+    }
+
+    return await remoteDataSource.updateReview(
+      reviewId: reviewId,
+      rating: rating,
+      content: content,
+      imageUrls: imageUrls,
+      additionalInfo: additionalInfo,
+    );
+  }
+
   /// Get place reviews by place ID
   /// Throws: [ServerException], [NetworkException]
   Future<List<ReviewModel>> getPlaceReviews(int placeId) async {

@@ -96,3 +96,14 @@ class LocationException implements Exception {
   @override
   String toString() => 'LocationException: $message';
 }
+
+/// Exception for 409 Conflict - resource already exists or action already performed
+class ConflictException implements Exception {
+  final String message;
+  final String? code;
+  
+  ConflictException(this.message, {this.code});
+  
+  @override
+  String toString() => 'ConflictException: $message';
+}

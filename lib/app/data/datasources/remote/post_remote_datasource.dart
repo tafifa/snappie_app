@@ -13,6 +13,7 @@ abstract class PostRemoteDataSource {
     bool? following,
   });
   Future<PostModel> getPostById(int id);
+  Future<List<PostModel>> getPostsByPlaceId(int placeId, {int page = 1, int perPage = 20});
 }
 
 class PostRemoteDataSourceImpl implements PostRemoteDataSource {
@@ -84,6 +85,41 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
           e.response?.statusCode ?? 500,
         );
       }
+    }
+  }
+
+  @override
+  Future<List<PostModel>> getPostsByPlaceId(int placeId, {int page = 1, int perPage = 20}) async {
+    try {
+      final response = await dioClient.dio.get(
+        ApiEndpoints.replaceId(ApiEndpoints.placePosts, '$placeId'),
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+        },
+      );
+
+      return extractApiResponseListData<PostModel>(
+        response,
+        (json) {
+          final raw = Map<String, dynamic>.from(json as Map<String, dynamic>);
+          final postJson = flattenAdditionalInfoForPost(raw, removeContainer: false);
+          return PostModel.fromJson(postJson);
+        },
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw AuthenticationException('Authentication required');
+      } else if (e.response?.statusCode == 403) {
+        throw AuthorizationException('Access denied');
+      } else {
+        throw ServerException(
+          e.response?.data['message'] ?? 'Network error occurred',
+          e.response?.statusCode ?? 500,
+        );
+      }
+    } catch (e) {
+      throw ServerException('Unexpected error occurred: $e', 500);
     }
   }
 

@@ -5,69 +5,179 @@ import '../../../data/models/place_model.dart';
 import '../../shared/widgets/index.dart';
 import '../controllers/explore_controller.dart';
 
-class GalleryView extends GetView<ExploreController> {
+class GalleryView extends StatefulWidget {
   const GalleryView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final PlaceModel? place = Get.arguments as PlaceModel?;
+  State<GalleryView> createState() => _GalleryViewState();
+}
 
+class _GalleryViewState extends State<GalleryView> {
+  final controller = Get.find<ExploreController>();
+  PlaceModel? place;
+  int _selectedTabIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    place = Get.arguments as PlaceModel?;
+    
+    // Load gallery data when view initializes
+    if (place?.id != null) {
+      controller.loadGalleryCheckins(place!.id!);
+      controller.loadGalleryPosts(place!.id!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     if (place == null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: AppColors.primary),
-            onPressed: () => Get.back(),
-          ),
-          title: Text(
-            'Galeri',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: false,
-        ),
+        appBar: _buildAppBar('Galeri'),
         body: const Center(
           child: Text('Data tidak ditemukan'),
         ),
       );
     }
 
-    // Collect all photos
-    final photos = <String>[];
-    if (place.imageUrls != null) {
-      photos.addAll(place.imageUrls!);
-    }
-
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.primary),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'Galeri',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
+      appBar: _buildAppBar('Galeri ${place!.name ?? ""}'),
+      body: Column(
+        children: [
+          _buildTabBar(),
+          Expanded(
+            child: _buildSelectedTab(),
           ),
-        ),
-        centerTitle: false,
+        ],
       ),
-      body: photos.isEmpty
-          ? _buildEmptyState()
-          : _buildGalleryContent(context, place, photos),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildSelectedTab() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return _buildGaleriKamiTab();
+      case 1:
+        return _buildGaleriMisiTab();
+      case 2:
+        return _buildPostinganTerkaitTab();
+      default:
+        return _buildGaleriKamiTab();
+    }
+  }
+
+  PreferredSizeWidget _buildAppBar(String title) {
+    return AppBar(
+      backgroundColor: AppColors.background,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: AppColors.primary),
+        onPressed: () => Get.back(),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      centerTitle: false,
+    );
+  }
+
+  Widget _buildTabBar() {
+    final tabs = ['Galeri Kami', 'Galeri Misi', 'Postingan Terkait'];
+    
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: List.generate(tabs.length, (index) {
+          final isSelected = _selectedTabIndex == index;
+          return Padding(
+            padding: EdgeInsets.only(right: index < tabs.length - 1 ? 8 : 0),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedTabIndex = index;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: isSelected 
+                      ? null 
+                      : Border.all(color: AppColors.border, width: 1),
+                ),
+                child: Text(
+                  tabs[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  /// Tab 1: Galeri Kami - from place.imageUrls
+  Widget _buildGaleriKamiTab() {
+    final photos = place?.imageUrls ?? [];
+    
+    if (photos.isEmpty) {
+      return _buildEmptyState('Belum ada foto dari tempat ini');
+    }
+
+    return _buildPhotoGrid(
+      photos: photos,
+      showLabel: true,
+    );
+  }
+
+  /// Tab 2: Galeri Misi - from checkin.imageUrl
+  Widget _buildGaleriMisiTab() {
+    return Obx(() {
+      if (controller.isLoadingGalleryCheckins) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final photos = controller.galleryCheckinImages;
+      
+      if (photos.isEmpty) {
+        return _buildEmptyState('Belum ada foto misi dari pengunjung');
+      }
+
+      return _buildPhotoGrid(photos: photos);
+    });
+  }
+
+  /// Tab 3: Postingan Terkait - from post.imageUrls
+  Widget _buildPostinganTerkaitTab() {
+    return Obx(() {
+      if (controller.isLoadingGalleryPosts) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final photos = controller.galleryPostImages;
+      
+      if (photos.isEmpty) {
+        return _buildEmptyState('Belum ada postingan terkait');
+      }
+
+      return _buildPhotoGrid(photos: photos);
+    });
+  }
+
+  Widget _buildEmptyState(String message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -79,51 +189,48 @@ class GalleryView extends GetView<ExploreController> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Belum ada foto',
+            message,
             style: TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGalleryContent(BuildContext context, PlaceModel place, List<String> photos) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'Foto ${place.name ?? "Tempat"}',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 1,
-            ),
-            itemCount: photos.length,
-            itemBuilder: (context, index) {
-              return _buildPhotoTile(context, photos, index);
-            },
-          ),
-        ),
-      ],
+  Widget _buildPhotoGrid({
+    required List<String> photos,
+    bool showLabel = false,
+  }) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1,
+      ),
+      itemCount: photos.length,
+      itemBuilder: (context, index) {
+        return _buildPhotoTile(
+          context: context,
+          photos: photos,
+          index: index,
+          showLabel: showLabel,
+        );
+      },
     );
   }
 
-  Widget _buildPhotoTile(BuildContext context, List<String> photos, int index) {
+  Widget _buildPhotoTile({
+    required BuildContext context,
+    required List<String> photos,
+    required int index,
+    bool showLabel = false,
+  }) {
     return GestureDetector(
       onTap: () {
         FullscreenImageViewer.show(
@@ -134,11 +241,73 @@ class GalleryView extends GetView<ExploreController> {
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: NetworkImageWidget(
-          imageUrl: photos[index],
-          fit: BoxFit.cover,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            NetworkImageWidget(
+              imageUrl: photos[index],
+              fit: BoxFit.cover,
+            ),
+            if (showLabel)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Text(
+                    _getLabelForIndex(index),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
+  }
+
+  // TODO: Add label for each images in database
+  String _getLabelForIndex(int index) {
+    // Generate label based on place info if available
+    final placeAttributes = place?.placeAttributes;
+    if (placeAttributes != null) {
+      // Try to get area names from place attributes
+      final capacityList = placeAttributes.capacity;
+      if (capacityList != null && index < capacityList.length) {
+        return capacityList[index].name ?? 'Area ${index + 1}';
+      }
+    }
+    
+    // Default labels based on common areas
+    final defaultLabels = [
+      'Area Indoor',
+      'Area Indoor',
+      'Area Outdoor 1',
+      'Area Outdoor 2',
+      'Area Outdoor 3',
+      'Mushola',
+      'Area Parkir',
+      'Toilet',
+    ];
+    
+    if (index < defaultLabels.length) {
+      return defaultLabels[index];
+    }
+    return 'Foto ${index + 1}';
   }
 }

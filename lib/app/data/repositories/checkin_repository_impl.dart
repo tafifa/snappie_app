@@ -37,4 +37,14 @@ class CheckinRepository {
 
     return checkin;
   }
+
+  /// Get checkins by place ID
+  /// Throws: [NetworkException], [ServerException], [AuthenticationException], [AuthorizationException]
+  Future<List<CheckinModel>> getCheckinsByPlaceId(int placeId, {int page = 1, int perPage = 20}) async {
+    if (!(await networkInfo.isConnected)) {
+      throw NetworkException('No internet connection');
+    }
+
+    return await remoteDataSource.getCheckinsByPlaceId(placeId, page: page, perPage: perPage);
+  }
 }

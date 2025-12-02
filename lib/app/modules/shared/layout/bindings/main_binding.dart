@@ -41,9 +41,11 @@ class MainBinding extends Bindings {
     // Explore tab
     Get.lazyPut<ExploreController>(
       () => ExploreController(
+        userRepository: Get.find<UserRepository>(),
         placeRepository: Get.find<PlaceRepository>(),
         reviewRepository: Get.find<ReviewRepository>(),
         checkinRepository: Get.find<CheckinRepository>(),
+        postRepository: Get.find<PostRepository>(),
         authService: Get.find<AuthService>(),
       ),
     );

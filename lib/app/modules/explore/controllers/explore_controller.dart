@@ -1,13 +1,18 @@
 import 'dart:async';
 
 import 'package:get/get.dart';
+import 'package:snappie_app/app/core/constants/app_colors.dart';
 import 'package:snappie_app/app/core/constants/food_type.dart';
 import 'package:snappie_app/app/core/constants/place_value.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
+import '../../../data/models/checkin_model.dart';
+import '../../../data/models/post_model.dart';
 import '../../../data/repositories/place_repository_impl.dart';
 import '../../../data/repositories/review_repository_impl.dart';
 import '../../../data/repositories/checkin_repository_impl.dart';
+import '../../../data/repositories/post_repository_impl.dart';
+import '../../../data/repositories/user_repository_impl.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/location_service.dart';
 
@@ -15,12 +20,16 @@ class ExploreController extends GetxController {
   final PlaceRepository placeRepository;
   final ReviewRepository reviewRepository;
   final CheckinRepository checkinRepository;
+  final PostRepository postRepository;
+  final UserRepository userRepository;
   final AuthService authService;
 
   ExploreController({
     required this.placeRepository,
     required this.reviewRepository,
     required this.checkinRepository,
+    required this.postRepository,
+    required this.userRepository,
     required this.authService,
   });
 
@@ -51,12 +60,24 @@ class ExploreController extends GetxController {
   // Check-in related
   final _isCreatingCheckin = false.obs;
 
+  // Gallery-related reactive variables
+  final _galleryCheckins = <CheckinModel>[].obs;
+  final _galleryPosts = <PostModel>[].obs;
+  final _isLoadingGalleryCheckins = false.obs;
+  final _isLoadingGalleryPosts = false.obs;
+
+  // Favorite/Saved places related
+  final _isTogglingFavorite = false.obs;
+  final _savedPlaces = <int>[].obs;
+  final _isLoadingSavedPlaces = false.obs;
+
   // Initialization flag
   final _isInitialized = false.obs;
 
   // Banner visibility state
   final _showBanner = true.obs;
   final _showMissionCta = true.obs;
+
 
   Timer? _searchDebounce;
 
@@ -66,11 +87,18 @@ class ExploreController extends GetxController {
   bool get isLoadingReviews => _isLoadingReviews.value;
   bool get isCreatingReview => _isCreatingReview.value;
   bool get isCreatingCheckin => _isCreatingCheckin.value;
+  bool get isLoadingGalleryCheckins => _isLoadingGalleryCheckins.value;
+  bool get isLoadingGalleryPosts => _isLoadingGalleryPosts.value;
+  bool get isTogglingFavorite => _isTogglingFavorite.value;
+  bool get isLoadingSavedPlaces => _isLoadingSavedPlaces.value;
+  List<int> get savedPlaces => _savedPlaces;
 
   List<PlaceModel> get places => _places;
   List<String> get categories => _categories;
   List<ReviewModel> get reviews => _reviews;
   List<ReviewModel> get userReviews => _userReviews;
+  List<CheckinModel> get galleryCheckins => _galleryCheckins;
+  List<PostModel> get galleryPosts => _galleryPosts;
 
   PlaceModel? get selectedPlace => _selectedPlace.value;
   List<String>? get selectedImageUrls => _selectedImageUrls.value;
@@ -454,7 +482,7 @@ class ExploreController extends GetxController {
   }
 
   Future<void> createReview({
-    required int placeId,
+    required PlaceModel? place,
     required int vote,
     required String content,
     List<String>? imageUrls,
@@ -466,20 +494,27 @@ class ExploreController extends GetxController {
     try {
       // Create review via repository
       await reviewRepository.createReview(
-        placeId: placeId,
+        placeId: place!.id!,
         content: content,
         rating: vote,
         imageUrls: imageUrls,
         additionalInfo: additionalInfo,
       );
 
+      // Show success and go back to place reviews list
       Get.snackbar(
-        'Success',
-        'Review submitted successfully!',
+        'Berhasil',
+        'Ulasan berhasil dikirim! Kamu mendapatkan ${place.expReward ?? 50} XP dan ${place.coinReward ?? 25} Koin',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.success,
+        colorText: AppColors.textOnPrimary,
+        duration: const Duration(seconds: 3),
       );
 
-      await loadPlaceReviews(placeId);
+      await loadPlaceReviews(place.id!);
+
+      await Future.delayed(Duration(milliseconds: 100));
+      Get.back(closeOverlays: true);
     } catch (e) {
       _setError('Failed to create review: $e');
       Get.snackbar(
@@ -527,6 +562,125 @@ class ExploreController extends GetxController {
     }
 
     _isCreatingCheckin.value = false;
+  }
+
+  // ===== GALLERY METHODS =====
+
+  /// Load checkins for gallery (Galeri Misi tab)
+  Future<void> loadGalleryCheckins(int placeId) async {
+    _isLoadingGalleryCheckins.value = true;
+    _galleryCheckins.clear();
+
+    try {
+      final checkins = await checkinRepository.getCheckinsByPlaceId(placeId);
+      _galleryCheckins.assignAll(checkins);
+      print('📸 Gallery checkins loaded: ${checkins.length}');
+    } catch (e) {
+      print('❌ Error loading gallery checkins: $e');
+      // Silent fail - gallery will show empty state
+    }
+
+    _isLoadingGalleryCheckins.value = false;
+  }
+
+  /// Load posts for gallery (Postingan Terkait tab)
+  Future<void> loadGalleryPosts(int placeId) async {
+    _isLoadingGalleryPosts.value = true;
+    _galleryPosts.clear();
+
+    try {
+      final posts = await postRepository.getPostsByPlaceId(placeId);
+      _galleryPosts.assignAll(posts);
+      print('📝 Gallery posts loaded: ${posts.length}');
+    } catch (e) {
+      print('❌ Error loading gallery posts: $e');
+      // Silent fail - gallery will show empty state
+    }
+
+    _isLoadingGalleryPosts.value = false;
+  }
+
+  /// Get all image URLs from checkins (for Galeri Misi)
+  List<String> get galleryCheckinImages {
+    return _galleryCheckins
+        .where((c) => c.imageUrl != null && c.imageUrl!.isNotEmpty)
+        .map((c) => c.imageUrl!)
+        .toList();
+  }
+
+  /// Get all image URLs from posts (for Postingan Terkait)
+  List<String> get galleryPostImages {
+    final images = <String>[];
+    for (final post in _galleryPosts) {
+      if (post.imageUrls != null && post.imageUrls!.isNotEmpty) {
+        images.addAll(post.imageUrls!);
+      }
+    }
+    return images;
+  }
+
+  // ===== FAVORITE/SAVED PLACES METHODS =====
+
+  /// Load user's saved places from API
+  Future<void> loadSavedPlaces() async {
+    if (_isLoadingSavedPlaces.value) return;
+    
+    _isLoadingSavedPlaces.value = true;
+    try {
+      final userSaved = await userRepository.getUserSaved();
+      _savedPlaces.assignAll(userSaved.savedPlaces ?? []);
+      print('⭐ Loaded saved places: ${_savedPlaces.length}');
+      print('⭐ Saved place IDs: ${_savedPlaces.join(", ")}');
+    } catch (e) {
+      print('❌ Error loading saved places: $e');
+      // Silent fail - will show as not saved
+    } finally {
+      _isLoadingSavedPlaces.value = false;
+    }
+  }
+
+  /// Check if a place is saved in user's favorites
+  bool isPlaceSaved(int placeId) {
+    return _savedPlaces.contains(placeId);
+  }
+
+  /// Toggle save/unsave a place from favorites
+  Future<bool> toggleSavedPlace(int placeId) async {
+    if (_isTogglingFavorite.value) return false;
+    
+    _isTogglingFavorite.value = true;
+
+    try {
+      // Check if already saved locally
+      final isCurrentlySaved = _savedPlaces.contains(placeId);
+      print('⭐ Toggling saved place: $placeId (currently saved: $isCurrentlySaved)');
+      
+      if (isCurrentlySaved) {
+        // Remove from local state first (optimistic)
+        _savedPlaces.remove(placeId);
+      } else {
+        // Add to local state first (optimistic)
+        _savedPlaces.add(placeId);
+      }
+      
+      // Call toggle API
+      final updatedSaved = await userRepository.toggleSavedPlace(_savedPlaces);
+      print('⭐ Toggled saved place on server $updatedSaved');
+      
+      // Sync with server response
+      _savedPlaces.assignAll(updatedSaved.savedPlaces ?? []);
+      
+      final isNowSaved = _savedPlaces.contains(placeId);
+      print('⭐ Place ${isNowSaved ? "saved" : "unsaved"}: $placeId');
+      return isNowSaved;
+    } catch (e) {
+      // Revert optimistic update on error - reload from server
+      await loadSavedPlaces();
+      print('❌ Error toggling saved place: $e');
+      rethrow;
+    } finally {
+      _isTogglingFavorite.value = false;
+    }
   }
 
   // ===== PRIVATE METHODS =====

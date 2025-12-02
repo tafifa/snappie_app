@@ -74,7 +74,7 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                     child: Center(
                         child: Text(
-                      '900 XP',
+                      '${controller.totalExp} XP',
                       style: TextStyle(
                         color: AppColors.accent,
                         fontSize: 14,
@@ -92,7 +92,7 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                     child: Center(
                         child: Text(
-                      '250 Koin',
+                      '${controller.totalCoins} Koin',
                       style: TextStyle(
                         color: AppColors.accent,
                         fontSize: 14,
@@ -169,8 +169,8 @@ class ProfileView extends GetView<ProfileController> {
               children: [
                 Expanded(
                   child: Obx(() => _buildStatColumn(
-                        '${controller.totalCheckins}',
-                        'Check-ins',
+                        '${controller.totalPosts}',
+                        'Postingan',
                       )),
                 ),
                 Container(
@@ -181,8 +181,8 @@ class ProfileView extends GetView<ProfileController> {
                 ),
                 Expanded(
                   child: Obx(() => _buildStatColumn(
-                        '${controller.totalReviews}',
-                        'Reviews',
+                        '${controller.totalFollowers}',
+                        'Pengikut',
                       )),
                 ),
                 Container(
@@ -193,8 +193,8 @@ class ProfileView extends GetView<ProfileController> {
                 ),
                 Expanded(
                   child: Obx(() => _buildStatColumn(
-                        '${controller.totalExp}',
-                        'Points',
+                        '${controller.totalFollowing}',
+                        'Mengikuti',
                       )),
                 ),
               ],

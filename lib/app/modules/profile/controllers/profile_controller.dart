@@ -29,11 +29,16 @@ class ProfileController extends GetxController {
   String get userAvatar => _userData.value?.imageUrl ?? '';
   String get userEmail => _userData.value?.email ?? '';
   String get userImageUrl => _userData.value?.imageUrl ?? '';
-  int get totalCheckins => _userData.value?.totalCheckin ?? 0;
-  int get totalReviews => _userData.value?.totalReview ?? 0;
-  int get totalPosts => _userData.value?.totalPost ?? 0;
   int get totalCoins => _userData.value?.totalCoin ?? 0;
   int get totalExp => _userData.value?.totalExp ?? 0;
+  int get totalFollowing => _userData.value?.totalFollowing ?? 0;
+  int get totalFollowers => _userData.value?.totalFollower ?? 0;
+  int get totalCheckins => _userData.value?.totalCheckin ?? 0;
+  int get totalPosts => _userData.value?.totalPost ?? 0;
+  int get totalArticles => _userData.value?.totalArticle ?? 0;
+  int get totalReviews => _userData.value?.totalReview ?? 0;
+  int get totalAchievements => _userData.value?.totalAchievement ?? 0;
+  int get totalChallenges => _userData.value?.totalChallenge ?? 0;
   
   // Add stats getter for compatibility with profile_view
   Map<String, dynamic> get stats => {

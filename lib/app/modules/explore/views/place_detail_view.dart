@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:snappie_app/app/core/constants/place_value.dart';
 import 'package:snappie_app/app/routes/app_pages.dart';
 import '../controllers/explore_controller.dart';
@@ -19,12 +20,13 @@ class PlaceDetailView extends GetView<ExploreController> {
     // Get place from arguments if passed
     final PlaceModel? place = Get.arguments as PlaceModel?;
 
-    // Load place reviews when page loads
+    // Load place reviews and saved places when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (place != null) {
         controller.showMissionCtaPrompt();
         controller.selectPlace(place);
         controller.loadPlaceReviews(place.id!);
+        controller.loadSavedPlaces();
       }
     });
 
@@ -55,18 +57,34 @@ class PlaceDetailView extends GetView<ExploreController> {
                         onPressed: () => Get.back(),
                       ),
                     ),
-                    // title: Text(
-                    //   place.name ?? 'Place Name not available',
-                    //   style: TextStyle(
-                    //     fontWeight: FontWeight.w600,
-                    //   ),
-                    // ),
-                    actions: [
-                      IconButton(
-                        icon: Icon(Icons.bookmark_outline,
-                            color: AppColors.primary),
-                        onPressed: () => _toggleFavorite(place),
+                    title: Text(
+                      place.name ?? 'Place Name not available',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
+                    actions: [
+                      Obx(() {
+                        final isSaved = place.id != null && controller.isPlaceSaved(place.id!);
+                        final isLoading = controller.isTogglingFavorite;
+                        return IconButton(
+                          icon: isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                                  color: AppColors.primary,
+                                ),
+                          onPressed: isLoading ? null : () => _toggleFavorite(place),
+                        );
+                      }),
                       IconButton(
                         icon: Icon(Icons.share, color: AppColors.primary),
                         onPressed: () => _showShareDialog(place),
@@ -437,7 +455,7 @@ class PlaceDetailView extends GetView<ExploreController> {
 
   Widget _buildInfoCard(PlaceModel place) {
     final detail = place.placeDetail;
-    final openingText = _formatOperatingHours(detail);
+    final openingHoursText = _formatOperatingHours(detail);
 
     return _buildSectionCard(
       child: Column(
@@ -461,7 +479,7 @@ class PlaceDetailView extends GetView<ExploreController> {
             // value: openingText ?? 'Jam operasional belum tersedia',
             icon: Icons.access_time,
             trailing: Text(
-              openingText ?? 'Jam operasional belum tersedia',
+              openingHoursText ?? 'Jam operasional belum tersedia',
               style: TextStyle(
                   color: AppColors.success, fontWeight: FontWeight.w600),
             ),
@@ -968,75 +986,6 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  void _showAllReviewsSheet(PlaceModel place) {
-    Get.bottomSheet(
-      Container(
-        height: Get.height * 0.8,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Semua Ulasan',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoadingReviews) {
-                  return const Center(child: LoadingStateWidget());
-                }
-                if (controller.reviews.isEmpty) {
-                  return const NoDataEmptyState(
-                    title: 'Belum ada ulasan',
-                    subtitle: 'Jadilah yang pertama menulis ulasan',
-                  );
-                }
-                return ListView.separated(
-                  padding: const EdgeInsets.all(20),
-                  itemBuilder: (context, index) =>
-                      _buildReviewTile(controller.reviews[index]),
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemCount: controller.reviews.length,
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-    );
-  }
-
   Widget _buildSimilarPlacesSection(PlaceModel currentPlace) {
     final similarPlaces = controller.places
         .where((item) => item.id != currentPlace.id)
@@ -1280,58 +1229,62 @@ class PlaceDetailView extends GetView<ExploreController> {
     );
   }
 
-  void _showShareDialog(PlaceModel place) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          'Share Place',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Share ${place.name} with your friends!',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Implement share functionality
-              Get.back();
-              Get.snackbar(
-                'Shared',
-                'Place shared successfully!',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: AppColors.success,
-                colorText: AppColors.textOnPrimary,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Share'),
-          ),
-        ],
+  void _showShareDialog(PlaceModel place) async {
+    final placeName = place.name ?? 'Tempat Menarik';
+    final description = place.description ?? '';
+    final lat = place.latitude;
+    final lng = place.longitude;
+    
+    String shareText = '🍽️ $placeName\n';
+    if (description.isNotEmpty) {
+      shareText += '\n$description\n';
+    }
+    if (lat != null && lng != null) {
+      shareText += '\n📍 Lihat di Google Maps:\nhttps://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    }
+    shareText += '\n\nTemukan di Snappie App! 📱';
+    
+    await SharePlus.instance.share(
+      ShareParams(
+        text: shareText,
+        subject: 'Cek tempat ini: $placeName',
       ),
     );
   }
 
-  void _toggleFavorite(PlaceModel place) {
-    // Implement toggle favorite functionality
-    Get.snackbar(
-      'Added to Favorites',
-      '${place.name} added to your favorites',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppColors.success,
-      colorText: AppColors.textOnPrimary,
-    );
+  void _toggleFavorite(PlaceModel place) async {
+    if (place.id == null) {
+      Get.snackbar(
+        'Error',
+        'Tidak dapat menyimpan tempat ini',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
+      );
+      return;
+    }
+
+    try {
+      final isNowSaved = await controller.toggleSavedPlace(place.id!);
+      
+      Get.snackbar(
+        isNowSaved ? 'Disimpan' : 'Dihapus',
+        isNowSaved 
+            ? '${place.name} ditambahkan ke favorit'
+            : '${place.name} dihapus dari favorit',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: isNowSaved ? AppColors.success : AppColors.primary,
+        colorText: AppColors.textOnPrimary,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal menyimpan: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: AppColors.textOnPrimary,
+      );
+    }
   }
 
   // ignore: unused_element
@@ -1430,316 +1383,10 @@ class PlaceDetailView extends GetView<ExploreController> {
     Get.back();
   }
 
-  // ignore: unused_element
-  void _showDirections(PlaceModel place) {
-    Get.snackbar(
-      'Directions',
-      'Opening directions to ${place.name}',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppColors.primary,
-      colorText: AppColors.textOnPrimary,
-    );
-  }
-
-  // ignore: unused_element
-  void _showCreateReviewDialog() {
-    final place = controller.selectedPlace;
-    if (place == null) return;
-
-    final contentController = TextEditingController();
-    final voteNotifier = ValueNotifier<int>(5);
-
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          'Write Review',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Review for ${place.name}',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-
-              // Rating
-              Text(
-                'Rating',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ValueListenableBuilder<int>(
-                valueListenable: voteNotifier,
-                builder: (context, vote, child) {
-                  return Row(
-                    children: List.generate(5, (index) {
-                      return GestureDetector(
-                        onTap: () => voteNotifier.value = index + 1,
-                        child: Icon(
-                          index < vote ? Icons.star : Icons.star_border,
-                          color: AppColors.warning,
-                          size: 32,
-                        ),
-                      );
-                    }),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Content
-              Text(
-                'Review',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: contentController,
-                maxLines: 4,
-                style: TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Write your review here...',
-                  hintStyle: TextStyle(color: AppColors.textTertiary),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          Obx(() => ElevatedButton(
-                onPressed: controller.isCreatingReview
-                    ? null
-                    : () => _submitReview(
-                          place.id.toString(),
-                          voteNotifier.value,
-                          contentController.text,
-                        ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textOnPrimary,
-                ),
-                child: controller.isCreatingReview
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Submit'),
-              )),
-        ],
-      ),
-    );
-  }
-
-  void _submitReview(String placeId, int vote, String content) async {
-    if (content.trim().isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please write a review',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppColors.error,
-        colorText: AppColors.textOnPrimary,
-      );
-      return;
-    }
-
-    await controller.createReview(
-      placeId: int.parse(placeId),
-      vote: vote,
-      content: content.trim(),
-    );
-
-    Get.back();
-  }
-
-  void _showReviewDetail(ReviewModel review) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          'Review by ${review.user?.name}',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Rating
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < (review.totalLike ?? 0)
-                        ? Icons.star
-                        : Icons.star_border,
-                    color: AppColors.warning,
-                    size: 20,
-                  );
-                }),
-              ),
-              const SizedBox(height: 12),
-
-              // Content
-              Text(
-                review.content ?? 'No content',
-                style: TextStyle(color: AppColors.textPrimary),
-              ),
-
-              // Images
-              if (review.imageUrls != null && review.imageUrls!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: review.imageUrls!.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 100,
-                        height: 100,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: NetworkImageWidget(
-                            imageUrl: review.imageUrls![index],
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 12),
-
-              // Date and Status
-              Row(
-                children: [
-                  Text(
-                    _formatDate(review.createdAt!),
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (review.status != null) _buildStatusChip(review.status!),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Close',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(bool status) {
-    final backgroundColor =
-        status ? AppColors.successContainer : AppColors.warningContainer;
-    final textColor = status ? AppColors.success : AppColors.warning;
-    final text = status ? 'Approved' : 'Pending';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
   void _showGalleryPage(PlaceModel place) {
     Get.toNamed(
       AppPages.GALLERY,
       arguments: place,
-    );
-  }
-
-  void _showPhotoViewer(List<String> photos, int initialIndex) {
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.black,
-        child: Stack(
-          children: [
-            PageView.builder(
-              itemCount: photos.length,
-              controller: PageController(initialPage: initialIndex),
-              itemBuilder: (context, index) {
-                return Center(
-                  child: NetworkImageWidget(
-                    imageUrl: photos[index],
-                    fit: BoxFit.contain,
-                  ),
-                );
-              },
-            ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: IconButton(
-                onPressed: () => Get.back(),
-                icon: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

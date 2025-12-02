@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/place_model.dart';
 import '../../../data/models/review_model.dart';
+import '../../../routes/app_pages.dart';
 import '../controllers/explore_controller.dart';
 import '../../shared/widgets/index.dart';
 
@@ -385,7 +386,10 @@ class _ReviewsViewState extends State<ReviewsView> {
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: () {
-              // TODO: Navigate to give review page
+              final PlaceModel? place = Get.arguments as PlaceModel?;
+              if (place != null) {
+                Get.toNamed(AppPages.GIVE_REVIEW, arguments: place);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.surfaceContainer,

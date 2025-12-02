@@ -9,17 +9,22 @@ enum MissionFailureType {
 
   /// Jaringan terputus
   networkError,
+
+  /// Sudah pernah menyelesaikan misi (409 Conflict)
+  alreadyCompleted,
 }
 
 /// Modal gagal untuk misi
 class MissionFailedModal extends StatelessWidget {
   final MissionFailureType failureType;
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
+  final VoidCallback? onClose;
 
   const MissionFailedModal({
     super.key,
     required this.failureType,
-    required this.onRetry,
+    this.onRetry,
+    this.onClose,
   });
 
   static Future<bool?> show({
@@ -28,7 +33,10 @@ class MissionFailedModal extends StatelessWidget {
     return Get.dialog<bool>(
       MissionFailedModal(
         failureType: failureType,
-        onRetry: () => Get.back(result: true),
+        onRetry: failureType != MissionFailureType.alreadyCompleted 
+            ? () => Get.back(result: true) 
+            : null,
+        onClose: () => Get.back(result: false),
       ),
       barrierDismissible: false,
     );
@@ -40,6 +48,8 @@ class MissionFailedModal extends StatelessWidget {
         return 'Ups, Misi Gagal!';
       case MissionFailureType.networkError:
         return 'Ups, Jaringan Terputus!';
+      case MissionFailureType.alreadyCompleted:
+        return 'Misi Sudah Selesai!';
     }
   }
 
@@ -49,6 +59,26 @@ class MissionFailedModal extends StatelessWidget {
         return 'Jangan khawatir, kamu bisa coba lagi.\nSemangat!';
       case MissionFailureType.networkError:
         return 'Jangan khawatir, kamu bisa coba lagi.\nSemangat!';
+      case MissionFailureType.alreadyCompleted:
+        return 'Kamu sudah menyelesaikan misi ini bulan ini.\nCoba lagi bulan depan ya!';
+    }
+  }
+
+  Color get _primaryColor {
+    switch (failureType) {
+      case MissionFailureType.alreadyCompleted:
+        return AppColors.warning;
+      default:
+        return AppColors.error;
+    }
+  }
+
+  IconData get _icon {
+    switch (failureType) {
+      case MissionFailureType.alreadyCompleted:
+        return Icons.check_circle_outline;
+      default:
+        return Icons.error_outline;
     }
   }
 
@@ -64,9 +94,11 @@ class MissionFailedModal extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Mascot image with sad expression
+            // Mascot image or icon
             Image.asset(
-              'assets/images/Rectangle 67.png',
+              failureType == MissionFailureType.alreadyCompleted
+                  ? 'assets/images/Rectangle 67.png' // Could use different image
+                  : 'assets/images/Rectangle 67.png',
               height: 100,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
@@ -74,13 +106,15 @@ class MissionFailedModal extends StatelessWidget {
                   height: 100,
                   width: 100,
                   decoration: BoxDecoration(
-                    color: AppColors.errorContainer,
+                    color: failureType == MissionFailureType.alreadyCompleted
+                        ? AppColors.warningContainer
+                        : AppColors.errorContainer,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    Icons.error_outline,
+                    _icon,
                     size: 48,
-                    color: AppColors.error,
+                    color: _primaryColor,
                   ),
                 );
               },
@@ -93,7 +127,7 @@ class MissionFailedModal extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.error,
+                color: _primaryColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -111,28 +145,54 @@ class MissionFailedModal extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Retry button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+            // Buttons
+            if (failureType == MissionFailureType.alreadyCompleted) ...[
+              // Only show "Kembali" button for already completed
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onClose,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'Coba Lagi',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  child: const Text(
+                    'Kembali',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ] else ...[
+              // Show "Coba Lagi" button for other failures
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onRetry,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

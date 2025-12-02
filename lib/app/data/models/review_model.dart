@@ -25,6 +25,10 @@ class ReviewModel {
   int? rating;
   bool? status;
 
+  @JsonKey(name: 'additional_info')
+  @ignore // Isar doesn't support Map, so ignore for local storage
+  Map<String, dynamic>? additionalInfo;
+
   @JsonKey(name: 'user')
   UserReview? user;
 

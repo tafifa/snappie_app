@@ -2522,6 +2522,7 @@ ReviewModel _$ReviewModelFromJson(Map<String, dynamic> json) => ReviewModel()
   ..totalLike = (json['total_like'] as num?)?.toInt()
   ..rating = (json['rating'] as num?)?.toInt()
   ..status = json['status'] as bool?
+  ..additionalInfo = json['additional_info'] as Map<String, dynamic>?
   ..user = json['user'] == null
       ? null
       : UserReview.fromJson(json['user'] as Map<String, dynamic>)
@@ -2542,6 +2543,7 @@ Map<String, dynamic> _$ReviewModelToJson(ReviewModel instance) =>
       'total_like': instance.totalLike,
       'rating': instance.rating,
       'status': instance.status,
+      'additional_info': instance.additionalInfo,
       'user': instance.user,
       'created_at': instance.createdAt?.toIso8601String(),
       'updated_at': instance.updatedAt?.toIso8601String(),

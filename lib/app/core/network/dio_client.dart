@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart' as getx;
 import '../services/auth_service.dart';
 import '../constants/app_constants.dart';
+import '../../routes/app_pages.dart';
 
 class DioClient {
   static const String skipAuthRefreshKey = 'skip_auth_refresh';
@@ -129,10 +130,12 @@ class _ErrorInterceptor extends Interceptor {
         } else {
           print('❌ Token refresh failed, logging out user');
           await authService.logout();
+          getx.Get.offAllNamed(AppPages.LOGIN);
         }
       } else if (authService != null) {
         print('⚠️ No valid refresh token, logging out user');
         await authService.logout();
+        getx.Get.offAllNamed(AppPages.LOGIN);
       }
     }
 

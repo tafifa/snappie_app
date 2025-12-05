@@ -1,7 +1,18 @@
 import 'package:get/get.dart';
 import 'package:snappie_app/app/modules/profile/views/profile_view.dart';
 import 'package:snappie_app/app/modules/profile/views/user_profile_view.dart';
+import 'package:snappie_app/app/modules/profile/views/saved_places_view.dart';
+import 'package:snappie_app/app/modules/profile/views/saved_posts_view.dart';
+import 'package:snappie_app/app/modules/profile/views/rewards_view.dart';
+import 'package:snappie_app/app/modules/profile/views/achievements_view.dart';
+import 'package:snappie_app/app/modules/profile/views/challenges_view.dart';
+import 'package:snappie_app/app/modules/profile/views/followers_following_view.dart';
+import 'package:snappie_app/app/modules/profile/views/leaderboard_full_view.dart';
+import 'package:snappie_app/app/modules/profile/views/coins_history_view.dart';
+import 'package:snappie_app/app/modules/profile/views/invite_friends_view.dart';
+import 'package:snappie_app/app/modules/profile/views/settings_view.dart';
 import 'package:snappie_app/app/modules/shared/components/tnc_view.dart';
+import 'package:snappie_app/app/modules/home/views/post_detail_view.dart';
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/register_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
@@ -33,6 +44,7 @@ class AppPages {
   // Home
   static const MAIN = '/main';
   static const POST = '/post';
+  static const POST_DETAIL = '/post-detail';
 
   // Explore
   static const EXPLORE = '/explore';
@@ -52,6 +64,15 @@ class AppPages {
   static const USER_PROFILE = '/user-profile'; // Read-only profile untuk navigasi dari widget lain
   static const SETTINGS = '/settings';
   static const EDIT_PROFILE = '/edit-profile';
+  static const SAVED_PLACES = '/saved-places';
+  static const SAVED_POSTS = '/saved-posts';
+  static const LEADERBOARD = '/leaderboard';
+  static const REWARDS = '/rewards';
+  static const ACHIEVEMENTS = '/achievements';
+  static const CHALLENGES = '/challenges';
+  static const FOLLOWERS_FOLLOWING = '/followers-following';
+  static const COINS_HISTORY = '/coins-history';
+  static const INVITE_FRIENDS = '/invite-friends';
 
   // Mission
   static const MISSION_PHOTO = '/mission-photo';
@@ -91,6 +112,10 @@ class AppPages {
       name: POST,
       page: () => const MainLayout(),
       binding: MainBinding(),
+    ),
+    GetPage(
+      name: POST_DETAIL,
+      page: () => const PostDetailView(),
     ),
 
     // Explore detail pages - full screen navigation dari tab explore
@@ -134,13 +159,23 @@ class AppPages {
     ),
     GetPage(
       name: SETTINGS,
-      page: () => const ProfileView(), // TODO: Buat SettingsView terpisah
+      page: () => const SettingsView(),
       // Tidak perlu binding karena sudah di MainBinding
     ),
     GetPage(
       name: EDIT_PROFILE,
       page: () => const ProfileView(), // TODO: Buat EditProfileView terpisah
       // Tidak perlu binding karena sudah di MainBinding
+    ),
+    
+    // New profile pages
+    GetPage(
+      name: COINS_HISTORY,
+      page: () => const CoinsHistoryView(),
+    ),
+    GetPage(
+      name: INVITE_FRIENDS,
+      page: () => const InviteFriendsView(),
     ),
 
     // Mission module
@@ -158,6 +193,40 @@ class AppPages {
       name: MISSION_REVIEW,
       page: () => const MissionReviewView(),
       // Uses existing MissionController
+    ),
+    
+    // Saved items pages (uses existing ProfileController from MainBinding)
+    GetPage(
+      name: SAVED_PLACES,
+      page: () => const SavedPlacesView(),
+    ),
+    GetPage(
+      name: SAVED_POSTS,
+      page: () => const SavedPostsView(),
+    ),
+    
+    // Achievement pages
+    GetPage(
+      name: LEADERBOARD,
+      page: () => const LeaderboardFullView(),
+    ),
+    GetPage(
+      name: REWARDS,
+      page: () => const RewardsView(),
+    ),
+    GetPage(
+      name: ACHIEVEMENTS,
+      page: () => const AchievementsView(),
+    ),
+    GetPage(
+      name: CHALLENGES,
+      page: () => const ChallengesView(),
+    ),
+    
+    // Social pages
+    GetPage(
+      name: FOLLOWERS_FOLLOWING,
+      page: () => const FollowersFollowingView(),
     ),
   ];
 }

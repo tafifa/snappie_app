@@ -1,0 +1,140 @@
+import 'package:dio/dio.dart';
+import 'package:snappie_app/app/core/utils/api_response.dart';
+import '../../../core/errors/exceptions.dart';
+import '../../../core/network/dio_client.dart';
+import '../../../routes/api_endpoints.dart';
+import '../../../core/helpers/api_response_helper.dart';
+import '../../../data/models/achievement_model.dart';
+
+abstract class AchievementRemoteDataSource {
+  Future<List<LeaderboardEntry>> getWeeklyLeaderboard();
+  Future<List<LeaderboardEntry>> getMonthlyLeaderboard();
+  Future<PaginatedUserRewards> getUserRewards(int userId, {int page = 1, int perPage = 10});
+  Future<PaginatedUserAchievements> getUserAchievements(int userId, {int page = 1, int perPage = 10});
+  Future<PaginatedUserChallenges> getUserChallenges(int userId, {int page = 1, int perPage = 10});
+}
+
+class AchievementRemoteDataSourceImpl implements AchievementRemoteDataSource {
+  final DioClient dioClient;
+  AchievementRemoteDataSourceImpl(this.dioClient);
+
+  @override
+  Future<List<LeaderboardEntry>> getWeeklyLeaderboard() async {
+    try {
+      final resp = await dioClient.dio.get(ApiEndpoints.leaderboardWeekly);
+      final rawList = extractApiResponseListData<LeaderboardEntry>(
+        resp,
+        (json) => LeaderboardEntry.fromJson(json),
+      );
+      return rawList;
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to get weekly leaderboard: $e', 500);
+    }
+  }
+
+  @override
+  Future<List<LeaderboardEntry>> getMonthlyLeaderboard() async {
+    try {
+      final resp = await dioClient.dio.get(ApiEndpoints.leaderboardMonthly);
+      final rawList = extractApiResponseListData<LeaderboardEntry>(
+        resp,
+        (json) => LeaderboardEntry.fromJson(json),
+      );
+      return rawList;
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to get leaderboard: $e', 500);
+    }
+  }
+
+  @override
+  Future<PaginatedUserRewards> getUserRewards(int userId, {int page = 1, int perPage = 10}) async {
+    try {
+      final endpoint = ApiEndpoints.userRewards.replaceAll('{id}', userId.toString());
+      final resp = await dioClient.dio.get(
+        endpoint,
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
+      final raw = extractApiResponseData<Map<String, dynamic>>(
+        resp,
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
+      );
+      return PaginatedUserRewards.fromJson(raw);
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to get user rewards: $e', 500);
+    }
+  }
+
+  @override
+  Future<PaginatedUserAchievements> getUserAchievements(int userId, {int page = 1, int perPage = 10}) async {
+    try {
+      final endpoint = ApiEndpoints.userAchievements.replaceAll('{id}', userId.toString());
+      final resp = await dioClient.dio.get(
+        endpoint,
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
+      final raw = extractApiResponseData<Map<String, dynamic>>(
+        resp,
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
+      );
+      return PaginatedUserAchievements.fromJson(raw);
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to get user achievements: $e', 500);
+    }
+  }
+
+  @override
+  Future<PaginatedUserChallenges> getUserChallenges(int userId, {int page = 1, int perPage = 10}) async {
+    try {
+      final endpoint = ApiEndpoints.userChallenges.replaceAll('{id}', userId.toString());
+      final resp = await dioClient.dio.get(
+        endpoint,
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
+      final raw = extractApiResponseData<Map<String, dynamic>>(
+        resp,
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
+      );
+      return PaginatedUserChallenges.fromJson(raw);
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to get user challenges: $e', 500);
+    }
+  }
+
+  Exception _handleDioException(DioException e) {
+    final code = e.response?.statusCode ?? 500;
+    if (code == 401) return AuthenticationException('Authentication failed');
+    if (code == 403) return AuthorizationException('Access denied');
+    if (code == 422) {
+      return ValidationException(
+        'Validation failed',
+        errors: e.response?.data is Map ? e.response?.data['errors'] : null,
+      );
+    }
+    return ServerException(
+      (e.response?.data is Map && e.response?.data['message'] != null)
+          ? e.response?.data['message']
+          : 'Server error',
+      code,
+    );
+  }
+}

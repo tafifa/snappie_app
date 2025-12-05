@@ -83,50 +83,29 @@ Json _fixDuplicateFieldsAndTypeMismatches(Json data) {
   final result = Map<String, dynamic>.from(data);
   
   // Handle user_detail vs userDetail - ALWAYS prefer camelCase
-  if (result.containsKey('user_detail') && result.containsKey('userDetail')) {
-    // Prefer userDetail (camelCase) over user_detail (snake_case)
-    result['userDetail'] = result['userDetail'];
-    result.remove('user_detail');
-  } else if (result.containsKey('user_detail')) {
-    // Rename user_detail to userDetail
-    result['userDetail'] = result['user_detail'];
-    result.remove('user_detail');
+  if (result.containsKey('user_detail')) {
+    // Keep snake_case for generated models, provide camelCase copy for convenience
+    result['userDetail'] = result['userDetail'] ?? result['user_detail'];
   }
   
   // Handle user_preferences vs userPreferences - ALWAYS prefer camelCase
-  if (result.containsKey('user_preferences') && result.containsKey('userPreferences')) {
-    result['userPreferences'] = result['userPreferences'];
-    result.remove('user_preferences');
-  } else if (result.containsKey('user_preferences')) {
-    result['userPreferences'] = result['user_preferences'];
-    result.remove('user_preferences');
+  if (result.containsKey('user_preferences')) {
+    result['userPreferences'] = result['userPreferences'] ?? result['user_preferences'];
   }
   
   // Handle user_saved vs userSaved - ALWAYS prefer camelCase
-  if (result.containsKey('user_saved') && result.containsKey('userSaved')) {
-    result['userSaved'] = result['userSaved'];
-    result.remove('user_saved');
-  } else if (result.containsKey('user_saved')) {
-    result['userSaved'] = result['user_saved'];
-    result.remove('user_saved');
+  if (result.containsKey('user_saved')) {
+    result['userSaved'] = result['userSaved'] ?? result['user_saved'];
   }
   
   // Handle user_settings vs userSettings - ALWAYS prefer camelCase
-  if (result.containsKey('user_settings') && result.containsKey('userSettings')) {
-    result['userSettings'] = result['userSettings'];
-    result.remove('user_settings');
-  } else if (result.containsKey('user_settings')) {
-    result['userSettings'] = result['user_settings'];
-    result.remove('user_settings');
+  if (result.containsKey('user_settings')) {
+    result['userSettings'] = result['userSettings'] ?? result['user_settings'];
   }
   
   // Handle user_notification vs userNotification - ALWAYS prefer camelCase
-  if (result.containsKey('user_notification') && result.containsKey('userNotification')) {
-    result['userNotification'] = result['userNotification'];
-    result.remove('user_notification');
-  } else if (result.containsKey('user_notification')) {
-    result['userNotification'] = result['user_notification'];
-    result.remove('user_notification');
+  if (result.containsKey('user_notification')) {
+    result['userNotification'] = result['userNotification'] ?? result['user_notification'];
   }
   
   // Fix type mismatches in numeric fields

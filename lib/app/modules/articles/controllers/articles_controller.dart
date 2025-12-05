@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/articles_model.dart';
 import '../../../data/repositories/articles_repository_impl.dart';
@@ -9,23 +11,38 @@ class ArticlesController extends GetxController {
       : articlesRepository =
             articlesRepository ?? Get.find<ArticlesRepository>();
 
-  final _articles = <ArticlesModel>[].obs;
+  final _allArticles = <ArticlesModel>[].obs; // Original list
+  final _filteredArticles = <ArticlesModel>[].obs; // Filtered list for display
   final _categories = <String>[].obs;
   final _selectedCategory = ''.obs;
   final _searchQuery = ''.obs;
   final _isLoading = false.obs;
+  final _isSearching = false.obs;
   final _isInitialized = false.obs;
+  
+  Timer? _debounceTimer;
+  
+  // Search text controller
+  final searchTextController = TextEditingController();
 
-  List<ArticlesModel> get articles => _articles;
+  List<ArticlesModel> get articles => _filteredArticles;
   List<String> get categories => _categories;
   String get selectedCategory => _selectedCategory.value;
   String get searchQuery => _searchQuery.value;
   bool get isLoading => _isLoading.value;
+  bool get isSearching => _isSearching.value;
 
   @override
   void onInit() {
     super.onInit();
     print('📰 ArticlesController created (not initialized yet)');
+  }
+  
+  @override
+  void onClose() {
+    _debounceTimer?.cancel();
+    searchTextController.dispose();
+    super.onClose();
   }
   
   /// Initialize data hanya saat tab pertama kali dibuka
@@ -43,12 +60,14 @@ class ArticlesController extends GetxController {
     
     try {
       final articles = await articlesRepository.getArticles();
-      _articles.value = articles;
+      _allArticles.value = articles;
+      _applyFilters(); // Apply any existing filters
       print('📰 Loaded ${articles.length} articles');
     } catch (e) {
       // Handle error silently
       print('Error loading articles: $e');
-      _articles.clear();
+      _allArticles.clear();
+      _filteredArticles.clear();
     }
     
     _setLoading(false);
@@ -69,28 +88,65 @@ class ArticlesController extends GetxController {
 
   void filterByCategory(String category) {
     _selectedCategory.value = category;
-    // TODO: Implement category filtering
-    Get.snackbar(
-      'Filter',
-      'Filtered by $category',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    _applyFilters();
   }
 
   void searchArticles(String query) {
     _searchQuery.value = query;
-    // TODO: Implement search functionality
-    Get.snackbar(
-      'Search',
-      'Searching for: $query',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+    
+    // Show searching state immediately if query is not empty
+    if (query.isNotEmpty) {
+      _isSearching.value = true;
+    }
+    
+    // Debounce the actual filter
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _applyFilters();
+      _isSearching.value = false;
+    });
+  }
+
+  /// Apply search and category filters to articles
+  void _applyFilters() {
+    List<ArticlesModel> result = List.from(_allArticles);
+
+    // Apply search filter
+    if (_searchQuery.value.isNotEmpty) {
+      final query = _searchQuery.value.toLowerCase();
+      result = result.where((article) {
+        final title = article.title?.toLowerCase() ?? '';
+        final description = article.description?.toLowerCase() ?? '';
+        final author = article.author?.toLowerCase() ?? '';
+        final category = article.category?.toLowerCase() ?? '';
+        
+        return title.contains(query) ||
+            description.contains(query) ||
+            author.contains(query) ||
+            category.contains(query);
+      }).toList();
+    }
+
+    // Apply category filter
+    if (_selectedCategory.value.isNotEmpty) {
+      result = result.where((article) {
+        return article.category?.toLowerCase() == _selectedCategory.value.toLowerCase();
+      }).toList();
+    }
+
+    _filteredArticles.value = result;
+    print('📰 Filtered articles: ${result.length} of ${_allArticles.length}');
   }
 
   void clearFilters() {
+    _debounceTimer?.cancel();
     _selectedCategory.value = '';
     _searchQuery.value = '';
-    loadArticles();
+    _isSearching.value = false;
+    searchTextController.clear(); // Clear the text field
+    _applyFilters();
   }
 
   Future<void> refreshData() async {

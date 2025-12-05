@@ -97,8 +97,8 @@ class MissionFailedModal extends StatelessWidget {
             // Mascot image or icon
             Image.asset(
               failureType == MissionFailureType.alreadyCompleted
-                  ? 'assets/images/Rectangle 67.png' // Could use different image
-                  : 'assets/images/Rectangle 67.png',
+                  ? 'assets/images/mission.png' // Could use different image
+                  : 'assets/images/mission.png',
               height: 100,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {

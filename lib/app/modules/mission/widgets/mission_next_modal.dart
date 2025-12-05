@@ -46,7 +46,7 @@ class MissionNextModal extends StatelessWidget {
           children: [
             // Mascot image
             Image.asset(
-              'assets/images/Rectangle 67.png',
+              'assets/images/mission.png',
               height: 100,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {

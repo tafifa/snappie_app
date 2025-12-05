@@ -10,6 +10,7 @@ import '../../../../data/repositories/place_repository_impl.dart';
 import '../../../../data/repositories/review_repository_impl.dart';
 import '../../../../data/repositories/checkin_repository_impl.dart';
 import '../../../../data/repositories/user_repository_impl.dart';
+import '../../../../data/repositories/achievement_repository_impl.dart';
 
 /// Binding untuk MainLayout
 /// Inject semua controllers yang dibutuhkan oleh tabs di MainLayout
@@ -59,7 +60,10 @@ class MainBinding extends Bindings {
     Get.lazyPut<ProfileController>(
       () => ProfileController(
         authService: Get.find<AuthService>(),
-        userRepository: Get.find<UserRepository>(),
+        userRepository: Get.find<UserRepository>(), 
+        postRepository: Get.find<PostRepository>(), 
+        placeRepository: Get.find<PlaceRepository>(),
+        achievementRepository: Get.find<AchievementRepository>(),
       ),
     );
   }

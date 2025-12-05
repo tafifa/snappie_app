@@ -93,16 +93,19 @@ class CloudinaryService {
   /// [file] - The file to upload
   /// [folder] - The folder to upload to (use CloudinaryFolder constants)
   /// [progressCallback] - Optional callback for upload progress
+  /// [quality] - Image quality (80-100, default 85)
   /// 
   /// Returns [CloudinaryUploadResult] with the uploaded image details
   Future<CloudinaryUploadResult> uploadImage(
     File file, {
     String folder = CloudinaryFolder.checkins,
     UploadProgressCallback? progressCallback,
+    int quality = 85,
   }) async {
     try {
       print('[CloudinaryService] Uploading image: ${file.path}');
       print('[CloudinaryService] Folder: $folder');
+      print('[CloudinaryService] Quality: $quality');
       print('[CloudinaryService] Upload preset: $_uploadPreset');
 
       final response = await _uploader.upload(
@@ -129,13 +132,50 @@ class CloudinaryService {
         return CloudinaryUploadResult.error('No upload result received');
       }
 
-      print('[CloudinaryService] Upload success: ${result.secureUrl}');
-      return CloudinaryUploadResult.fromUploadResult(result);
+      // Generate optimized URL with quality transformation
+      final optimizedUrl = _generateOptimizedUrl(result.secureUrl, quality);
+      print('[CloudinaryService] Upload success: $optimizedUrl');
+      
+      // Update the result with optimized URL
+      final optimizedResult = CloudinaryUploadResult(
+        publicId: result.publicId,
+        url: result.url,
+        secureUrl: optimizedUrl,
+        width: result.width,
+        height: result.height,
+        format: result.format,
+        bytes: result.bytes,
+        success: true,
+      );
+      
+      return optimizedResult;
     } catch (e, stackTrace) {
       print('[CloudinaryService] Upload exception: $e');
       print('[CloudinaryService] Stack trace: $stackTrace');
       return CloudinaryUploadResult.error(e.toString());
     }
+  }
+
+  /// Generate optimized URL with quality and format transformations
+  /// Cloudinary URL format: https://res.cloudinary.com/{cloud}/{type}/{transformations}/{public_id}
+  String _generateOptimizedUrl(String? originalUrl, int quality) {
+    if (originalUrl == null || originalUrl.isEmpty) {
+      return '';
+    }
+    
+    // Insert transformation parameters into the URL
+    // Format: q_{quality}/f_auto/c_limit/
+    // q_{quality} - quality setting
+    // f_auto - automatic format selection (WebP, JPEG, etc)
+    // c_limit - limit to avoid distortion
+    
+    final transformations = 'q_$quality,f_auto,c_limit';
+    final optimizedUrl = originalUrl.replaceFirst(
+      '/image/upload/',
+      '/image/upload/$transformations/',
+    );
+    
+    return optimizedUrl;
   }
 
   /// Upload an image file specifically for check-ins
@@ -147,6 +187,7 @@ class CloudinaryService {
       file,
       folder: CloudinaryFolder.checkins,
       progressCallback: progressCallback,
+      quality: 85, // Good quality for check-in photos
     );
   }
 
@@ -159,6 +200,7 @@ class CloudinaryService {
       file,
       folder: CloudinaryFolder.reviews,
       progressCallback: progressCallback,
+      quality: 85, // Good quality for review photos
     );
   }
 
@@ -171,6 +213,7 @@ class CloudinaryService {
       file,
       folder: CloudinaryFolder.profiles,
       progressCallback: progressCallback,
+      quality: 90, // Higher quality for profile pictures
     );
   }
 

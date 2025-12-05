@@ -11,6 +11,10 @@ import 'package:snappie_app/app/modules/profile/views/leaderboard_full_view.dart
 import 'package:snappie_app/app/modules/profile/views/coins_history_view.dart';
 import 'package:snappie_app/app/modules/profile/views/invite_friends_view.dart';
 import 'package:snappie_app/app/modules/profile/views/settings_view.dart';
+import 'package:snappie_app/app/modules/profile/views/edit_profile_view.dart';
+import 'package:snappie_app/app/modules/profile/views/language_view.dart';
+import 'package:snappie_app/app/modules/profile/views/help_center_view.dart';
+import 'package:snappie_app/app/modules/profile/views/faq_view.dart';
 import 'package:snappie_app/app/modules/shared/components/tnc_view.dart';
 import 'package:snappie_app/app/modules/home/views/post_detail_view.dart';
 import '../modules/auth/views/login_view.dart';
@@ -64,6 +68,9 @@ class AppPages {
   static const USER_PROFILE = '/user-profile'; // Read-only profile untuk navigasi dari widget lain
   static const SETTINGS = '/settings';
   static const EDIT_PROFILE = '/edit-profile';
+  static const LANGUAGE = '/language';
+  static const HELP_CENTER = '/help-center';
+  static const FAQ = '/faq';
   static const SAVED_PLACES = '/saved-places';
   static const SAVED_POSTS = '/saved-posts';
   static const LEADERBOARD = '/leaderboard';
@@ -163,9 +170,24 @@ class AppPages {
       // Tidak perlu binding karena sudah di MainBinding
     ),
     GetPage(
+      name: HELP_CENTER,
+      page: () => const HelpCenterView(),
+      // Mengandalkan ProfileController yang sudah di MainBinding (tidak perlu binding)
+    ),
+    GetPage(
+      name: LANGUAGE,
+      page: () => const LanguageView(),
+      // Mengandalkan ProfileController yang sudah di MainBinding (tidak perlu binding)
+    ),
+    GetPage(
+      name: FAQ,
+      page: () => const FaqView(),
+      // Mengandalkan ProfileController yang sudah di MainBinding (tidak perlu binding)
+    ),
+    GetPage(
       name: EDIT_PROFILE,
-      page: () => const ProfileView(), // TODO: Buat EditProfileView terpisah
-      // Tidak perlu binding karena sudah di MainBinding
+      page: () => const EditProfileView(),
+      // Mengandalkan ProfileController yang sudah di MainBinding
     ),
     
     // New profile pages

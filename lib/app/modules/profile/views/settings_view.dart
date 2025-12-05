@@ -40,21 +40,21 @@ class SettingsView extends StatelessWidget {
                   _buildMenuItem(
                     icon: Icons.language,
                     title: 'Bahasa',
-                    onTap: () => _showLanguageSelector(context),
+                    onTap: () => Get.toNamed(AppPages.LANGUAGE),
                   ),
 
                   // Pusat Bantuan
                   _buildMenuItem(
                     icon: Icons.help_outline,
                     title: 'Pusat Bantuan',
-                    onTap: () => _showHelpCenter(context),
+                    onTap: () => Get.toNamed(AppPages.HELP_CENTER),
                   ),
 
                   // FAQ
                   _buildMenuItem(
                     icon: Icons.quiz_outlined,
                     title: 'FAQ',
-                    onTap: () => _showFAQ(context),
+                    onTap: () => Get.toNamed(AppPages.FAQ),
                   ),
 
                   // Keluar
@@ -220,15 +220,30 @@ class SettingsView extends StatelessWidget {
   }
 
   void _showAvatarPicker(BuildContext context, ProfileController controller) {
-    // List of available avatars
-    final avatars = [
-      'avatar_f1_hdpi.png',
-      'avatar_f2_hdpi.png',
-      'avatar_f3_hdpi.png',
-      'avatar_m1_hdpi.png',
-      'avatar_m2_hdpi.png',
-      'avatar_m3_hdpi.png',
-    ];
+    final gender = controller.userData?.userDetail?.gender?.toLowerCase();
+    print('debug gender = $gender');
+    final isMale = gender == 'male';
+
+    final avatars = isMale
+        ? [
+            'avatar_m1_hdpi.png',
+            'avatar_m2_hdpi.png',
+            'avatar_m3_hdpi.png',
+            'avatar_m4_hdpi.png',
+          ]
+        : [
+            'avatar_f1_hdpi.png',
+            'avatar_f2_hdpi.png',
+            'avatar_f3_hdpi.png',
+            'avatar_f4_hdpi.png',
+          ];
+
+    String currentAvatar = controller.userAvatar;
+
+    bool isSelected(String avatar) {
+      // Support both asset names and full URLs
+      return currentAvatar.endsWith(avatar) || currentAvatar.contains(avatar);
+    }
 
     Get.bottomSheet(
       Container(
@@ -266,13 +281,14 @@ class SettingsView extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
               itemCount: avatars.length,
               itemBuilder: (context, index) {
                 final avatar = avatars[index];
+                final selected = isSelected(avatar);
                 return GestureDetector(
                   onTap: () async {
                     Get.back();
@@ -303,8 +319,8 @@ class SettingsView extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.backgroundContainer,
-                        width: 2,
+                        color: selected ? AppColors.primary : AppColors.backgroundContainer,
+                        width: selected ? 3 : 2,
                       ),
                     ),
                     child: AvatarWidget(
@@ -376,374 +392,97 @@ class SettingsView extends StatelessWidget {
       isScrollControlled: true,
     );
   }
-
-  void _showLanguageSelector(BuildContext context) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+  
+  void _showLogoutConfirmation(BuildContext context, AuthService authService) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/logout.png',
+                width: 140,
+                height: 140,
+                fit: BoxFit.contain,
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // Title
-            const Text(
-              'Pilih Bahasa',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Language options
-            _buildLanguageOption(
-              flag: '🇮🇩',
-              language: 'Indonesia',
-              isSelected: true,
-              onTap: () {
-                Get.back();
-                Get.snackbar(
-                  'Info',
-                  'Bahasa Indonesia dipilih',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            _buildLanguageOption(
-              flag: '🇬🇧',
-              language: 'English',
-              isSelected: false,
-              onTap: () {
-                Get.back();
-                Get.snackbar(
-                  'Info',
-                  'Fitur multi-bahasa akan segera hadir',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-            ),  
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
-
-  Widget _buildLanguageOption({
-    required String flag,
-    required String language,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.backgroundContainer,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(flag, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                language,
+              const SizedBox(height: 12),
+              Text(
+                'Keluar Akun',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.red.shade700,
                 ),
               ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showHelpCenter(BuildContext context) {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+              const SizedBox(height: 6),
+              const Text(
+                'Yakin ingin keluar dari akun?',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // Title
-            const Text(
-              'Pusat Bantuan',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Help options
-            _buildHelpOption(
-              icon: Icons.email_outlined,
-              title: 'Email Support',
-              subtitle: 'support@snappie.app',
-              onTap: () {
-                Get.back();
-                // TODO: Open email
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildHelpOption(
-              icon: Icons.chat_outlined,
-              title: 'Live Chat',
-              subtitle: 'Chat dengan tim kami',
-              onTap: () {
-                Get.back();
-                Get.snackbar(
-                  'Info',
-                  'Fitur live chat akan segera hadir',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
-
-  Widget _buildHelpOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: AppColors.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 20),
+              Row(
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Get.back(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                      ),
+                      child: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Get.back();
+                        await authService.logout();
+                        Get.offAllNamed(AppPages.LOGIN);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                      ),
+                      child: const Text(
+                        'Ya',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showFAQ(BuildContext context) {
-    final faqs = [
-      {
-        'question': 'Bagaimana cara mendapatkan koin?',
-        'answer': 'Anda bisa mendapatkan koin dengan melakukan check-in, menulis review, atau posting foto tempat wisata.',
-      },
-      {
-        'question': 'Bagaimana cara menukar koin?',
-        'answer': 'Koin dapat ditukar dengan kupon diskon di menu Koin > Kupon.',
-      },
-      {
-        'question': 'Bagaimana cara mengubah profil?',
-        'answer': 'Buka menu Pengaturan > Info Personal untuk mengubah data profil Anda.',
-      },
-    ];
-
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(24),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Title
-            const Text(
-              'FAQ',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // FAQ list
-            Expanded(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: faqs.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final faq = faqs[index];
-                  return _buildFAQItem(
-                    question: faq['question']!,
-                    answer: faq['answer']!,
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
-
-  Widget _buildFAQItem({
-    required String question,
-    required String answer,
-  }) {
-    return ExpansionTile(
-      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.backgroundContainer),
-      ),
-      collapsedShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.backgroundContainer),
-      ),
-      title: Text(
-        question,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
-      ),
-      children: [
-        Text(
-          answer,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
+            ],
           ),
         ),
-      ],
-    );
-  }
-
-  void _showLogoutConfirmation(BuildContext context, AuthService authService) {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text('Keluar'),
-        content: const Text('Apakah Anda yakin ingin keluar dari akun?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Batal',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Get.back();
-              await authService.logout();
-              Get.offAllNamed(AppPages.LOGIN);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Keluar',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
       ),
+      barrierDismissible: true,
     );
   }
 }

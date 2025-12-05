@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/modules/shared/layout/views/scaffold_frame.dart';
+import 'package:snappie_app/app/routes/app_pages.dart';
 import '../controllers/profile_controller.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/post_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../shared/widgets/index.dart';
+
+// Route aliases for cleaner navigation
+typedef Routes = AppPages;
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -24,8 +30,13 @@ class ProfileView extends GetView<ProfileController> {
         SliverToBoxAdapter(
           child: Container(
             color: AppColors.backgroundContainer,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                color: AppColors.surface,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 mainAxisSize: MainAxisSize.min,
@@ -39,13 +50,10 @@ class ProfileView extends GetView<ProfileController> {
           ),
         ),
 
-        // Tab Content
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate(_buildTabContent()),
-          ),
-        ),
+        // Tab Content - wrapped in Obx for reactivity
+        Obx(() => SliverList(
+          delegate: SliverChildListDelegate(_buildTabContent()),
+        )),
       ],
     );
     // ]);
@@ -65,31 +73,36 @@ class ProfileView extends GetView<ProfileController> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 75,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Center(
-                        child: Text(
-                      '${controller.totalExp} XP',
-                      style: TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                  Obx(() => GestureDetector(
+                    onTap: () => Get.toNamed(Routes.LEADERBOARD),
+                    child: Container(
+                      width: 75,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(100),
                       ),
-                    )),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 75,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(100),
+                      child: Center(
+                          child: Text(
+                        '${controller.totalExp} XP',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )),
                     ),
+                  )),
+                  const SizedBox(width: 4),
+                  Obx(() => GestureDetector(
+                    onTap: () => Get.toNamed(Routes.COINS_HISTORY),
+                    child: Container(
+                      width: 75,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
                     child: Center(
                         child: Text(
                       '${controller.totalCoins} Koin',
@@ -99,7 +112,7 @@ class ProfileView extends GetView<ProfileController> {
                         fontWeight: FontWeight.bold,
                       ),
                     )),
-                  ),
+                  ))),
                 ],
               ),
               Row(
@@ -107,19 +120,19 @@ class ProfileView extends GetView<ProfileController> {
                   ButtonWidget(
                     icon: Icons.person_add_outlined,
                     backgroundColor: AppColors.background,
-                    onPressed: () => _showProfileSettings(),
+                    onPressed: () => Get.toNamed(Routes.INVITE_FRIENDS),
                   ),
                   const SizedBox(width: 8),
                   ButtonWidget(
                     icon: Icons.share_outlined,
                     backgroundColor: AppColors.background,
-                    onPressed: () => _showProfileSettings(),
+                    onPressed: () => _showShareProfileModal(),
                   ),
                   const SizedBox(width: 8),
                   ButtonWidget(
                     icon: Icons.settings_outlined,
                     backgroundColor: AppColors.background,
-                    onPressed: () => _showProfileSettings(),
+                    onPressed: () => Get.toNamed(Routes.SETTINGS),
                   ),
                 ],
               ),
@@ -129,10 +142,10 @@ class ProfileView extends GetView<ProfileController> {
           const SizedBox(height: 4),
       
           // Profile Avatar
-          AvatarWidget(
-            imageUrl: 'avatar_f1_hdpi.png',
+          Obx(() => AvatarWidget(
+            imageUrl: controller.userAvatar,
             size: AvatarSize.extraLarge,
-          ),
+          )),
       
           const SizedBox(height: 8),
       
@@ -183,6 +196,10 @@ class ProfileView extends GetView<ProfileController> {
                   child: Obx(() => _buildStatColumn(
                         '${controller.totalFollowers}',
                         'Pengikut',
+                        onTap: () => Get.toNamed(
+                          Routes.FOLLOWERS_FOLLOWING,
+                          arguments: {'initialTab': 0},
+                        ),
                       )),
                 ),
                 Container(
@@ -195,6 +212,10 @@ class ProfileView extends GetView<ProfileController> {
                   child: Obx(() => _buildStatColumn(
                         '${controller.totalFollowing}',
                         'Mengikuti',
+                        onTap: () => Get.toNamed(
+                          Routes.FOLLOWERS_FOLLOWING,
+                          arguments: {'initialTab': 1},
+                        ),
                       )),
                 ),
               ],
@@ -207,32 +228,35 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  Widget _buildStatColumn(String count, String label) {
-    return Container(
-      decoration: BoxDecoration(
-        // border: Border.all(color: AppColors.accent),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        children: [
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+  Widget _buildStatColumn(String count, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          // border: Border.all(color: AppColors.accent),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -245,7 +269,7 @@ class ProfileView extends GetView<ProfileController> {
           controller.setSelectedTabIndex(index);
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
               color: isSelected ? AppColors.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(24)),
@@ -268,7 +292,8 @@ class ProfileView extends GetView<ProfileController> {
       case 0: // Postingan Saya
         return [
           Obx(() {
-            if (controller.isLoading) {
+            // Loading state
+            if (controller.isLoadingPosts) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
@@ -277,29 +302,230 @@ class ProfileView extends GetView<ProfileController> {
               );
             }
 
-            return Container(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.article_outlined,
-                    size: 48,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Belum ada postingan',
-                    style: TextStyle(
+            // Empty state
+            if (controller.userPosts.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.article_outlined,
+                      size: 48,
                       color: AppColors.textSecondary,
-                      fontSize: 16,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Belum ada postingan',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Mulai berbagi pengalaman Anda!',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Posts list
+            return Column(
+              children: controller.userPosts.map((post) {
+                return PostCard(
+                  post: post,
+                  onCommentTap: () => _showComments(post),
+                  onShareTap: () => _sharePost(post),
+                  onMoreTap: () => _showPostOptions(post),
+                );
+              }).toList(),
+            );
+          }),
+        ];
+      case 1: // Tersimpan
+        return [
+          Obx(() {
+            // Loading state
+            if (controller.isLoadingSaved) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            // Empty state
+            if (controller.savedPlaces.isEmpty && controller.savedPosts.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.bookmark_outline,
+                      size: 48,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Belum ada yang tersimpan',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Saved content
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSavedSection(
+                    title: 'Tempat', 
+                    value: '${controller.savedPlaces.length}', onTap: () {
+                      Get.toNamed(Routes.SAVED_PLACES);
+                    }, assetWidget: _buildSavedPlacesGrid(),
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  _buildSavedSection(
+                    title: 'Postingan', 
+                    value: '${controller.savedPosts.length}', onTap: () {
+                      Get.toNamed(Routes.SAVED_POSTS);
+                    }, assetWidget: _buildSavedPostsGrid(),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ];
+      case 2: // Pencapaian
+        return [
+          Obx(() {
+            // Loading state
+            if (controller.isLoadingAchievements) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            // Achievement content
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Papan Peringkat Section
+                  _buildAchievementSection(
+                    title: 'Papan Peringkat',
+                    value: controller.userRank != null 
+                        ? '#${controller.userRank}' 
+                        : '-',
+                    onTap: () {
+                      Get.toNamed(Routes.LEADERBOARD);
+                    },
+                    assetWidget: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/achievement.png',
+                          height: 100,
+                        ),
+                        Image.asset(
+                          'assets/images/leaderboard.png',
+                          height: 100,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Mulai berbagi pengalaman Anda!',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Koin & Kupon Section
+                  _buildAchievementSection(
+                    title: 'Koin & Kupon',
+                    value: '${controller.totalCoins}',
+                    onTap: () {
+                      Get.toNamed(Routes.COINS_HISTORY);
+                    },
+                    assetWidget: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/coins.png',
+                          height: 100,
+                        ),
+                        Image.asset(
+                          'assets/images/coupon.png',
+                          height: 100,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Penghargaan Saya Section
+                  _buildAchievementSection(
+                    title: 'Penghargaan Saya',
+                    value: '${controller.totalAchievements}',
+                    onTap: () {
+                      Get.toNamed(Routes.ACHIEVEMENTS);
+                    },
+                    assetWidget: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/achievement.png',
+                          height: 100,
+                        ),
+                        Image.asset(
+                          'assets/images/leaderboard.png',
+                          height: 100,
+                        ),
+                        Image.asset(
+                          'assets/images/achievement.png',
+                          height: 100,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // Tantangan Section
+                  _buildAchievementSection(
+                    title: 'Tantangan',
+                    value: '${controller.totalChallenges}',
+                    onTap: () {
+                      Get.toNamed(Routes.CHALLENGES);
+                    },
+                    assetWidget: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/challenge_m.png',
+                          height: 100,
+                        ),
+                        Image.asset(
+                          'assets/images/challenge_f.png',
+                          height: 100,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -307,101 +533,21 @@ class ProfileView extends GetView<ProfileController> {
             );
           }),
         ];
-      case 1: // Tersimpan
-        return [
-          Container(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.bookmark_outline,
-                  size: 48,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Belum ada postingan tersimpan',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ];
-      case 2: // Pencapaian
-        return [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.purple, Colors.blue],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hidden Gems Search',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Temukan tempat tersembunyi yang menakjubkan',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildAchievementStat('50', 'Tempat', Icons.location_on),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildAchievementStat('15', 'Kota', Icons.location_city),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildAchievementStat('2', 'Pencapaian', Icons.star),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child:
-                    _buildAchievementStat('3', 'Tantangan', Icons.emoji_events),
-              ),
-            ],
-          ),
-        ];
       default:
         return [];
     }
   }
 
-  Widget _buildAchievementStat(String count, String label, IconData icon) {
+  Widget _buildSavedSection({
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+    Widget? assetWidget,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -412,112 +558,529 @@ class ProfileView extends GetView<ProfileController> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: AppColors.primary,
-            size: 24,
+          _buildSavedSectionHeader(
+            title,
+            value.isNotEmpty ? int.tryParse(value) ?? 0 : 0,
+            onViewAll: onTap,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          assetWidget ?? SizedBox.shrink()
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementSection({
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+    Widget? assetWidget,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildSavedSectionHeader(
+            title,
+            value.isNotEmpty ? int.tryParse(value) ?? 0 : 0,
+            onViewAll: onTap,
+          ),
+          const SizedBox(height: 12),
+          assetWidget ?? SizedBox.shrink()
+        ],
+      ),
+    );
+  }
+
+  // ===== SAVED SECTION WIDGETS =====
+
+  Widget _buildSavedSectionHeader(String title, int count, {VoidCallback? onViewAll}) {
+    return GestureDetector(
+      onTap: onViewAll,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
           Text(
-            count,
+            '$title ($count)',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
+         Icon(
+            Icons.chevron_right,
+            color: AppColors.textSecondary,
           ),
         ],
       ),
     );
   }
 
-  void _showProfileSettings() {
-    Get.dialog(
-      AlertDialog(
-        title: Text('Pengaturan Profil'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.edit),
-              title: Text('Edit Profil'),
-              onTap: () {
-                Get.back();
-                _showEditProfile();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Pengaturan'),
-              onTap: () {
-                Get.back();
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.logout,
-                color: AppColors.error,
+  Widget _buildSavedPlacesGrid() {
+    final places = controller.savedPlaces;
+    // Show max 4 places in 2x2 grid
+    final displayPlaces = places.take(2).toList();
+    
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: displayPlaces.length,
+      itemBuilder: (context, index) {
+        final place = displayPlaces[index];
+        return _buildSavedPlaceCard(place);
+      },
+    );
+  }
+
+  Widget _buildSavedPlaceCard(SavedPlacePreview place) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: place.imageUrl != null
+          ? Image.network(
+              place.imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: AppColors.backgroundContainer,
+                child: Icon(
+                  Icons.image_not_supported,
+                  color: AppColors.textSecondary,
+                ),
               ),
-              title: Text(
-                'Keluar',
-                style: TextStyle(color: AppColors.error),
+            )
+          : Container(
+              color: AppColors.backgroundContainer,
+              child: Icon(
+                Icons.place,
+                color: AppColors.textSecondary,
+                size: 48,
               ),
-              onTap: () async {
-                Get.back();
-                await controller.logout();
-              },
             ),
-          ],
+    );
+  }
+
+  Widget _buildSavedPostsGrid() {
+    final posts = controller.savedPosts;
+    // Show max 4 posts in 2x2 grid
+    final displayPosts = posts.take(2).toList();
+    
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: displayPosts.length,
+      itemBuilder: (context, index) {
+        final post = displayPosts[index];
+        return _buildSavedPostCard(post);
+      },
+    );
+  }
+
+  Widget _buildSavedPostCard(SavedPostPreview post) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: post.imageUrl != null
+          ? Image.network(
+              post.imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: AppColors.backgroundContainer,
+                child: Icon(
+                  Icons.image_not_supported,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            )
+          : Container(
+              color: AppColors.backgroundContainer,
+              child: Icon(
+                Icons.article,
+                color: AppColors.textSecondary,
+                size: 48,
+              ),
+            ),
+    );
+  }
+
+  void _showShareProfileModal() {
+    final user = controller.userData;
+    
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Tutup'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditProfile() {
-    Get.dialog(
-      AlertDialog(
-        title: Text('Edit Profil'),
-        content: Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Nama',
-                border: OutlineInputBorder(),
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Title
+            const Text(
+              'Bagikan Profil',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Profile preview card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  AvatarWidget(
+                    imageUrl: user?.imageUrl ?? 'avatar_f1_hdpi.png',
+                    size: AvatarSize.large,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? 'User',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          '@${user?.username ?? ''}',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              '${controller.totalPosts}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Posts',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              '${controller.totalFollowers}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Followers',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Share options
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildProfileShareOption(
+                  icon: Icons.copy,
+                  label: 'Salin Link',
+                  onTap: () {
+                    // Copy to clipboard
+                    Get.back();
+                    Get.snackbar(
+                      'Berhasil',
+                      'Link profil disalin',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  },
+                ),
+                _buildProfileShareOption(
+                  icon: Icons.chat,
+                  label: 'WhatsApp',
+                  color: Colors.green,
+                  onTap: () {
+                    Get.back();
+                    // Share via WhatsApp
+                  },
+                ),
+                _buildProfileShareOption(
+                  icon: Icons.send,
+                  label: 'Telegram',
+                  color: Colors.blue,
+                  onTap: () {
+                    Get.back();
+                    // Share via Telegram
+                  },
+                ),
+                _buildProfileShareOption(
+                  icon: Icons.more_horiz,
+                  label: 'Lainnya',
+                  onTap: () {
+                    Get.back();
+                    // Share via other apps
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Bio',
-                border: OutlineInputBorder(),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildProfileShareOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: (color ?? AppColors.primary).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color ?? AppColors.primary, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showComments(PostModel post) {
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
-              maxLines: 3,
+            ),
+            const Text(
+              'Komentar',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const Divider(height: 20),
+            const Expanded(
+              child: Center(
+                child: Text(
+                  'Belum ada komentar',
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _sharePost(PostModel post) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              'Bagikan Post',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareOption(Icons.copy, 'Salin Link'),
+                _buildShareOption(Icons.chat, 'WhatsApp'),
+                _buildShareOption(Icons.send, 'Telegram'),
+                _buildShareOption(Icons.more_horiz, 'Lainnya'),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareOption(IconData icon, String label) {
+    return GestureDetector(
+      onTap: () {
+        Get.back();
+        Get.snackbar('Info', 'Dibagikan via $label');
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.primary),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  void _showPostOptions(PostModel post) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Post'),
+              onTap: () {
+                Get.back();
+                Get.snackbar('Info', 'Fitur edit akan segera hadir');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete, color: AppColors.error),
+              title: Text('Hapus Post', style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Get.back();
+                _confirmDeletePost(post);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeletePost(PostModel post) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Hapus Post'),
+        content: const Text('Apakah Anda yakin ingin menghapus post ini?'),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('Batal'),
+            child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () => Get.back(),
-            child: Text('Simpan'),
+            onPressed: () {
+              Get.back();
+              // TODO: Implement delete post
+              Get.snackbar('Info', 'Post dihapus');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hapus'),
           ),
         ],
       ),

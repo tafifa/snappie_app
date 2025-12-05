@@ -1,26 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:snappie_app/app/data/repositories/place_repository_impl.dart';
 import 'package:snappie_app/app/data/repositories/user_repository_impl.dart';
+import 'package:snappie_app/app/data/repositories/post_repository_impl.dart';
+import 'package:snappie_app/app/data/repositories/achievement_repository_impl.dart';
 import 'package:snappie_app/app/routes/app_pages.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/models/user_model.dart';
+import '../../../data/models/post_model.dart';
+import '../../../data/models/achievement_model.dart';
 
 class ProfileController extends GetxController {
   final AuthService authService;
   final UserRepository userRepository;
+  final PostRepository postRepository;
+  final AchievementRepository achievementRepository;
 
   ProfileController({
     required this.authService,
-    required this.userRepository
+    required this.userRepository,
+    required this.postRepository,
+    required this.achievementRepository,
+    required PlaceRepository placeRepository,
   });
 
   final Rx<UserModel?> _userData = Rx<UserModel?>(null);
+  final _userPosts = <PostModel>[].obs;
+  final _savedPlaces = <SavedPlacePreview>[].obs;
+  final _savedPosts = <SavedPostPreview>[].obs;
+  final _leaderboard = <LeaderboardEntry>[].obs;
+  final _userRank = Rxn<int>();
   final _isLoading = false.obs;
+  final _isLoadingPosts = false.obs;
+  final _isLoadingSaved = false.obs;
+  final _isLoadingAchievements = false.obs;
   final _isInitialized = false.obs;
   final _selectedTabIndex = 0.obs;
 
   UserModel? get userData => _userData.value;
+  List<PostModel> get userPosts => _userPosts;
+  List<SavedPlacePreview> get savedPlaces => _savedPlaces;
+  List<SavedPostPreview> get savedPosts => _savedPosts;
+  List<LeaderboardEntry> get leaderboard => _leaderboard;
+  int? get userRank => _userRank.value;
   bool get isLoading => _isLoading.value;
+  bool get isLoadingPosts => _isLoadingPosts.value;
+  bool get isLoadingSaved => _isLoadingSaved.value;
+  bool get isLoadingAchievements => _isLoadingAchievements.value;
   int get selectedTabIndex => _selectedTabIndex.value;
 
   // Access user data directly from UserModel
@@ -65,31 +91,39 @@ class ProfileController extends GetxController {
     if (!_isInitialized.value) {
       _isInitialized.value = true;
       print('👤 ProfileController initializing...');
-      loadUserProfile();
+      _loadAllData();
     }
+  }
+
+  /// Load all profile data sequentially
+  Future<void> _loadAllData() async {
+    // First load user profile to get userId
+    await loadUserProfile();
+    
+    // Then load posts, saved items, and leaderboard in parallel
+    await Future.wait([
+      loadUserPosts(),
+      loadSavedItems(),
+      loadLeaderboard(),
+    ]);
   }
 
   Future<void> loadUserProfile() async {
     _setLoading(true);
     
     try {
-      // Load user data from AuthService
-      if (authService.isLoggedIn) {
-        final userData = authService.userData;
-        if (userData != null) {
-          _userData.value = userData;
-          print('👤 User profile loaded: ${userData.name}');
-          print('   - Email: ${userData.email}');
-          print('   - Checkins: ${userData.totalCheckin}');
-          print('   - Reviews: ${userData.totalReview}');
-          print('   - Posts: ${userData.totalPost}');
-        } else {
-          print('❌ No user data available');
-        }
-      } else {
-        print('❌ User not logged in');
-        _userData.value = null;
-      }
+      // Fetch fresh user data from API via repository
+      final userData = await userRepository.getUserProfile();
+      _userData.value = userData;
+      
+      print('👤 User profile loaded from API: ${userData.name}');
+      print('   - Image: ${userData.imageUrl}');
+      print('   - Email: ${userData.email}');
+      print('   - XP: ${userData.totalExp}');
+      print('   - Coins: ${userData.totalCoin}');
+      print('   - Checkins: ${userData.totalCheckin}');
+      print('   - Reviews: ${userData.totalReview}');
+      print('   - Posts: ${userData.totalPost}');
     } catch (e) {
       print('❌ Error loading user profile: $e');
       _userData.value = null;
@@ -98,8 +132,106 @@ class ProfileController extends GetxController {
     _setLoading(false);
   }
 
+  Future<void> loadUserPosts() async {
+    final userId = _userData.value?.id;
+    if (userId == null) {
+      print('❌ Cannot load posts: User ID not available');
+      return;
+    }
+    
+    _isLoadingPosts.value = true;
+    
+    try {
+      final posts = await postRepository.getPostsByUserId(
+        userId,
+        perPage: 50,
+      );
+      _userPosts.assignAll(posts);
+      print('📝 User posts loaded: ${posts.length} posts');
+    } catch (e) {
+      print('❌ Error loading user posts: $e');
+      _userPosts.clear();
+    }
+    
+    _isLoadingPosts.value = false;
+  }
+
+  Future<void> loadSavedItems() async {
+    _isLoadingSaved.value = true;
+    
+    try {
+      // Get saved items with preview data directly from API
+      final userSaved = await userRepository.getUserSaved();
+      
+      // Directly assign - no need to fetch individual items anymore!
+      _savedPlaces.assignAll(userSaved.savedPlaces ?? []);
+      _savedPosts.assignAll(userSaved.savedPosts ?? []);
+      
+      print('📌 Loaded ${_savedPlaces.length} saved places, ${_savedPosts.length} saved posts');
+    } catch (e) {
+      print('❌ Error loading saved items: $e');
+      _savedPlaces.clear();
+      _savedPosts.clear();
+    }
+    
+    _isLoadingSaved.value = false;
+  }
+
+  Future<void> loadLeaderboard() async {
+    await loadMonthlyLeaderboard();
+    await loadWeeklyLeaderboard();
+  }
+
+  Future<void> loadWeeklyLeaderboard() async {
+    _isLoadingAchievements.value = true;
+    
+    try {
+      final entries = await achievementRepository.getWeeklyLeaderboard();
+      _leaderboard.assignAll(entries);
+      
+      // Find current user's rank
+      final userId = _userData.value?.id;
+      if (userId != null) {
+        final userEntry = entries.firstWhereOrNull((e) => e.userId == userId);
+        _userRank.value = userEntry?.rank;
+      }
+      
+      print('🏆 Weekly Leaderboard loaded: ${entries.length} entries, user rank: ${_userRank.value}');
+    } catch (e) {
+      print('❌ Error loading weekly leaderboard: $e');
+      _leaderboard.clear();
+      _userRank.value = null;
+    }
+    
+    _isLoadingAchievements.value = false;
+  }
+
+  Future<void> loadMonthlyLeaderboard() async {
+    _isLoadingAchievements.value = true;
+    
+    try {
+      final entries = await achievementRepository.getMonthlyLeaderboard();
+      _leaderboard.assignAll(entries);
+      
+      // Find current user's rank
+      final userId = _userData.value?.id;
+      if (userId != null) {
+        final userEntry = entries.firstWhereOrNull((e) => e.userId == userId);
+        _userRank.value = userEntry?.rank;
+      }
+      
+      print('🏆 Monthly Leaderboard loaded: ${entries.length} entries, user rank: ${_userRank.value}');
+    } catch (e) {
+      print('❌ Error loading monthly leaderboard: $e');
+      _leaderboard.clear();
+      _userRank.value = null;
+    }
+    
+    _isLoadingAchievements.value = false;
+  }
+
   Future<void> refreshProfile() async {
-    await loadUserProfile();
+    await _loadAllData();
   }
 
   Future<void> refreshData() async {

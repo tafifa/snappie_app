@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../data/models/post_model.dart';
 import '../../../data/repositories/user_repository_impl.dart';
+import '../../../data/repositories/post_repository_impl.dart';
+import '../../shared/widgets/index.dart';
 
-/// Read-only profile view untuk user
-/// Tanpa settings dan privacy features (saved posts, achievements)
+/// Read-only profile view untuk user lain
+/// Menerima userId dari arguments: {'userId': int}
 class UserProfileView extends StatefulWidget {
   const UserProfileView({super.key});
 
@@ -15,26 +17,44 @@ class UserProfileView extends StatefulWidget {
 
 class _UserProfileViewState extends State<UserProfileView> {
   // Dependencies
-  final _authService = Get.find<AuthService>();
   final _userRepository = Get.find<UserRepository>();
+  final _postRepository = Get.find<PostRepository>();
+
+  // User ID from arguments
+  late int _userId;
 
   // State variables
   bool _isLoading = true;
+  bool _isLoadingPosts = false;
   String _errorMessage = '';
   
   String _userName = '';
-  String _userEmail = '';
+  String _userUsername = '';
   String _userImageUrl = '';
-  int _totalCheckins = 0;
-  int _totalReviews = 0;
   int _totalPosts = 0;
   int _totalCoins = 0;
   int _totalExp = 0;
+  int _totalFollowers = 0;
+  int _totalFollowing = 0;
+
+  // User posts
+  List<PostModel> _userPosts = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    // Get userId from arguments
+    final args = Get.arguments as Map<String, dynamic>?;
+    _userId = args?['userId'] ?? 0;
+    
+    if (_userId == 0) {
+      setState(() {
+        _errorMessage = 'User ID tidak valid';
+        _isLoading = false;
+      });
+    } else {
+      _loadUserProfile();
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -44,119 +64,319 @@ class _UserProfileViewState extends State<UserProfileView> {
         _errorMessage = '';
       });
 
-      // Get user data from AuthService
-      final userData = _authService.userData;
-      if (userData == null) {
-        throw Exception('User not logged in');
-      }
-
-      // Try to get fresh data from repository
-      final user = await _userRepository.getUserProfile();
+      // Get user profile by ID
+      final user = await _userRepository.getUserById(_userId);
       
       setState(() {
         _userName = user.name ?? '';
-        _userEmail = user.email ?? '';
+        _userUsername = user.username ?? '';
         _userImageUrl = user.imageUrl ?? '';
-        _totalCheckins = user.totalCheckin ?? 0;
-        _totalReviews = user.totalReview ?? 0;
         _totalPosts = user.totalPost ?? 0;
         _totalCoins = user.totalCoin ?? 0;
         _totalExp = user.totalExp ?? 0;
+        _totalFollowers = user.totalFollower ?? 0;
+        _totalFollowing = user.totalFollowing ?? 0;
         _isLoading = false;
       });
+
+      // Load user posts
+      _loadUserPosts();
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = 'Gagal memuat profil';
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _refreshProfile() async {
-    await _loadUserProfile();
+  Future<void> _loadUserPosts() async {
+    try {
+      setState(() => _isLoadingPosts = true);
+      
+      final posts = await _postRepository.getPostsByUserId(_userId);
+      
+      setState(() {
+        _userPosts = posts;
+        _isLoadingPosts = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingPosts = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainer,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.backgroundContainer,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.primary),
+          onPressed: () => Get.back(),
+        ),
+        title: Text(
+          'Profil',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: RefreshIndicator(
-        onRefresh: _refreshProfile,
-        child: CustomScrollView(
-          slivers: [
-            // App Bar with back button
-            SliverAppBar(
-              expandedHeight: 90,
-              floating: true,
-              snap: true,
-              pinned: false,
-              backgroundColor: AppColors.primary,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Get.back(),
-              ),
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                title: const Text(
-                  'Profile',
+        onRefresh: _loadUserProfile,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage.isNotEmpty
+                ? _buildErrorState()
+                : _buildContent(),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height - 200,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadUserProfile,
+                  child: const Text('Coba Lagi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        // Header
+        SliverToBoxAdapter(
+          child: _buildHeader(),
+        ),
+        
+        // Posts list
+        SliverToBoxAdapter(
+          child: _buildPostsSection(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      color: AppColors.primary,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        children: [
+          // XP & Coins row
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  '$_totalExp XP',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  '$_totalCoins Koin',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Avatar
+          AvatarWidget(
+            imageUrl: _userImageUrl.isNotEmpty ? _userImageUrl : 'avatar_f1_hdpi.png',
+            size: AvatarSize.extraLarge,
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Name
+          Text(
+            _userName,
+            style: TextStyle(
+              color: AppColors.textOnPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          
+          // Username
+          Text(
+            '@$_userUsername',
+            style: TextStyle(
+              color: AppColors.textOnPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Stats row
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: _buildStatColumn('$_totalPosts', 'Postingan'),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.borderLight,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                Expanded(
+                  child: _buildStatColumn('$_totalFollowers', 'Pengikut'),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.borderLight,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                Expanded(
+                  child: _buildStatColumn('$_totalFollowing', 'Mengikuti'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // Content
-            SliverToBoxAdapter(
-              child: _isLoading
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  : _errorMessage.isNotEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.error_outline,
-                                  size: 64,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _errorMessage,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            const SizedBox(height: 16),
-                            
-                            // Profile Header
-                            _buildProfileHeader(),
-                            
-                            const SizedBox(height: 16),
-                            
-                            // Stats Cards
-                            _buildStatsCards(),
-                            
-                            const SizedBox(height: 16),
-                            
-                            // User Posts (jika ada)
-                            _buildUserPosts(),
-                          ],
-                        ),
+  Widget _buildStatColumn(String count, String label) {
+    return Column(
+      children: [
+        Text(
+          count,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPostsSection() {
+    return Container(
+      color: AppColors.backgroundContainer,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Postingan',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          
+          // Posts content
+          _isLoadingPosts
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : _userPosts.isEmpty
+                  ? _buildEmptyPosts()
+                  : _buildPostsList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPosts() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.article_outlined,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada postingan',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -164,209 +384,33 @@ class _UserProfileViewState extends State<UserProfileView> {
     );
   }
 
-  Widget _buildProfileHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
-      child: Column(
-        children: [
-          // Avatar
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: AppColors.primary,
-            backgroundImage: _userImageUrl.isNotEmpty
-                ? NetworkImage(_userImageUrl)
-                : null,
-            child: _userImageUrl.isEmpty
-                ? Text(
-                    _userName.isNotEmpty
-                        ? _userName[0].toUpperCase()
-                        : 'U',
-                    style: const TextStyle(
-                      fontSize: 36,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Name
-          Text(
-            _userName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          
-          const SizedBox(height: 4),
-          
-          // Email
-          Text(
-            _userEmail,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Level & Exp
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.star, color: AppColors.primary, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Level ${(_totalExp / 100).floor()}',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$_totalCoins Coins',
-                      style: const TextStyle(
-                        color: Colors.amber,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildPostsList() {
+    return Column(
+      children: _userPosts.map((post) {
+        return PostCard(
+          post: post,
+          onCommentTap: () => _showComments(post),
+          onShareTap: () => _sharePost(post),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildStatsCards() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard(
-              'Check-ins',
-              _totalCheckins.toString(),
-              Icons.location_on,
-              AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              'Reviews',
-              _totalReviews.toString(),
-              Icons.rate_review,
-              Colors.orange,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              'Posts',
-              _totalPosts.toString(),
-              Icons.article,
-              Colors.blue,
-            ),
-          ),
-        ],
-      ),
+  void _showComments(PostModel post) {
+    // TODO: Show comments bottom sheet
+    Get.snackbar(
+      'Info',
+      'Fitur komentar akan segera hadir',
+      snackPosition: SnackPosition.BOTTOM,
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserPosts() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Posts',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              'No posts yet',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
+  void _sharePost(PostModel post) {
+    // TODO: Share post
+    Get.snackbar(
+      'Info',
+      'Fitur share akan segera hadir',
+      snackPosition: SnackPosition.BOTTOM,
     );
   }
 }

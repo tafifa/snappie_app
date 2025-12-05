@@ -18,6 +18,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onShareTap;
   final VoidCallback? onMoreTap;
   final VoidCallback? onPlaceTap;
+  final VoidCallback? onSaveTap;
 
   const PostCard({
     super.key,
@@ -27,6 +28,7 @@ class PostCard extends StatelessWidget {
     this.onShareTap,
     this.onMoreTap,
     this.onPlaceTap,
+    this.onSaveTap,
   });
 
   @override
@@ -333,12 +335,18 @@ class PostCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildLikeButton(),
-          const SizedBox(width: 20),
-          _buildCommentButton(),
-          const SizedBox(width: 20),
-          _buildShareButton(),
+          Row(
+            children: [
+              _buildLikeButton(),
+              const SizedBox(width: 20),
+              _buildCommentButton(),
+              const SizedBox(width: 20),
+              _buildShareButton(),
+            ],
+          ),
+           _buildSaveButton(),
         ],
       ),
     );
@@ -414,6 +422,17 @@ class PostCard extends StatelessWidget {
       size: RectangleButtonSize.small,
       borderRadius: BorderRadius.circular(24),
       onPressed: () => Get.find<HomeController>().followUser('${post.userId ?? 0}'),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return GestureDetector(
+      onTap: onSaveTap,
+      child: Icon(
+        Icons.bookmark_border,
+        color: AppColors.accent,
+        size: 20,
+      ),
     );
   }
 }

@@ -63,9 +63,7 @@ class ArticleCardWidget extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: NetworkImageWidget(
-        // imageUrl: article.imageUrl ?? '',
-        imageUrl:
-            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT03PO9JTj8_-WxAUE02ehEJj3WoR9lPv22VA&s',
+        imageUrl: article.imageUrl ?? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT03PO9JTj8_-WxAUE02ehEJj3WoR9lPv22VA&s',
         width: 90,
         height: 90,
         fit: BoxFit.cover,

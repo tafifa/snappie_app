@@ -142,12 +142,11 @@ class PromotionalBanner extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: iconBackgroundColor,
-                  borderRadius: BorderRadius.circular(30),
+                  // color: iconBackgroundColor,
+                  // borderRadius: BorderRadius.circular(30),
                 ),
                 child: imageAsset != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
+                    ? ClipRect(
                         child: imageAsset!,
                       )
                     : Icon(

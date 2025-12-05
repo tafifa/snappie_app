@@ -11,7 +11,8 @@ abstract class UserRemoteDataSource {
   Future<UserModel> getUserProfile();
   Future<UserModel> getUserById(int id);
   Future<UserSaved> getUserSaved();
-  Future<UserSaved> toggleSavedPlace(List<int> placeIds);
+  Future<List<int>> toggleSavedPlace(List<int> placeIds);
+  Future<UserSearchResult> searchUsers(String query, {int page = 1, int perPage = 10});
   Future<UserModel> updateUserProfile({
     String? username,
     String? email,
@@ -39,12 +40,18 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
     try {
       final resp = await dioClient.dio.get(ApiEndpoints.profile);
       // Helper kita langsung mengembalikan bagian "data" → Map<String,dynamic>
+      // Response structure: { data: { user: {...}, stats: {...}, ... } }
       final raw = extractApiResponseData<Map<String, dynamic>>(
         resp,
         (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
       );
+      // Extract user object from data.user
+      final userData = raw['user'] as Map<String, dynamic>?;
+      if (userData == null) {
+        throw ServerException('User data not found in response', 500);
+      }
       final userJson =
-          flattenAdditionalInfoForUser(raw, removeContainer: false);
+          flattenAdditionalInfoForUser(userData, removeContainer: false);
       return UserModel.fromJson(userJson);
     } on ApiResponseException catch (e) {
       if (e.errors != null)
@@ -61,14 +68,19 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   Future<UserModel> getUserById(int id) async {
     try {
       final resp = await dioClient.dio.get(
-        ApiEndpoints.userById.replaceFirst(':id', id.toString()),
+        ApiEndpoints.userById.replaceFirst('{id}', id.toString()),
       );
       final raw = extractApiResponseData<Map<String, dynamic>>(
         resp,
         (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
       );
+      // Response structure: { data: { user: {...}, ... } } or { data: {...user fields...} }
+      // Check if user is nested or flat
+      final userData = raw.containsKey('user')
+          ? raw['user'] as Map<String, dynamic>
+          : raw;
       final userJson =
-          flattenAdditionalInfoForUser(raw, removeContainer: false);
+          flattenAdditionalInfoForUser(userData, removeContainer: false);
       return UserModel.fromJson(userJson);
     } on ApiResponseException catch (e) {
       if (e.errors != null)
@@ -156,8 +168,13 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
         resp,
         (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
       );
+      // Response structure: { data: { user: {...}, ... } } or { data: {...user fields...} }
+      // Check if user is nested or flat
+      final userData = raw.containsKey('user')
+          ? raw['user'] as Map<String, dynamic>
+          : raw;
       final userJson =
-          flattenAdditionalInfoForUser(raw, removeContainer: false);
+          flattenAdditionalInfoForUser(userData, removeContainer: false);
       return UserModel.fromJson(userJson);
     } on ApiResponseException catch (e) {
       if (e.errors != null)
@@ -190,24 +207,51 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   }
 
   @override
-  Future<UserSaved> toggleSavedPlace(List<int> placeIds) async {
+  Future<List<int>> toggleSavedPlace(List<int> placeIds) async {
     try {
       final resp = await dioClient.dio.post(
         ApiEndpoints.userSaved,
         data: {'saved_places': placeIds},
       );
       print('⭐ toggleSavedPlace response: $resp');
+      // Response returns list of saved place IDs
       final raw = extractApiResponseData<Map<String, dynamic>>(
         resp,
         (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
       );
-      return UserSaved.fromJson(raw);
+      final savedPlaces = raw['saved_places'] as List<dynamic>?;
+      return savedPlaces?.map((e) => e as int).toList() ?? [];
     } on ApiResponseException catch (e) {
       throw ServerException(e.message, e.statusCode ?? 500);
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
       throw ServerException('Failed to toggle saved place: $e', 500);
+    }
+  }
+
+  @override
+  Future<UserSearchResult> searchUsers(String query, {int page = 1, int perPage = 10}) async {
+    try {
+      final resp = await dioClient.dio.get(
+        ApiEndpoints.usersSearch,
+        queryParameters: {
+          'q': query,
+          'page': page,
+          'per_page': perPage,
+        },
+      );
+      final raw = extractApiResponseData<Map<String, dynamic>>(
+        resp,
+        (json) => Map<String, dynamic>.from(json as Map<String, dynamic>),
+      );
+      return UserSearchResult.fromJson(raw);
+    } on ApiResponseException catch (e) {
+      throw ServerException(e.message, e.statusCode ?? 500);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw ServerException('Failed to search users: $e', 500);
     }
   }
 

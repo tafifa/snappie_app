@@ -53,4 +53,14 @@ class PostRepository {
 
     return await remoteDataSource.getPostsByPlaceId(placeId, page: page, perPage: perPage);
   }
+
+  /// Get posts by user ID
+  /// Throws: [NetworkException], [ServerException], [AuthenticationException], [AuthorizationException]
+  Future<List<PostModel>> getPostsByUserId(int userId, {int page = 1, int perPage = 20}) async {
+    if (!(await networkInfo.isConnected)) {
+      throw NetworkException('No internet connection');
+    }
+
+    return await remoteDataSource.getPostsByUserId(userId, page: page, perPage: perPage);
+  }
 }

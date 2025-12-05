@@ -8,12 +8,18 @@ import '../../data/datasources/remote/checkin_remote_datasource.dart';
 import '../../data/datasources/remote/review_remote_datasource.dart';
 import '../../data/datasources/remote/articles_remote_datasource.dart';
 import '../../data/datasources/remote/post_remote_datasource.dart';
+import '../../data/datasources/remote/achievement_remote_datasource.dart';
+import '../../data/datasources/remote/social_remote_datasource.dart';
+import '../../data/datasources/remote/gamification_remote_datasource.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../data/repositories/place_repository_impl.dart';
 import '../../data/repositories/checkin_repository_impl.dart';
 import '../../data/repositories/review_repository_impl.dart';
 import '../../data/repositories/articles_repository_impl.dart';
 import '../../data/repositories/post_repository_impl.dart';
+import '../../data/repositories/achievement_repository_impl.dart';
+import '../../data/repositories/social_repository_impl.dart';
+import '../../data/repositories/gamification_repository_impl.dart';
 
 /// Data layer dependencies: DataSources & Repositories
 /// Shared across modules, permanent untuk menghindari disposal
@@ -40,6 +46,15 @@ class DataDependencies {
     );
     Get.lazyPut<PostRemoteDataSource>(
       () => PostRemoteDataSourceImpl(Get.find<DioClient>()),
+    );
+    Get.lazyPut<AchievementRemoteDataSource>(
+      () => AchievementRemoteDataSourceImpl(Get.find<DioClient>()),
+    );
+    Get.lazyPut<SocialRemoteDataSource>(
+      () => SocialRemoteDataSourceImpl(Get.find<DioClient>()),
+    );
+    Get.lazyPut<GamificationRemoteDataSource>(
+      () => GamificationRemoteDataSourceImpl(Get.find<DioClient>()),
     );
     
     // Repositories - PERMANENT untuk menghindari disposal
@@ -83,6 +98,27 @@ class DataDependencies {
     Get.put<PostRepository>(
       PostRepository(
         remoteDataSource: Get.find<PostRemoteDataSource>(),
+        networkInfo: Get.find<NetworkInfo>(),
+      ),
+      permanent: true,
+    );
+    Get.put<AchievementRepository>(
+      AchievementRepositoryImpl(
+        remoteDataSource: Get.find<AchievementRemoteDataSource>(),
+        networkInfo: Get.find<NetworkInfo>(),
+      ),
+      permanent: true,
+    );
+    Get.put<SocialRepository>(
+      SocialRepositoryImpl(
+        remoteDataSource: Get.find<SocialRemoteDataSource>(),
+        networkInfo: Get.find<NetworkInfo>(),
+      ),
+      permanent: true,
+    );
+    Get.put<GamificationRepository>(
+      GamificationRepositoryImpl(
+        remoteDataSource: Get.find<GamificationRemoteDataSource>(),
         networkInfo: Get.find<NetworkInfo>(),
       ),
       permanent: true,

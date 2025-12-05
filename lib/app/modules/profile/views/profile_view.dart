@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/models/post_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../shared/widgets/index.dart';
+import '../widgets/share_profile_modal.dart';
 
 // Route aliases for cleaner navigation
 typedef Routes = AppPages;
@@ -727,192 +728,22 @@ class ProfileView extends GetView<ProfileController> {
 
   void _showShareProfileModal() {
     final user = controller.userData;
-    
+    final username = user?.username ?? '';
+    final displayName = user?.name ?? 'User';
+    final profileLink = username.isNotEmpty
+        ? 'https://snappie.app/u/$username'
+        : 'https://snappie.app/profile';
+
     Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Title
-            const Text(
-              'Bagikan Profil',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Profile preview card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundContainer,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  AvatarWidget(
-                    imageUrl: user?.imageUrl ?? 'avatar_f1_hdpi.png',
-                    size: AvatarSize.large,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.name ?? 'User',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          '@${user?.username ?? ''}',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              '${controller.totalPosts}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Posts',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '${controller.totalFollowers}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Followers',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Share options
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildProfileShareOption(
-                  icon: Icons.copy,
-                  label: 'Salin Link',
-                  onTap: () {
-                    // Copy to clipboard
-                    Get.back();
-                    Get.snackbar(
-                      'Berhasil',
-                      'Link profil disalin',
-                      snackPosition: SnackPosition.BOTTOM,
-                    );
-                  },
-                ),
-                _buildProfileShareOption(
-                  icon: Icons.chat,
-                  label: 'WhatsApp',
-                  color: Colors.green,
-                  onTap: () {
-                    Get.back();
-                    // Share via WhatsApp
-                  },
-                ),
-                _buildProfileShareOption(
-                  icon: Icons.send,
-                  label: 'Telegram',
-                  color: Colors.blue,
-                  onTap: () {
-                    Get.back();
-                    // Share via Telegram
-                  },
-                ),
-                _buildProfileShareOption(
-                  icon: Icons.more_horiz,
-                  label: 'Lainnya',
-                  onTap: () {
-                    Get.back();
-                    // Share via other apps
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+      ShareProfileModal(
+        profileLink: profileLink,
+        username: username,
+        displayName: displayName,
+        avatarUrl: user?.imageUrl,
       ),
       isScrollControlled: true,
-    );
-  }
-
-  Widget _buildProfileShareOption({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: (color ?? AppColors.primary).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color ?? AppColors.primary, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: AppColors.overlayDark,
     );
   }
 

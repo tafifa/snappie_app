@@ -22,8 +22,8 @@ class CommentModel {
   @JsonKey(name: 'total_like')        int? totalLike;
   @JsonKey(name: 'total_reply')       int? totalReply;
 
-  @JsonKey(name: 'created_at')        String? createdAt;
-  @JsonKey(name: 'updated_at')        String? updatedAt;
+  @JsonKey(name: 'created_at')        DateTime? createdAt;
+  @JsonKey(name: 'updated_at')        DateTime? updatedAt;
 
   UserComment? user;
 
@@ -39,6 +39,7 @@ class CommentModel {
 class UserComment {
   int? id;
   String? name;
+  String? username;
   @JsonKey(name: 'image_url') String? imageUrl;
 
   UserComment();

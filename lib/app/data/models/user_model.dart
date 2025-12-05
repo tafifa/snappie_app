@@ -96,10 +96,10 @@ class UserPreferences {
 @embedded
 class UserSaved {
   @JsonKey(name: 'saved_places')   
-  List<int>? savedPlaces;
+  List<SavedPlacePreview>? savedPlaces;
   
   @JsonKey(name: 'saved_posts')    
-  List<int>? savedPosts;
+  List<SavedPostPreview>? savedPosts;
   
   @JsonKey(name: 'saved_articles') 
   List<int>? savedArticles;
@@ -110,6 +110,46 @@ class UserSaved {
       _$UserSavedFromJson(json);
   
   Map<String, dynamic> toJson() => _$UserSavedToJson(this);
+}
+
+/// Preview model for saved places (lightweight)
+@JsonSerializable()
+@embedded
+class SavedPlacePreview {
+  int? id;
+  String? name;
+  @JsonKey(name: 'image_url')
+  String? imageUrl;
+  @JsonKey(name: 'short_description')
+  String? shortDescription;
+  double? rating;
+
+  SavedPlacePreview();
+  
+  factory SavedPlacePreview.fromJson(Map<String, dynamic> json) => 
+      _$SavedPlacePreviewFromJson(json);
+  Map<String, dynamic> toJson() => _$SavedPlacePreviewToJson(this);
+}
+
+/// Preview model for saved posts (lightweight)
+@JsonSerializable()
+@embedded
+class SavedPostPreview {
+  int? id;
+  @JsonKey(name: 'image_url')
+  String? imageUrl;
+  @JsonKey(name: 'content_preview')
+  String? contentPreview;
+  @JsonKey(name: 'user_name')
+  String? userName;
+  @JsonKey(name: 'like_count')
+  int? likeCount;
+
+  SavedPostPreview();
+  
+  factory SavedPostPreview.fromJson(Map<String, dynamic> json) => 
+      _$SavedPostPreviewFromJson(json);
+  Map<String, dynamic> toJson() => _$SavedPostPreviewToJson(this);
 }
 
 @JsonSerializable()
@@ -131,4 +171,49 @@ class UserNotification {
   UserNotification();
   factory UserNotification.fromJson(Map<String, dynamic> json) => _$UserNotificationFromJson(json);
   Map<String, dynamic> toJson() => _$UserNotificationToJson(this);
+}
+
+/// User search result model
+@JsonSerializable()
+class UserSearchItem {
+  int? id;
+  String? name;
+  String? username;
+  @JsonKey(name: 'image_url')
+  String? imageUrl;
+  @JsonKey(name: 'total_follower')
+  int? totalFollower;
+  @JsonKey(name: 'total_following')
+  int? totalFollowing;
+  @JsonKey(name: 'is_followed')
+  bool? isFollowed;
+
+  UserSearchItem();
+  factory UserSearchItem.fromJson(Map<String, dynamic> json) => _$UserSearchItemFromJson(json);
+  Map<String, dynamic> toJson() => _$UserSearchItemToJson(this);
+}
+
+/// Paginated user search result
+@JsonSerializable()
+class UserSearchResult {
+  List<UserSearchItem>? users;
+  SearchPagination? pagination;
+
+  UserSearchResult();
+  factory UserSearchResult.fromJson(Map<String, dynamic> json) => _$UserSearchResultFromJson(json);
+  Map<String, dynamic> toJson() => _$UserSearchResultToJson(this);
+}
+
+@JsonSerializable()
+class SearchPagination {
+  @JsonKey(name: 'current_page')
+  int? currentPage;
+  @JsonKey(name: 'per_page')
+  int? perPage;
+  @JsonKey(name: 'has_more')
+  bool? hasMore;
+
+  SearchPagination();
+  factory SearchPagination.fromJson(Map<String, dynamic> json) => _$SearchPaginationFromJson(json);
+  Map<String, dynamic> toJson() => _$SearchPaginationToJson(this);
 }

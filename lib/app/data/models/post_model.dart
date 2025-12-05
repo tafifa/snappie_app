@@ -64,6 +64,7 @@ class PostModel {
 class UserPost {
   int? id;
   String? name;
+  String? username;
   @JsonKey(name: 'image_url')
   String? imageUrl;
 
@@ -79,7 +80,8 @@ class UserPost {
 class PlacePost {
   int? id;
   String? name;
-  String? description;
+  @JsonKey(name: 'image_urls')
+  List<String>? imageUrls;
 
   PlacePost();
 

@@ -168,6 +168,8 @@ const UserModelSchema = CollectionSchema(
     r'UserDetail': UserDetailSchema,
     r'UserPreferences': UserPreferencesSchema,
     r'UserSaved': UserSavedSchema,
+    r'SavedPlacePreview': SavedPlacePreviewSchema,
+    r'SavedPostPreview': SavedPostPreviewSchema,
     r'UserSettings': UserSettingsSchema,
     r'UserNotification': UserNotificationSchema
   },
@@ -4585,12 +4587,14 @@ const UserSavedSchema = Schema(
     r'savedPlaces': PropertySchema(
       id: 1,
       name: r'savedPlaces',
-      type: IsarType.longList,
+      type: IsarType.objectList,
+      target: r'SavedPlacePreview',
     ),
     r'savedPosts': PropertySchema(
       id: 2,
       name: r'savedPosts',
-      type: IsarType.longList,
+      type: IsarType.objectList,
+      target: r'SavedPostPreview',
     )
   },
   estimateSize: _userSavedEstimateSize,
@@ -4612,15 +4616,31 @@ int _userSavedEstimateSize(
     }
   }
   {
-    final value = object.savedPlaces;
-    if (value != null) {
-      bytesCount += 3 + value.length * 8;
+    final list = object.savedPlaces;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[SavedPlacePreview]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount +=
+              SavedPlacePreviewSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
     }
   }
   {
-    final value = object.savedPosts;
-    if (value != null) {
-      bytesCount += 3 + value.length * 8;
+    final list = object.savedPosts;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[SavedPostPreview]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount +=
+              SavedPostPreviewSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
     }
   }
   return bytesCount;
@@ -4633,8 +4653,18 @@ void _userSavedSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLongList(offsets[0], object.savedArticles);
-  writer.writeLongList(offsets[1], object.savedPlaces);
-  writer.writeLongList(offsets[2], object.savedPosts);
+  writer.writeObjectList<SavedPlacePreview>(
+    offsets[1],
+    allOffsets,
+    SavedPlacePreviewSchema.serialize,
+    object.savedPlaces,
+  );
+  writer.writeObjectList<SavedPostPreview>(
+    offsets[2],
+    allOffsets,
+    SavedPostPreviewSchema.serialize,
+    object.savedPosts,
+  );
 }
 
 UserSaved _userSavedDeserialize(
@@ -4645,8 +4675,18 @@ UserSaved _userSavedDeserialize(
 ) {
   final object = UserSaved();
   object.savedArticles = reader.readLongList(offsets[0]);
-  object.savedPlaces = reader.readLongList(offsets[1]);
-  object.savedPosts = reader.readLongList(offsets[2]);
+  object.savedPlaces = reader.readObjectList<SavedPlacePreview>(
+    offsets[1],
+    SavedPlacePreviewSchema.deserialize,
+    allOffsets,
+    SavedPlacePreview(),
+  );
+  object.savedPosts = reader.readObjectList<SavedPostPreview>(
+    offsets[2],
+    SavedPostPreviewSchema.deserialize,
+    allOffsets,
+    SavedPostPreview(),
+  );
   return object;
 }
 
@@ -4660,9 +4700,19 @@ P _userSavedDeserializeProp<P>(
     case 0:
       return (reader.readLongList(offset)) as P;
     case 1:
-      return (reader.readLongList(offset)) as P;
+      return (reader.readObjectList<SavedPlacePreview>(
+        offset,
+        SavedPlacePreviewSchema.deserialize,
+        allOffsets,
+        SavedPlacePreview(),
+      )) as P;
     case 2:
-      return (reader.readLongList(offset)) as P;
+      return (reader.readObjectList<SavedPostPreview>(
+        offset,
+        SavedPostPreviewSchema.deserialize,
+        allOffsets,
+        SavedPostPreview(),
+      )) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -4852,62 +4902,6 @@ extension UserSavedQueryFilter
   }
 
   QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPlacesElementEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'savedPlaces',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPlacesElementGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'savedPlaces',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPlacesElementLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'savedPlaces',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPlacesElementBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'savedPlaces',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
       savedPlacesLengthEqualTo(int length) {
     return QueryBuilder.apply(this, (query) {
       return query.listLength(
@@ -5014,62 +5008,6 @@ extension UserSavedQueryFilter
   }
 
   QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPostsElementEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'savedPosts',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPostsElementGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'savedPosts',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPostsElementLessThan(
-    int value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'savedPosts',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
-      savedPostsElementBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'savedPosts',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition>
       savedPostsLengthEqualTo(int length) {
     return QueryBuilder.apply(this, (query) {
       return query.listLength(
@@ -5160,7 +5098,1495 @@ extension UserSavedQueryFilter
 }
 
 extension UserSavedQueryObject
-    on QueryBuilder<UserSaved, UserSaved, QFilterCondition> {}
+    on QueryBuilder<UserSaved, UserSaved, QFilterCondition> {
+  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition> savedPlacesElement(
+      FilterQuery<SavedPlacePreview> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'savedPlaces');
+    });
+  }
+
+  QueryBuilder<UserSaved, UserSaved, QAfterFilterCondition> savedPostsElement(
+      FilterQuery<SavedPostPreview> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'savedPosts');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const SavedPlacePreviewSchema = Schema(
+  name: r'SavedPlacePreview',
+  id: 5847008639287594440,
+  properties: {
+    r'id': PropertySchema(
+      id: 0,
+      name: r'id',
+      type: IsarType.long,
+    ),
+    r'imageUrl': PropertySchema(
+      id: 1,
+      name: r'imageUrl',
+      type: IsarType.string,
+    ),
+    r'name': PropertySchema(
+      id: 2,
+      name: r'name',
+      type: IsarType.string,
+    ),
+    r'rating': PropertySchema(
+      id: 3,
+      name: r'rating',
+      type: IsarType.double,
+    ),
+    r'shortDescription': PropertySchema(
+      id: 4,
+      name: r'shortDescription',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _savedPlacePreviewEstimateSize,
+  serialize: _savedPlacePreviewSerialize,
+  deserialize: _savedPlacePreviewDeserialize,
+  deserializeProp: _savedPlacePreviewDeserializeProp,
+);
+
+int _savedPlacePreviewEstimateSize(
+  SavedPlacePreview object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.imageUrl;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.name;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.shortDescription;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _savedPlacePreviewSerialize(
+  SavedPlacePreview object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.id);
+  writer.writeString(offsets[1], object.imageUrl);
+  writer.writeString(offsets[2], object.name);
+  writer.writeDouble(offsets[3], object.rating);
+  writer.writeString(offsets[4], object.shortDescription);
+}
+
+SavedPlacePreview _savedPlacePreviewDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = SavedPlacePreview();
+  object.id = reader.readLongOrNull(offsets[0]);
+  object.imageUrl = reader.readStringOrNull(offsets[1]);
+  object.name = reader.readStringOrNull(offsets[2]);
+  object.rating = reader.readDoubleOrNull(offsets[3]);
+  object.shortDescription = reader.readStringOrNull(offsets[4]);
+  return object;
+}
+
+P _savedPlacePreviewDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLongOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension SavedPlacePreviewQueryFilter
+    on QueryBuilder<SavedPlacePreview, SavedPlacePreview, QFilterCondition> {
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      idIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'id',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      idIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'id',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      idEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      idGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      idLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      idBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'imageUrl',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'imageUrl',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'imageUrl',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'imageUrl',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imageUrl',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      imageUrlIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'imageUrl',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'name',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'name',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'name',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'name',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'name',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'name',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      ratingIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'rating',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      ratingIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'rating',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      ratingEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rating',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      ratingGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rating',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      ratingLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rating',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      ratingBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rating',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'shortDescription',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'shortDescription',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'shortDescription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'shortDescription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'shortDescription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'shortDescription',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'shortDescription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'shortDescription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'shortDescription',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'shortDescription',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'shortDescription',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPlacePreview, SavedPlacePreview, QAfterFilterCondition>
+      shortDescriptionIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'shortDescription',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension SavedPlacePreviewQueryObject
+    on QueryBuilder<SavedPlacePreview, SavedPlacePreview, QFilterCondition> {}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const SavedPostPreviewSchema = Schema(
+  name: r'SavedPostPreview',
+  id: 2689681982873789419,
+  properties: {
+    r'contentPreview': PropertySchema(
+      id: 0,
+      name: r'contentPreview',
+      type: IsarType.string,
+    ),
+    r'id': PropertySchema(
+      id: 1,
+      name: r'id',
+      type: IsarType.long,
+    ),
+    r'imageUrl': PropertySchema(
+      id: 2,
+      name: r'imageUrl',
+      type: IsarType.string,
+    ),
+    r'likeCount': PropertySchema(
+      id: 3,
+      name: r'likeCount',
+      type: IsarType.long,
+    ),
+    r'userName': PropertySchema(
+      id: 4,
+      name: r'userName',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _savedPostPreviewEstimateSize,
+  serialize: _savedPostPreviewSerialize,
+  deserialize: _savedPostPreviewDeserialize,
+  deserializeProp: _savedPostPreviewDeserializeProp,
+);
+
+int _savedPostPreviewEstimateSize(
+  SavedPostPreview object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.contentPreview;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.imageUrl;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.userName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _savedPostPreviewSerialize(
+  SavedPostPreview object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.contentPreview);
+  writer.writeLong(offsets[1], object.id);
+  writer.writeString(offsets[2], object.imageUrl);
+  writer.writeLong(offsets[3], object.likeCount);
+  writer.writeString(offsets[4], object.userName);
+}
+
+SavedPostPreview _savedPostPreviewDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = SavedPostPreview();
+  object.contentPreview = reader.readStringOrNull(offsets[0]);
+  object.id = reader.readLongOrNull(offsets[1]);
+  object.imageUrl = reader.readStringOrNull(offsets[2]);
+  object.likeCount = reader.readLongOrNull(offsets[3]);
+  object.userName = reader.readStringOrNull(offsets[4]);
+  return object;
+}
+
+P _savedPostPreviewDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readLongOrNull(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
+      return (reader.readLongOrNull(offset)) as P;
+    case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension SavedPostPreviewQueryFilter
+    on QueryBuilder<SavedPostPreview, SavedPostPreview, QFilterCondition> {
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'contentPreview',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'contentPreview',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'contentPreview',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'contentPreview',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'contentPreview',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'contentPreview',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'contentPreview',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'contentPreview',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'contentPreview',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'contentPreview',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'contentPreview',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      contentPreviewIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'contentPreview',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      idIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'id',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      idIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'id',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      idEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      idGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      idLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      idBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'imageUrl',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'imageUrl',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'imageUrl',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'imageUrl',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'imageUrl',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imageUrl',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      imageUrlIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'imageUrl',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      likeCountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'likeCount',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      likeCountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'likeCount',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      likeCountEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'likeCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      likeCountGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'likeCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      likeCountLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'likeCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      likeCountBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'likeCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'userName',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'userName',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'userName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'userName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'userName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'userName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'userName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'userName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'userName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'userName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'userName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SavedPostPreview, SavedPostPreview, QAfterFilterCondition>
+      userNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'userName',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension SavedPostPreviewQueryObject
+    on QueryBuilder<SavedPostPreview, SavedPostPreview, QFilterCondition> {}
 
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
@@ -5759,10 +7185,10 @@ Map<String, dynamic> _$UserPreferencesToJson(UserPreferences instance) =>
 
 UserSaved _$UserSavedFromJson(Map<String, dynamic> json) => UserSaved()
   ..savedPlaces = (json['saved_places'] as List<dynamic>?)
-      ?.map((e) => (e as num).toInt())
+      ?.map((e) => SavedPlacePreview.fromJson(e as Map<String, dynamic>))
       .toList()
   ..savedPosts = (json['saved_posts'] as List<dynamic>?)
-      ?.map((e) => (e as num).toInt())
+      ?.map((e) => SavedPostPreview.fromJson(e as Map<String, dynamic>))
       .toList()
   ..savedArticles = (json['saved_articles'] as List<dynamic>?)
       ?.map((e) => (e as num).toInt())
@@ -5772,6 +7198,40 @@ Map<String, dynamic> _$UserSavedToJson(UserSaved instance) => <String, dynamic>{
       'saved_places': instance.savedPlaces,
       'saved_posts': instance.savedPosts,
       'saved_articles': instance.savedArticles,
+    };
+
+SavedPlacePreview _$SavedPlacePreviewFromJson(Map<String, dynamic> json) =>
+    SavedPlacePreview()
+      ..id = (json['id'] as num?)?.toInt()
+      ..name = json['name'] as String?
+      ..imageUrl = json['image_url'] as String?
+      ..shortDescription = json['short_description'] as String?
+      ..rating = (json['rating'] as num?)?.toDouble();
+
+Map<String, dynamic> _$SavedPlacePreviewToJson(SavedPlacePreview instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'image_url': instance.imageUrl,
+      'short_description': instance.shortDescription,
+      'rating': instance.rating,
+    };
+
+SavedPostPreview _$SavedPostPreviewFromJson(Map<String, dynamic> json) =>
+    SavedPostPreview()
+      ..id = (json['id'] as num?)?.toInt()
+      ..imageUrl = json['image_url'] as String?
+      ..contentPreview = json['content_preview'] as String?
+      ..userName = json['user_name'] as String?
+      ..likeCount = (json['like_count'] as num?)?.toInt();
+
+Map<String, dynamic> _$SavedPostPreviewToJson(SavedPostPreview instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'image_url': instance.imageUrl,
+      'content_preview': instance.contentPreview,
+      'user_name': instance.userName,
+      'like_count': instance.likeCount,
     };
 
 UserSettings _$UserSettingsFromJson(Map<String, dynamic> json) => UserSettings()
@@ -5790,4 +7250,54 @@ UserNotification _$UserNotificationFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$UserNotificationToJson(UserNotification instance) =>
     <String, dynamic>{
       'push_notification': instance.pushNotification,
+    };
+
+UserSearchItem _$UserSearchItemFromJson(Map<String, dynamic> json) =>
+    UserSearchItem()
+      ..id = (json['id'] as num?)?.toInt()
+      ..name = json['name'] as String?
+      ..username = json['username'] as String?
+      ..imageUrl = json['image_url'] as String?
+      ..totalFollower = (json['total_follower'] as num?)?.toInt()
+      ..totalFollowing = (json['total_following'] as num?)?.toInt()
+      ..isFollowed = json['is_followed'] as bool?;
+
+Map<String, dynamic> _$UserSearchItemToJson(UserSearchItem instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'username': instance.username,
+      'image_url': instance.imageUrl,
+      'total_follower': instance.totalFollower,
+      'total_following': instance.totalFollowing,
+      'is_followed': instance.isFollowed,
+    };
+
+UserSearchResult _$UserSearchResultFromJson(Map<String, dynamic> json) =>
+    UserSearchResult()
+      ..users = (json['users'] as List<dynamic>?)
+          ?.map((e) => UserSearchItem.fromJson(e as Map<String, dynamic>))
+          .toList()
+      ..pagination = json['pagination'] == null
+          ? null
+          : SearchPagination.fromJson(
+              json['pagination'] as Map<String, dynamic>);
+
+Map<String, dynamic> _$UserSearchResultToJson(UserSearchResult instance) =>
+    <String, dynamic>{
+      'users': instance.users,
+      'pagination': instance.pagination,
+    };
+
+SearchPagination _$SearchPaginationFromJson(Map<String, dynamic> json) =>
+    SearchPagination()
+      ..currentPage = (json['current_page'] as num?)?.toInt()
+      ..perPage = (json['per_page'] as num?)?.toInt()
+      ..hasMore = json['has_more'] as bool?;
+
+Map<String, dynamic> _$SearchPaginationToJson(SearchPagination instance) =>
+    <String, dynamic>{
+      'current_page': instance.currentPage,
+      'per_page': instance.perPage,
+      'has_more': instance.hasMore,
     };

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:snappie_app/app/core/constants/app_colors.dart';
 import 'package:snappie_app/app/core/constants/food_type.dart';
@@ -35,12 +36,14 @@ class ExploreController extends GetxController {
 
   // Place-related reactive variables
   final _isLoading = false.obs;
-  final _places = <PlaceModel>[].obs;
+  final _allPlaces = <PlaceModel>[].obs; // Original list from API
+  final _filteredPlaces = <PlaceModel>[].obs; // Filtered list for display
   final _categories = <String>[].obs;
   final _selectedPlace = Rxn<PlaceModel>();
   final _selectedImageUrls = Rxn<List<String>>();
   final _errorMessage = ''.obs;
   final _searchQuery = ''.obs;
+  final _isSearching = false.obs; // Local search indicator
   final _selectedCategory = ''.obs;
   final _selectedRating = Rxn<int>();
   final _selectedPriceRange = Rxn<String>();
@@ -80,6 +83,9 @@ class ExploreController extends GetxController {
 
 
   Timer? _searchDebounce;
+  
+  // Search text controller
+  final searchTextController = TextEditingController();
 
   // Getters
   bool get isLoading => _isLoading.value;
@@ -91,9 +97,10 @@ class ExploreController extends GetxController {
   bool get isLoadingGalleryPosts => _isLoadingGalleryPosts.value;
   bool get isTogglingFavorite => _isTogglingFavorite.value;
   bool get isLoadingSavedPlaces => _isLoadingSavedPlaces.value;
+  bool get isSearching => _isSearching.value;
   List<int> get savedPlaces => _savedPlaces;
 
-  List<PlaceModel> get places => _places;
+  List<PlaceModel> get places => _filteredPlaces; // Return filtered list
   List<String> get categories => _categories;
   List<ReviewModel> get reviews => _reviews;
   List<ReviewModel> get userReviews => _userReviews;
@@ -151,6 +158,7 @@ class ExploreController extends GetxController {
   @override
   void onClose() {
     _searchDebounce?.cancel();
+    searchTextController.dispose();
     super.onClose();
   }
 
@@ -194,7 +202,7 @@ class ExploreController extends GetxController {
 
   // ===== PLACE METHODS =====
 
-  Future<void> loadPlaces({bool refresh = false}) async {
+  Future<void> loadPlaces({bool refresh = false, bool fromApi = true}) async {
     // Check authentication before loading
     if (!authService.isLoggedIn) {
       _setError('Please login to view places');
@@ -204,7 +212,8 @@ class ExploreController extends GetxController {
     if (refresh) {
       _currentPage.value = 1;
       _hasMoreData.value = true;
-      _places.clear();
+      _allPlaces.clear();
+      _filteredPlaces.clear();
     }
 
     if (!_hasMoreData.value && !refresh) return;
@@ -213,16 +222,16 @@ class ExploreController extends GetxController {
     _clearError();
 
     try {
-      print("Load Places with filters: _searchQuery='${_searchQuery.value}', "
+      print("Load Places with filters: "
           "selectedCategory='${_selectedCategory.value}', "
           "selectedRating=${_selectedRating.value}, "
           "selectedPriceRange='${_selectedPriceRange.value}', "
           "selectedFilter='${_selectedFilter.value}', "
           "selectedLocation=${_selectedLocation.value}");
-      // Load places from repository
+      
+      // Load places from repository - don't include search query (local search)
       final placesList = await placeRepository.getPlaces(
-        perPage: 20,
-        search: _searchQuery.value.isNotEmpty ? _searchQuery.value : null,
+        perPage: 50, // Load more for local search
         minRating: _selectedRating.value?.toDouble(),
         partner: _selectedFilter.value == 'partner' ? true : null,
         popular: _selectedFilter.value == 'popular' ? true : null,
@@ -237,18 +246,17 @@ class ExploreController extends GetxController {
       print(
           'First Place: ${placesList.isNotEmpty ? placesList.first.name : "None"}');
       print(
-          'Firs Place Additional Info: ${placesList.isNotEmpty ? placesList.first.placeAttributes : "None"}');
+          'First Place Additional Info: ${placesList.isNotEmpty ? placesList.first.placeAttributes : "None"}');
 
       if (refresh || _currentPage.value == 1) {
-        print('🔄 Assigning all places to _places');
-        _places.assignAll(placesList);
+        print('🔄 Assigning all places to _allPlaces');
+        _allPlaces.assignAll(placesList);
       } else {
-        print('➕ Adding places to existing _places');
-        _places.addAll(placesList);
+        print('➕ Adding places to existing _allPlaces');
+        _allPlaces.addAll(placesList);
       }
 
-      print('📱 _places length after update: ${_places.length}');
-      print('📱 _places.isEmpty: ${_places.isEmpty}');
+      print('📱 _allPlaces length after update: ${_allPlaces.length}');
 
       if (placesList.isEmpty) {
         _hasMoreData.value = false;
@@ -256,8 +264,8 @@ class ExploreController extends GetxController {
         _currentPage.value++;
       }
 
-      // Force UI update
-      _places.refresh();
+      // Apply local search filter
+      _applyLocalSearch();
     } catch (e) {
       _setError('Failed to load places: $e');
       print('❌ Error loading places: $e');
@@ -289,21 +297,51 @@ class ExploreController extends GetxController {
     _isLoadingCategories.value = false;
   }
 
-  void searchPlaces(String query) {
-    _searchQuery.value = query;
-    loadPlaces(refresh: true);
+  /// Apply local search filter to places
+  void _applyLocalSearch() {
+    List<PlaceModel> result = List.from(_allPlaces);
+
+    // Apply search filter locally
+    if (_searchQuery.value.isNotEmpty) {
+      final query = _searchQuery.value.toLowerCase();
+      result = result.where((place) {
+        final name = place.name?.toLowerCase() ?? '';
+        // final address = place.address?.toLowerCase() ?? '';
+        // final description = place.description?.toLowerCase() ?? '';
+        // final category = place.category?.toLowerCase() ?? '';
+        
+        return name.contains(query);
+            // address.contains(query) ||
+            // description.contains(query) ||
+            // category.contains(query);
+      }).toList();
+    }
+
+    _filteredPlaces.value = result;
+    print('🔍 Filtered places: ${result.length} of ${_allPlaces.length}');
   }
 
-  void handleSearchInput(String query, {Duration delay = const Duration(milliseconds: 900)}) {
+  /// Handle search input with debounce (local search)
+  void handleSearchInput(String query, {Duration delay = const Duration(milliseconds: 300)}) {
     _searchQuery.value = query;
     _searchDebounce?.cancel();
+    
+    // Show searching state immediately if query is not empty
+    if (query.isNotEmpty) {
+      _isSearching.value = true;
+    }
+    
+    // Debounce the actual filter
     _searchDebounce = Timer(delay, () {
-      if (_searchQuery.value.isEmpty) {
-        loadPlaces(refresh: true);
-      } else {
-        searchPlaces(_searchQuery.value);
-      }
+      _applyLocalSearch();
+      _isSearching.value = false;
     });
+  }
+
+  /// Legacy method - now uses local search
+  void searchPlaces(String query) {
+    _searchQuery.value = query;
+    _applyLocalSearch();
   }
 
   void applyFilter(String filter) {
@@ -379,15 +417,27 @@ class ExploreController extends GetxController {
   }
 
   void clearFilters() {
+    _searchDebounce?.cancel();
     _selectedCategory.value = '';
     _searchQuery.value = '';
+    _isSearching.value = false;
     _selectedRating.value = null;
     _selectedPriceRange.value = null;
     _selectedFilter.value = '';
     _selectedLocation.value = null;
     _selectedPlaceValues.clear();
     _selectedFoodTypes.clear();
+    searchTextController.clear(); // Clear the search text field
     loadPlaces(refresh: true);
+  }
+  
+  /// Clear only search query (for search bar X button)
+  void clearSearch() {
+    _searchDebounce?.cancel();
+    _searchQuery.value = '';
+    _isSearching.value = false;
+    searchTextController.clear();
+    _applyLocalSearch();
   }
 
   void loadMorePlaces() {
@@ -628,7 +678,12 @@ class ExploreController extends GetxController {
     _isLoadingSavedPlaces.value = true;
     try {
       final userSaved = await userRepository.getUserSaved();
-      _savedPlaces.assignAll(userSaved.savedPlaces ?? []);
+      // Extract IDs from SavedPlacePreview objects
+      final placeIds = userSaved.savedPlaces
+          ?.where((p) => p.id != null)
+          .map((p) => p.id!)
+          .toList() ?? [];
+      _savedPlaces.assignAll(placeIds);
       print('⭐ Loaded saved places: ${_savedPlaces.length}');
       print('⭐ Saved place IDs: ${_savedPlaces.join(", ")}');
     } catch (e) {
@@ -663,12 +718,12 @@ class ExploreController extends GetxController {
         _savedPlaces.add(placeId);
       }
       
-      // Call toggle API
-      final updatedSaved = await userRepository.toggleSavedPlace(_savedPlaces);
-      print('⭐ Toggled saved place on server $updatedSaved');
+      // Call toggle API - returns list of IDs directly
+      final updatedPlaceIds = await userRepository.toggleSavedPlace(_savedPlaces);
+      print('⭐ Toggled saved place on server $updatedPlaceIds');
       
       // Sync with server response
-      _savedPlaces.assignAll(updatedSaved.savedPlaces ?? []);
+      _savedPlaces.assignAll(updatedPlaceIds);
       
       final isNowSaved = _savedPlaces.contains(placeId);
       print('⭐ Place ${isNowSaved ? "saved" : "unsaved"}: $placeId');

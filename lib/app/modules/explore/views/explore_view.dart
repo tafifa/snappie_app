@@ -22,6 +22,7 @@ class ExploreView extends GetView<ExploreController> {
         hintText: 'Mau makan di mana hari ini?',
         enableGlassmorphism: true,
         margin: const EdgeInsets.only(top: 16),
+        controller: controller.searchTextController,
         onChanged: controller.handleSearchInput,
       ),
       slivers: [
@@ -63,9 +64,9 @@ class ExploreView extends GetView<ExploreController> {
                     child: PromotionalBanner(
                         title: 'Dapatkan lebih banyak!',
                         subtitle: 'Dapatkan hadiah dengan menyelesaikan misi!',
-                        imageAsset: Image.asset('assets/logo/dark-hdpi.png'),
+                        imageAsset: Image.asset('assets/images/gift.png'),
                         size: BannerSize.standard,
-                        showCloseButton: true,
+                        showCloseButton: false,
                         onClose: () => controller.hideBanner(),
                       ),
                   )
@@ -729,10 +730,23 @@ class ExploreView extends GetView<ExploreController> {
   }
 
   String _getFilteredContentTitle() {
-    if (controller.selectedFilter == 'favorit') {
+    // Show search query if searching
+    if (controller.searchQuery.isNotEmpty) {
+      return '"${controller.searchQuery}"';
+    } else if (controller.selectedFilter == 'favorit') {
       return 'Favorit Kami';
     } else if (controller.selectedFilter == 'terlaris') {
       return 'Terlaris';
+    } else if (controller.selectedFilter == 'nearby') {
+      return 'Terdekat';
+    } else if (controller.selectedFilter == 'placeValues') {
+      return 'Tipe Tempat';
+    } else if (controller.selectedFilter == 'foodTypes') {
+      return 'Tipe Kuliner';
+    } else if (controller.selectedRating != null) {
+      return 'Rating ${controller.selectedRating}+';
+    } else if (controller.selectedPriceRange != null) {
+      return 'Harga ${controller.selectedPriceRange}';
     } else {
       return 'Hasil Pencarian';
     }
@@ -805,6 +819,20 @@ class ExploreView extends GetView<ExploreController> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          )
+        // Searching indicator for local search
+        else if (controller.isSearching)
+          SizedBox(
+            height: 100,
+            child: Center(
+              child: Text(
+                'Mencari...',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 16,
+                ),
               ),
             ),
           )

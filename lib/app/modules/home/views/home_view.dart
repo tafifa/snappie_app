@@ -31,7 +31,7 @@ class HomeView extends GetView<HomeController> {
                 child: PromotionalBanner(
                   title: 'Ayo Beraksi!',
                   subtitle: 'Raih XP, Koin, dan hadiah eksklusif lainnya dengan menyelesaikan misi!',
-                  imageAsset: Image.asset('assets/logo/dark-hdpi.png'),
+                  imageAsset: Image.asset('assets/images/target.png'),
                   size: BannerSize.compact,
                   showCloseButton: true,
                   onClose: () => controller.hideBanner(),
@@ -57,6 +57,13 @@ class HomeView extends GetView<HomeController> {
                   onShareTap: () => _sharePost(post),
                   onMoreTap: () => _showPostOptions(post),
                   onPlaceTap: () => Get.toNamed(AppPages.PLACE_DETAIL, arguments: post.place?.id),
+                  onSaveTap: () {
+                    Get.snackbar(
+                      'Info',
+                      'Postingan disimpan',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  },
                 );
               },
               childCount: controller.posts.length,
@@ -98,7 +105,7 @@ class HomeView extends GetView<HomeController> {
           ButtonWidget(
             icon: Icons.person_add_outlined,
             backgroundColor: AppColors.background,
-            onPressed: () => _showNotifications(),
+            onPressed: () => Get.toNamed(AppPages.INVITE_FRIENDS),
           ),
           const SizedBox(width: 8),
           ButtonWidget(
